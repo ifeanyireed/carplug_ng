@@ -11,6 +11,7 @@ import {
   ExploreCar,
 } from "@/components/explore/ExploreVehiclesSection";
 import { BestSellingMakesSection } from "@/components/makes/BestSellingMakesSection";
+import { WhatTheySaidSection } from "@/components/stories/WhatTheySaidSection";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
 
@@ -196,6 +197,9 @@ export default function HomePage() {
 
       {/* Exploring Best Selling Cars Makes Section from UI8.webp */}
       <BestSellingMakesSection onSelectMake={handleSelectBrand} />
+
+      {/* What They Said Video Story Section from UI9.webp */}
+      <WhatTheySaidSection />
 
       {/* Dynamic Search / Browse Results Section */}
       {searchResults !== null && (

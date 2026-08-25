@@ -10,6 +10,7 @@ import {
   ExploreVehiclesSection,
   ExploreCar,
 } from "@/components/explore/ExploreVehiclesSection";
+import { BestSellingMakesSection } from "@/components/makes/BestSellingMakesSection";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
 
@@ -192,6 +193,9 @@ export default function HomePage() {
         onSelectCar={handleSelectExploreCar}
         onToggleFavorite={handleToggleFavorite}
       />
+
+      {/* Exploring Best Selling Cars Makes Section from UI8.webp */}
+      <BestSellingMakesSection onSelectMake={handleSelectBrand} />
 
       {/* Dynamic Search / Browse Results Section */}
       {searchResults !== null && (

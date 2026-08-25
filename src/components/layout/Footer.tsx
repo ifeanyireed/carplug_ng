@@ -134,11 +134,11 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter Email"
-                    className="w-56 sm:w-72 px-4 py-2.5 bg-white rounded-xl text-xs sm:text-sm border border-gray-200/90 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black shadow-sm"
+                    className="w-72 sm:w-80 md:w-96 px-4 py-2.5 bg-white rounded-lg text-xs sm:text-sm border border-gray-200/90 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black shadow-sm"
                   />
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-black text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-neutral-800 transition active:scale-95 shadow-sm"
+                    className="px-5 py-2.5 bg-black text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-neutral-800 transition active:scale-95 shadow-sm"
                   >
                     Submit
                   </button>
@@ -240,11 +240,10 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
           </div>
         </div>
 
-        {/* Repetitive Pattern Watermark ROJO Brand Graphic */}
-        <div className="w-full overflow-hidden pointer-events-none select-none opacity-45 mt-8 pb-10 sm:pb-14 flex items-center justify-center gap-6 sm:gap-12 px-4">
-          <RojoLogo className="h-14 sm:h-18 md:h-22 lg:h-24 w-auto text-white shrink-0" />
-          <RojoLogo className="h-14 sm:h-18 md:h-22 lg:h-24 w-auto text-white shrink-0" />
-          <RojoLogo className="h-14 sm:h-18 md:h-22 lg:h-24 w-auto text-white shrink-0 hidden lg:block" />
+        {/* Repetitive Pattern Watermark ROJO Brand Graphic (Exactly 2 Large Reps) */}
+        <div className="w-full overflow-hidden pointer-events-none select-none opacity-45 mt-8 pb-10 sm:pb-16 flex items-center justify-center gap-8 sm:gap-14 px-4">
+          <RojoLogo className="h-20 sm:h-28 md:h-36 lg:h-44 w-auto text-white shrink-0" />
+          <RojoLogo className="h-20 sm:h-28 md:h-36 lg:h-44 w-auto text-white shrink-0" />
         </div>
       </div>
     </footer>

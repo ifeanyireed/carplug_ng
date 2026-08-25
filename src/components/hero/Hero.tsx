@@ -22,8 +22,8 @@ export const Hero = ({
 
   return (
     <section className="relative w-full">
-      {/* Full-bleed Hero Visual Area spanning continuous background from top down under the search form */}
-      <div className="relative w-full overflow-hidden bg-neutral-900 flex flex-col justify-between pb-8 sm:pb-12 lg:pb-16">
+      {/* Full-bleed Hero Visual Area spanning continuous background from top down under search form */}
+      <div className="relative w-full min-h-[660px] md:min-h-[720px] lg:min-h-[92vh] xl:min-h-[100dvh] overflow-hidden bg-neutral-900 flex flex-col justify-between pb-8 sm:pb-12 lg:pb-16 xl:pb-20">
         
         {/* Background Image: Clean car1.jpeg edge-to-edge covering hero and area under form */}
         <div className="absolute inset-0 z-0 select-none">
@@ -51,7 +51,7 @@ export const Hero = ({
         </div>
 
         {/* Middle Content Area: Headline + Featured Vehicles Badge */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-36 pb-6 sm:pb-8">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 lg:pt-32 xl:pt-40 pb-6 sm:pb-8 lg:pb-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             
             {/* Headline (Bottom Left) - Medium font weight matching UI5 */}

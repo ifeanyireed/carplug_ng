@@ -240,8 +240,8 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
           </div>
         </div>
 
-        {/* Repetitive Pattern Watermark ROJO Brand Graphic (Exactly 2 Large Reps) */}
-        <div className="w-full overflow-hidden pointer-events-none select-none opacity-45 mt-8 pb-10 sm:pb-16 flex items-center justify-center gap-8 sm:gap-14 px-4">
+        {/* Repetitive Pattern Watermark ROJO Brand Graphic (Crisp High-Contrast White) */}
+        <div className="w-full overflow-hidden pointer-events-none select-none opacity-90 mt-8 pb-10 sm:pb-16 flex items-center justify-center gap-8 sm:gap-14 px-4">
           <RojoLogo className="h-20 sm:h-28 md:h-36 lg:h-44 w-auto text-white shrink-0" />
           <RojoLogo className="h-20 sm:h-28 md:h-36 lg:h-44 w-auto text-white shrink-0" />
         </div>

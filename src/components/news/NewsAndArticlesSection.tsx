@@ -87,15 +87,15 @@ export const NewsAndArticlesSection = ({
         </button>
       </div>
 
-      {/* 2-Column Grid Layout matching UI10.webp */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+      {/* 2-Column Grid Layout with Reduced Padding / Gap */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-7 items-start">
         {/* Left Column: Large Featured Article */}
         <div
           onClick={() => onSelectArticle?.(FEATURED_ARTICLE)}
           className="lg:col-span-6 flex flex-col group cursor-pointer"
         >
-          {/* Main Image */}
-          <div className="relative w-full aspect-[16/11] rounded-2xl overflow-hidden bg-gray-100 mb-5 shadow-sm">
+          {/* Main Image with Reduced Corner Radius (rounded-xl) */}
+          <div className="relative w-full aspect-[16/11] rounded-xl overflow-hidden bg-gray-100 mb-4 shadow-sm">
             <Image
               src={FEATURED_ARTICLE.image}
               alt={FEATURED_ARTICLE.imageAlt}
@@ -110,30 +110,31 @@ export const NewsAndArticlesSection = ({
               {FEATURED_ARTICLE.category}
             </span>
 
-            <h3 className="text-xl sm:text-2xl lg:text-[26px] font-bold text-gray-900 tracking-[-0.04em] mt-2 group-hover:text-black transition leading-snug">
+            {/* Title with Reduced Font Weight (font-medium) */}
+            <h3 className="text-xl sm:text-2xl lg:text-[25px] font-medium text-gray-900 tracking-[-0.04em] mt-1.5 group-hover:text-black transition leading-snug">
               {FEATURED_ARTICLE.title}
             </h3>
 
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2.5 line-clamp-3">
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2 line-clamp-3">
               {FEATURED_ARTICLE.excerpt}
             </p>
 
-            <div className="text-xs text-gray-500 font-normal mt-3.5">
+            <div className="text-xs text-gray-500 font-normal mt-3">
               {FEATURED_ARTICLE.date} • {FEATURED_ARTICLE.readTime}
             </div>
           </div>
         </div>
 
-        {/* Right Column: 3 Stacked Articles */}
-        <div className="lg:col-span-6 flex flex-col gap-6">
+        {/* Right Column: 3 Stacked Articles with Reduced Gap */}
+        <div className="lg:col-span-6 flex flex-col gap-3.5 sm:gap-4">
           {SIDE_ARTICLES.map((article) => (
             <div
               key={article.id}
               onClick={() => onSelectArticle?.(article)}
-              className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 group cursor-pointer"
+              className="flex items-center gap-3.5 sm:gap-4 group cursor-pointer"
             >
-              {/* Thumbnail Image */}
-              <div className="relative w-full sm:w-44 lg:w-48 aspect-[16/11] sm:aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 shrink-0 shadow-sm">
+              {/* Thumbnail Image: Perfect Square (equal width and height) + rounded-xl */}
+              <div className="relative w-28 sm:w-32 md:w-36 h-28 sm:h-32 md:h-36 aspect-square rounded-xl overflow-hidden bg-gray-100 shrink-0 shadow-sm">
                 <Image
                   src={article.image}
                   alt={article.imageAlt}
@@ -143,12 +144,13 @@ export const NewsAndArticlesSection = ({
               </div>
 
               {/* Text Content */}
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <span className="text-xs font-semibold text-emerald-700 tracking-wide uppercase">
                   {article.category}
                 </span>
 
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 tracking-[-0.03em] mt-1 group-hover:text-black transition leading-snug">
+                {/* Title with Reduced Font Weight (font-medium) */}
+                <h3 className="text-sm sm:text-base font-medium text-gray-900 tracking-[-0.03em] mt-1 group-hover:text-black transition leading-snug">
                   {article.title}
                 </h3>
 
@@ -156,7 +158,7 @@ export const NewsAndArticlesSection = ({
                   {article.excerpt}
                 </p>
 
-                <div className="text-xs text-gray-500 font-normal mt-2.5">
+                <div className="text-xs text-gray-500 font-normal mt-2">
                   {article.date} • {article.readTime}
                 </div>
               </div>

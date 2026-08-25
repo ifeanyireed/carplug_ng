@@ -1,69 +1,214 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import { Hero } from "@/components/hero/Hero";
+import { SearchFilterState } from "@/components/hero/HeroSearchBox";
+import { SearchResultsDisplay } from "@/components/hero/SearchResultsDisplay";
+import { BrandsRow } from "@/components/browse/BrandsRow";
+import { BrowseByType } from "@/components/browse/BrowseByType";
+import {
+  ExploreVehiclesSection,
+  ExploreCar,
+} from "@/components/explore/ExploreVehiclesSection";
+import { AuthModal } from "@/components/modals/AuthModal";
+import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
+
+export default function HomePage() {
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const [savedBagCount, setSavedBagCount] = useState(2);
+  const [activeFilters, setActiveFilters] = useState<SearchFilterState | null>(
+    null
+  );
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<CarListing[] | null>(null);
+
+  const handleOpenAuth = (mode: "login" | "signup") => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  const handleToggleFavorite = () => {
+    setSavedBagCount((prev) => prev + 1);
+  };
+
+  const handleSearch = (filters: SearchFilterState) => {
+    setActiveFilters(filters);
+    setSelectedBrand(filters.brand !== "All" ? filters.brand : null);
+    setSelectedType(filters.type);
+
+    const filtered = CAR_LISTINGS.filter((car) => {
+      // Category filter
+      if (filters.category === "new" && car.condition !== "New") return false;
+      if (filters.category === "used" && car.condition !== "Used") return false;
+
+      // Brand filter
+      if (
+        filters.brand &&
+        filters.brand !== "All" &&
+        !car.make.toLowerCase().includes(filters.brand.toLowerCase()) &&
+        !filters.brand.toLowerCase().includes(car.make.toLowerCase())
+      ) {
+        // loose match if multiple words
+      }
+
+      // Options filters
+      if (filters.options.hotDeals && !car.badge) return false;
+      if (filters.options.videoAds && !car.hasVideo) return false;
+      if (filters.options.trustedDealers && !car.isTrustedDealer) return false;
+      if (filters.options.rojoCertified && !car.isCertified) return false;
+      if (filters.options.warranty && !car.hasWarranty) return false;
+
+      return true;
+    });
+
+    setSearchResults(filtered);
+
+    // Smooth scroll to results
+    const resultsEl = document.getElementById("search-results");
+    if (resultsEl) {
+      resultsEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleSelectBrand = (brandName: string) => {
+    if (selectedBrand === brandName) {
+      setSelectedBrand(null);
+      setSearchResults(null);
+      return;
+    }
+
+    setSelectedBrand(brandName);
+    const filtered = CAR_LISTINGS.filter((car) =>
+      car.make.toLowerCase().includes(brandName.toLowerCase()) ||
+      brandName.toLowerCase().includes(car.make.toLowerCase())
+    );
+    setSearchResults(filtered);
+
+    const resultsEl = document.getElementById("search-results");
+    if (resultsEl) {
+      resultsEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleSelectType = (typeName: string) => {
+    if (selectedType === typeName) {
+      setSelectedType(null);
+      setSearchResults(null);
+      return;
+    }
+
+    setSelectedType(typeName);
+    const filtered = CAR_LISTINGS.filter(
+      (car) => car.type.toLowerCase() === typeName.toLowerCase()
+    );
+    setSearchResults(filtered.length > 0 ? filtered : CAR_LISTINGS);
+
+    const resultsEl = document.getElementById("search-results");
+    if (resultsEl) {
+      resultsEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleSelectExploreCar = (car: ExploreCar) => {
+    const matched = CAR_LISTINGS.find((c) =>
+      c.name.toLowerCase().includes(car.name.toLowerCase())
+    );
+    if (matched) {
+      setSearchResults([matched]);
+      const resultsEl = document.getElementById("search-results");
+      if (resultsEl) {
+        resultsEl.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilters(null);
+    setSelectedBrand(null);
+    setSelectedType(null);
+    setSearchResults(null);
+  };
+
+  // Generate filter summary string
+  const getFilterSummary = () => {
+    if (selectedBrand) return `Brand: ${selectedBrand}`;
+    if (selectedType) return `Body Type: ${selectedType}`;
+    if (!activeFilters) return "";
+
+    const activeOptions = Object.entries(activeFilters.options)
+      .filter(([_, active]) => active)
+      .map(([key]) => {
+        switch (key) {
+          case "hotDeals":
+            return "Hot Deals";
+          case "videoAds":
+            return "Video Ads";
+          case "trustedDealers":
+            return "Trusted Dealers";
+          case "rojoCertified":
+            return "Rojo Certified";
+          case "warranty":
+            return "Warranty";
+          default:
+            return key;
+        }
+      });
+
+    const parts = [
+      activeFilters.category !== "all" ? `${activeFilters.category.toUpperCase()} Cars` : "All Categories",
+      activeFilters.brand,
+      activeFilters.type,
+      activeFilters.price,
+      ...activeOptions,
+    ];
+    return parts.join(" • ");
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="min-h-screen bg-[#F7F8FA] pb-24 text-neutral-900 selection:bg-neutral-900 selection:text-white">
+      {/* Hero Section with continuous car backdrop and search card */}
+      <Hero
+        onSearch={handleSearch}
+        onOpenAuth={handleOpenAuth}
+        savedCount={savedBagCount}
+      />
+
+      {/* Brand Logos Row from public/images/brands */}
+      <BrandsRow
+        onSelectBrand={handleSelectBrand}
+        selectedBrand={selectedBrand}
+      />
+
+      {/* Browse By Type Section from UI6.webp */}
+      <BrowseByType
+        onSelectType={handleSelectType}
+        selectedType={selectedType}
+      />
+
+      {/* Explore All Vehicles Section from UI7.webp */}
+      <ExploreVehiclesSection
+        onSelectCar={handleSelectExploreCar}
+        onToggleFavorite={handleToggleFavorite}
+      />
+
+      {/* Dynamic Search / Browse Results Section */}
+      {searchResults !== null && (
+        <SearchResultsDisplay
+          results={searchResults}
+          totalCount={CAR_LISTINGS.length}
+          filterSummary={getFilterSummary()}
+          onClearFilters={handleClearFilters}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        initialMode={authMode}
+        onClose={() => setAuthModalOpen(false)}
+      />
+    </main>
   );
 }

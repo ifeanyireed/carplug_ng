@@ -12,6 +12,7 @@ import {
 } from "@/components/explore/ExploreVehiclesSection";
 import { BestSellingMakesSection } from "@/components/makes/BestSellingMakesSection";
 import { WhatTheySaidSection } from "@/components/stories/WhatTheySaidSection";
+import { NewsAndArticlesSection } from "@/components/news/NewsAndArticlesSection";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
 
@@ -200,6 +201,9 @@ export default function HomePage() {
 
       {/* What They Said Video Story Section from UI9.webp */}
       <WhatTheySaidSection />
+
+      {/* News and Articles Section from UI10.webp */}
+      <NewsAndArticlesSection />
 
       {/* Dynamic Search / Browse Results Section */}
       {searchResults !== null && (

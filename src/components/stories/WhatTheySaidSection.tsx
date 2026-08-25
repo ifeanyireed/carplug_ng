@@ -42,9 +42,23 @@ interface StoryCardProps {
 
 const StoryCard = ({ story }: StoryCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(story.initialProgress || 0);
+
+  const handleMouseEnter = () => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,7 +67,7 @@ const StoryCard = ({ story }: StoryCardProps) => {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play();
+      videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
   };
@@ -76,17 +90,19 @@ const StoryCard = ({ story }: StoryCardProps) => {
 
   return (
     <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={togglePlay}
-      className="relative w-full aspect-[3/4] sm:aspect-[3/4.2] rounded-2xl overflow-hidden group cursor-pointer border border-black/5 shadow-sm bg-neutral-900 select-none"
+      className="relative w-full aspect-[3/4] sm:aspect-[3/4.2] rounded-2xl overflow-hidden group cursor-pointer shadow-sm bg-neutral-900 select-none hover:scale-[1.015] sm:hover:scale-[1.02] transition-all duration-300"
     >
-      {/* Video Element */}
+      {/* Video Element (Plays on hover) */}
       <video
         ref={videoRef}
         src={story.videoSrc}
-        autoPlay
         loop
         muted={isMuted}
         playsInline
+        preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
       />
@@ -134,7 +150,7 @@ const StoryCard = ({ story }: StoryCardProps) => {
           </p>
         </div>
 
-        {/* Play / Pause Toggle Button */}
+        {/* Play / Pause Indicator Button */}
         <button
           type="button"
           onClick={togglePlay}
@@ -190,8 +206,8 @@ export const WhatTheySaidSection = () => {
         </div>
       </div>
 
-      {/* 3 Story Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-5">
+      {/* 3 Story Cards Grid with Reduced Gap */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
         {STORIES.map((story, index) => (
           <StoryCard key={story.id} story={story} index={index} />
         ))}

@@ -12,9 +12,7 @@ export interface BestSellingMake {
   imageAlt: string;
   logo: string;
   logoAlt: string;
-  logoIsSvg?: boolean;
   logoClass?: string;
-  logoBg?: string;
   gridSpan: "top" | "bottom";
 }
 
@@ -27,8 +25,6 @@ const BEST_SELLING_MAKES: BestSellingMake[] = [
     imageAlt: "White BMW M6 Coupe",
     logo: "/images/brands/bmw.svg",
     logoAlt: "BMW Logo",
-    logoIsSvg: true,
-    logoBg: "bg-white/15 backdrop-blur-md",
     gridSpan: "top",
   },
   {
@@ -39,8 +35,6 @@ const BEST_SELLING_MAKES: BestSellingMake[] = [
     imageAlt: "White Toyota C-HR",
     logo: "/images/brands/toyota.png",
     logoAlt: "Toyota Logo",
-    logoBg: "bg-[#DC2626]",
-    logoClass: "brightness-0 invert",
     gridSpan: "top",
   },
   {
@@ -51,8 +45,6 @@ const BEST_SELLING_MAKES: BestSellingMake[] = [
     imageAlt: "White Mercedes-Benz C-Class",
     logo: "/images/brands/mercedes.png",
     logoAlt: "Mercedes-Benz Logo",
-    logoBg: "bg-white/15 backdrop-blur-md",
-    logoClass: "brightness-0 invert",
     gridSpan: "bottom",
   },
   {
@@ -63,8 +55,6 @@ const BEST_SELLING_MAKES: BestSellingMake[] = [
     imageAlt: "Green Mini Cooper in City",
     logo: "/images/brands/lexus.png",
     logoAlt: "Lexus Logo",
-    logoBg: "bg-white/15 backdrop-blur-md",
-    logoClass: "brightness-0 invert",
     gridSpan: "bottom",
   },
   {
@@ -75,8 +65,6 @@ const BEST_SELLING_MAKES: BestSellingMake[] = [
     imageAlt: "Grey Ford Ranger Pickup",
     logo: "/images/brands/ford.svg",
     logoAlt: "Ford Logo",
-    logoIsSvg: true,
-    logoBg: "bg-transparent",
     gridSpan: "bottom",
   },
 ];
@@ -112,15 +100,15 @@ export const BestSellingMakesSection = ({
         </div>
       </div>
 
-      {/* Masonry / Asymmetrical Makes Grid */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        {/* Top Row: 2 Large Cards (BMW, Toyota) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+      {/* Seamless Grid (No Gap/Padding between cars) */}
+      <div className="flex flex-col gap-0 overflow-hidden rounded-2xl border border-gray-200/80 shadow-sm">
+        {/* Top Row: 2 Large Cards (BMW, Toyota) with 0 Gap */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
           {topMakes.map((make) => (
             <div
               key={make.id}
               onClick={() => onSelectMake?.(make.name)}
-              className="relative w-full aspect-[16/10] sm:aspect-[16/9.5] rounded-2xl overflow-hidden group cursor-pointer border border-black/5 shadow-sm hover:shadow-md transition-all duration-300"
+              className="relative w-full aspect-[16/10] sm:aspect-[16/9.5] overflow-hidden group cursor-pointer"
             >
               {/* Vehicle Background Image */}
               <Image
@@ -131,23 +119,19 @@ export const BestSellingMakesSection = ({
               />
 
               {/* Bottom Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent z-10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent z-10 pointer-events-none" />
 
-              {/* Card Bottom Meta */}
+              {/* Card Bottom Meta (Logos Standing Alone Without Circular Wrappers) */}
               <div className="absolute bottom-0 inset-x-0 p-5 sm:p-6 z-20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* Brand Icon / Emblem */}
-                  <div
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center p-1.5 shrink-0 ${
-                      make.logoBg || "bg-white/15 backdrop-blur-md"
-                    }`}
-                  >
+                  {/* Standalone Brand Logo */}
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 relative flex items-center justify-center shrink-0">
                     <Image
                       src={make.logo}
                       alt={make.logoAlt}
-                      width={28}
-                      height={28}
-                      className={`object-contain max-h-6 w-auto ${
+                      width={32}
+                      height={32}
+                      className={`object-contain max-h-7 w-auto drop-shadow-md ${
                         make.logoClass || ""
                       }`}
                     />
@@ -155,10 +139,10 @@ export const BestSellingMakesSection = ({
 
                   {/* Brand Name & Price */}
                   <div>
-                    <h3 className="text-lg sm:text-xl font-medium text-white tracking-tight leading-tight">
+                    <h3 className="text-lg sm:text-xl font-medium text-white tracking-tight leading-tight drop-shadow-sm">
                       {make.name}
                     </h3>
-                    <p className="text-xs sm:text-sm text-white/80 font-normal">
+                    <p className="text-xs sm:text-sm text-white/85 font-normal">
                       {make.startingPrice}
                     </p>
                   </div>
@@ -173,13 +157,13 @@ export const BestSellingMakesSection = ({
           ))}
         </div>
 
-        {/* Bottom Row: 3 Medium Cards (Mercedes-Benz, Lexus, Ford) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        {/* Bottom Row: 3 Medium Cards (Mercedes-Benz, Lexus, Ford) with 0 Gap */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-0">
           {bottomMakes.map((make) => (
             <div
               key={make.id}
               onClick={() => onSelectMake?.(make.name)}
-              className="relative w-full aspect-[4/3] sm:aspect-[16/11] rounded-2xl overflow-hidden group cursor-pointer border border-black/5 shadow-sm hover:shadow-md transition-all duration-300"
+              className="relative w-full aspect-[4/3] sm:aspect-[16/11] overflow-hidden group cursor-pointer"
             >
               {/* Vehicle Background Image */}
               <Image
@@ -190,23 +174,19 @@ export const BestSellingMakesSection = ({
               />
 
               {/* Bottom Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent z-10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent z-10 pointer-events-none" />
 
-              {/* Card Bottom Meta */}
+              {/* Card Bottom Meta (Logos Standing Alone Without Circular Wrappers) */}
               <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 z-20 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  {/* Brand Icon / Emblem */}
-                  <div
-                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center p-1.5 shrink-0 ${
-                      make.logoBg || "bg-white/15 backdrop-blur-md"
-                    }`}
-                  >
+                  {/* Standalone Brand Logo */}
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 relative flex items-center justify-center shrink-0">
                     <Image
                       src={make.logo}
                       alt={make.logoAlt}
-                      width={24}
-                      height={24}
-                      className={`object-contain max-h-5 w-auto ${
+                      width={28}
+                      height={28}
+                      className={`object-contain max-h-6 w-auto drop-shadow-md ${
                         make.logoClass || ""
                       }`}
                     />
@@ -214,10 +194,10 @@ export const BestSellingMakesSection = ({
 
                   {/* Brand Name & Price */}
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-white tracking-tight leading-tight">
+                    <h3 className="text-base sm:text-lg font-medium text-white tracking-tight leading-tight drop-shadow-sm">
                       {make.name}
                     </h3>
-                    <p className="text-xs text-white/80 font-normal">
+                    <p className="text-xs text-white/85 font-normal">
                       {make.startingPrice}
                     </p>
                   </div>

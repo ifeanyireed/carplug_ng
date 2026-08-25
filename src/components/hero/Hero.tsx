@@ -23,7 +23,7 @@ export const Hero = ({
   return (
     <section className="relative w-full">
       {/* Full-bleed Hero Visual Area spanning continuous background from top down under search form */}
-      <div className="relative w-full min-h-[660px] md:min-h-[720px] lg:min-h-[92vh] xl:min-h-[100dvh] overflow-hidden bg-neutral-900 flex flex-col justify-between pb-8 sm:pb-12 lg:pb-16 xl:pb-20">
+      <div className="relative w-full min-h-[660px] md:min-h-[720px] lg:min-h-[92vh] xl:min-h-[100dvh] overflow-hidden bg-neutral-900 flex flex-col justify-between pb-6 sm:pb-8 lg:pb-10 xl:pb-12">
         
         {/* Background Image: Clean car1.jpeg edge-to-edge covering hero and area under form */}
         <div className="absolute inset-0 z-0 select-none">
@@ -50,9 +50,11 @@ export const Hero = ({
           />
         </div>
 
-        {/* Middle Content Area: Headline + Featured Vehicles Badge */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 lg:pt-32 xl:pt-40 pb-6 sm:pb-8 lg:pb-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        {/* Bottom-Aligned Hero Content & Search Box Group (tightly coupled directly above the form) */}
+        <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-auto flex flex-col gap-3.5 sm:gap-4">
+          
+          {/* Headline + Featured Vehicles Row (sitting tightly directly above form) */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             
             {/* Headline (Bottom Left) - Medium font weight matching UI5 */}
             <div className="max-w-xl">
@@ -64,7 +66,7 @@ export const Hero = ({
             </div>
 
             {/* Featured Vehicles Play Badge (Bottom Right) */}
-            <div className="flex justify-start md:justify-end pb-1">
+            <div className="flex justify-start md:justify-end pb-0.5">
               <button
                 type="button"
                 onClick={() => setIsVideoModalOpen(true)}
@@ -87,11 +89,10 @@ export const Hero = ({
             </div>
 
           </div>
-        </div>
 
-        {/* Search & Filter Box (Inside Hero container so background image fills the area under the form) */}
-        <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Search & Filter Box */}
           <HeroSearchBox onSearch={onSearch} />
+
         </div>
 
       </div>

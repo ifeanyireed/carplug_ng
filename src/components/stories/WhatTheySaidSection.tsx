@@ -150,7 +150,7 @@ const StoryCard = ({ story }: StoryCardProps) => {
           </p>
         </div>
 
-        {/* Play / Pause Indicator Button */}
+        {/* Play / Pause Indicator Button (Outline variant) */}
         <button
           type="button"
           onClick={togglePlay}
@@ -158,9 +158,9 @@ const StoryCard = ({ story }: StoryCardProps) => {
           className="w-8 h-8 flex items-center justify-center text-white/90 hover:text-white transition active:scale-90"
         >
           {isPlaying ? (
-            <Pause className="w-5 h-5 fill-white stroke-none" />
+            <Pause className="w-5 h-5 stroke-white stroke-[2]" />
           ) : (
-            <Play className="w-5 h-5 fill-white stroke-none translate-x-0.5" />
+            <Play className="w-5 h-5 stroke-white stroke-[2] translate-x-0.5" />
           )}
         </button>
       </div>

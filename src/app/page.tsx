@@ -13,6 +13,7 @@ import {
 import { BestSellingMakesSection } from "@/components/makes/BestSellingMakesSection";
 import { WhatTheySaidSection } from "@/components/stories/WhatTheySaidSection";
 import { NewsAndArticlesSection } from "@/components/news/NewsAndArticlesSection";
+import { Footer } from "@/components/layout/Footer";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
 
@@ -127,6 +128,19 @@ export default function HomePage() {
     }
   };
 
+  const handleSelectFooterModel = (modelName: string) => {
+    const filtered = CAR_LISTINGS.filter((car) =>
+      car.name.toLowerCase().includes(modelName.toLowerCase()) ||
+      modelName.toLowerCase().includes(car.make.toLowerCase())
+    );
+    setSearchResults(filtered.length > 0 ? filtered : CAR_LISTINGS);
+
+    const resultsEl = document.getElementById("search-results");
+    if (resultsEl) {
+      resultsEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   const handleClearFilters = () => {
     setActiveFilters(null);
     setSelectedBrand(null);
@@ -170,50 +184,55 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7F8FA] pb-24 text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Hero Section with continuous car backdrop and search card */}
-      <Hero
-        onSearch={handleSearch}
-        onOpenAuth={handleOpenAuth}
-        savedCount={savedBagCount}
-      />
-
-      {/* Brand Logos Row from public/images/brands */}
-      <BrandsRow
-        onSelectBrand={handleSelectBrand}
-        selectedBrand={selectedBrand}
-      />
-
-      {/* Browse By Type Section from UI6.webp */}
-      <BrowseByType
-        onSelectType={handleSelectType}
-        selectedType={selectedType}
-      />
-
-      {/* Explore All Vehicles Section from UI7.webp */}
-      <ExploreVehiclesSection
-        onSelectCar={handleSelectExploreCar}
-        onToggleFavorite={handleToggleFavorite}
-      />
-
-      {/* Exploring Best Selling Cars Makes Section from UI8.webp */}
-      <BestSellingMakesSection onSelectMake={handleSelectBrand} />
-
-      {/* What They Said Video Story Section from UI9.webp */}
-      <WhatTheySaidSection />
-
-      {/* News and Articles Section from UI10.webp */}
-      <NewsAndArticlesSection />
-
-      {/* Dynamic Search / Browse Results Section */}
-      {searchResults !== null && (
-        <SearchResultsDisplay
-          results={searchResults}
-          totalCount={CAR_LISTINGS.length}
-          filterSummary={getFilterSummary()}
-          onClearFilters={handleClearFilters}
+    <main className="min-h-screen bg-[#F7F8FA] text-neutral-900 selection:bg-neutral-900 selection:text-white flex flex-col justify-between">
+      <div>
+        {/* Hero Section with continuous car backdrop and search card */}
+        <Hero
+          onSearch={handleSearch}
+          onOpenAuth={handleOpenAuth}
+          savedCount={savedBagCount}
         />
-      )}
+
+        {/* Brand Logos Row from public/images/brands */}
+        <BrandsRow
+          onSelectBrand={handleSelectBrand}
+          selectedBrand={selectedBrand}
+        />
+
+        {/* Browse By Type Section from UI6.webp */}
+        <BrowseByType
+          onSelectType={handleSelectType}
+          selectedType={selectedType}
+        />
+
+        {/* Explore All Vehicles Section from UI7.webp */}
+        <ExploreVehiclesSection
+          onSelectCar={handleSelectExploreCar}
+          onToggleFavorite={handleToggleFavorite}
+        />
+
+        {/* Exploring Best Selling Cars Makes Section from UI8.webp */}
+        <BestSellingMakesSection onSelectMake={handleSelectBrand} />
+
+        {/* What They Said Video Story Section from UI9.webp */}
+        <WhatTheySaidSection />
+
+        {/* News and Articles Section from UI10.webp */}
+        <NewsAndArticlesSection />
+
+        {/* Dynamic Search / Browse Results Section */}
+        {searchResults !== null && (
+          <SearchResultsDisplay
+            results={searchResults}
+            totalCount={CAR_LISTINGS.length}
+            filterSummary={getFilterSummary()}
+            onClearFilters={handleClearFilters}
+          />
+        )}
+      </div>
+
+      {/* Footer Section from UI11.webp */}
+      <Footer onSelectModel={handleSelectFooterModel} />
 
       {/* Authentication Modal */}
       <AuthModal

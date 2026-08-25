@@ -87,8 +87,8 @@ export const NewsAndArticlesSection = ({
         </button>
       </div>
 
-      {/* 2-Column Grid Layout with Reduced Padding / Gap */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-7 items-start">
+      {/* 2-Column Grid Layout with Equal Symmetrical Gaps */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Left Column: Large Featured Article */}
         <div
           onClick={() => onSelectArticle?.(FEATURED_ARTICLE)}
@@ -125,13 +125,13 @@ export const NewsAndArticlesSection = ({
           </div>
         </div>
 
-        {/* Right Column: 3 Stacked Articles with Reduced Gap */}
-        <div className="lg:col-span-6 flex flex-col gap-3.5 sm:gap-4">
+        {/* Right Column: 3 Stacked Articles with Equal Padding / Gap */}
+        <div className="lg:col-span-6 flex flex-col gap-6">
           {SIDE_ARTICLES.map((article) => (
             <div
               key={article.id}
               onClick={() => onSelectArticle?.(article)}
-              className="flex items-center gap-3.5 sm:gap-4 group cursor-pointer"
+              className="flex items-center gap-4 sm:gap-5 group cursor-pointer"
             >
               {/* Thumbnail Image: Perfect Square (equal width and height) + rounded-xl */}
               <div className="relative w-28 sm:w-32 md:w-36 h-28 sm:h-32 md:h-36 aspect-square rounded-xl overflow-hidden bg-gray-100 shrink-0 shadow-sm">

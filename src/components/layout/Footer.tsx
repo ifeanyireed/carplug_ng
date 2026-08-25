@@ -109,7 +109,7 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
         </div>
       </div>
 
-      {/* 2. Newsletter, Socials & Watermark Band matching UI11.webp */}
+      {/* 2. Newsletter, Socials & Watermark Band */}
       <div className="w-full bg-[#EAEDF2] pt-10 pb-6 relative overflow-hidden border-t border-gray-200/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Top Row: Newsletter Form & Social Links */}
@@ -240,9 +240,11 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
           </div>
         </div>
 
-        {/* Giant Watermark ROJO Brand Graphic (bottom) matching UI11.webp */}
-        <div className="w-full flex justify-center items-center pointer-events-none select-none opacity-40 mt-6 -mb-6 sm:-mb-10">
-          <RojoLogo className="w-[120%] sm:w-[110%] max-w-none text-white h-auto" />
+        {/* Repetitive Pattern Watermark ROJO Brand Graphic */}
+        <div className="w-full overflow-hidden pointer-events-none select-none opacity-45 mt-8 pb-10 sm:pb-14 flex items-center justify-center gap-6 sm:gap-12 px-4">
+          <RojoLogo className="h-14 sm:h-18 md:h-22 lg:h-24 w-auto text-white shrink-0" />
+          <RojoLogo className="h-14 sm:h-18 md:h-22 lg:h-24 w-auto text-white shrink-0" />
+          <RojoLogo className="h-14 sm:h-18 md:h-22 lg:h-24 w-auto text-white shrink-0 hidden lg:block" />
         </div>
       </div>
     </footer>

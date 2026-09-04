@@ -83,10 +83,21 @@ This document contains the complete inventory of all routes and screen slugs acr
 | **Lead Routing Board** | `/admin/leads` | Inbound buyer demand telemetry, algorithmic technician matching, and manual dispatch overrides |
 | **Listings Moderation** | `/admin/listings` | Automated anomaly detection: ghost listings, duplicate VINs, unrealistic pricing, and reverse image match alerts |
 | **Payments & Escrow** | `/admin/payments` | Financial ledger: inspection escrow deposits, technician bank payouts, and monthly dealer subscription auto-charges |
+| **Advertising Console** | `/admin/advertising` | Campaign approval queue, ad slot controllers, floor pricing overrides, and live telemetry (impressions, clicks, CTR) |
+| **Car Swap Escrow Desk** | `/admin/swaps` | Trade-in equity appraisal review, lien clearance audit, 5% platform subsidy approval, and exchange handover protocol |
 
 ---
 
-## 7. Role-Based Navigation Summary
+## 7. Advertising & Trade-In Portals
+
+| Screen Name | Route Slug | Purpose & Key Features |
+|---|---|---|
+| **Advertise on Verza** | `/advertise` | Self-serve media kit, ad placement showcase (leaderboard, sponsored card, spotlight), audience analytics, and campaign booking form |
+| **Car Swap & Trade-In** | `/swap` / `/buyer/swap` | Interactive 4-step car exchange: instant trade-in appraisal, upgrade selector, 5% subsidy discount, and dual-audit scheduling |
+
+---
+
+## 8. Role-Based Navigation Summary
 
 | User Type | Dedicated Prefix | Primary Landing Screen |
 |---|---|---|

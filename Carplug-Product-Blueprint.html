@@ -609,6 +609,8 @@ footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono';
         <div class="screen-item"><span class="name">Lead Routing Board</span><span class="desc">See a buyer request, potential sellers, and potential technicians, with an override on the auto-match.</span></div>
         <div class="screen-item"><span class="name">Listings &amp; Moderation</span><span class="desc">Flagged vehicles, reported sellers, and content quality control.</span></div>
         <div class="screen-item"><span class="name">Payments Console</span><span class="desc">Inspection fees, lead fees, dealer subscriptions, and refunds.</span></div>
+        <div class="screen-item"><span class="name">Advertising Console</span><span class="desc">Manage advertising slots, review creative submissions, track impressions/clicks, and schedule flight dates.</span></div>
+        <div class="screen-item"><span class="name">Swap &amp; Trade-In Desk</span><span class="desc">Approve trade-in appraisals, verify vehicle liens, confirm discounted cash balances, and arbitrate exchange escrow.</span></div>
       </div>
     </div>
 
@@ -617,6 +619,22 @@ footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono';
       <div class="screen-list">
         <div class="screen-item"><span class="name">Sign Up / Role Select</span><span class="desc">Buyer, private seller, dealer, or technician path chosen at registration.</span></div>
         <div class="screen-item"><span class="name">Identity Verification</span><span class="desc">Required before a private seller or technician can transact.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">12</span><h3>Advertising &amp; brand placements</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Advertise on Verza</span><span class="desc">Public media kit, ad format showcase (sponsored car cards, header banners, brand spotlights), audience stats, and pricing tiers.</span></div>
+        <div class="screen-item"><span class="name">Campaign Booking Wizard</span><span class="desc">Self-serve 4-step builder: campaign objective, geotargeting (Lagos, Abuja, PH), banner creative upload, and Paystack billing.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">13</span><h3>Car swap &amp; trade-in program</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Car Swap Portal</span><span class="desc">Enter current vehicle details, receive instant algorithmic appraisal, browse verified upgrades, and calculate discounted net top-up.</span></div>
+        <div class="screen-item"><span class="name">Swap Tracker &amp; Escrow</span><span class="desc">Multi-stage tracker for trade-in technician inspection, dealer offer confirmation, discounted balance settlement, and lot handover.</span></div>
       </div>
     </div>
   </section>
@@ -687,8 +705,29 @@ footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono';
         <p class="desc">Buyer requests are matched to sellers and technicians by location, availability, rating, and performance — free and paid lead tiers give the platform its core revenue lever.</p>
       </div>
       <div class="module-card" style="margin-bottom:0;">
-        <div class="module-card-head"><h3>Concierge &amp; sell/trade-in</h3></div>
-        <p class="desc">"Find It For Me" sources vehicles the buyer can't find on-platform; "Sell My Car" gives owners a market estimate and routes offers from dealers.</p>
+        <div class="module-card-head"><h3>Concierge &amp; sourcing</h3></div>
+        <p class="desc">"Find It For Me" sources vehicles the buyer can't find on-platform; imports calculator computes USA/Dubai landed costs and customs tariffs.</p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="module-card" style="margin-bottom:0;">
+        <div class="module-card-head"><h3>Advertising &amp; sponsored media</h3><span class="tag" style="background:var(--signal-soft); color:var(--signal);">Monetization</span></div>
+        <p class="desc">Self-serve and enterprise ad placement engine: Category Leaderboards, Sponsored Vehicle Cards, Brand Spotlight takeovers, Paystack checkout, and admin approval workflows.</p>
+        <ul class="module-feature-list" style="grid-template-columns:1fr; margin-top:8px;">
+          <li>Geotargeting by state/city (Lagos, Abuja, Rivers) &amp; vehicle price band</li>
+          <li>Real-time telemetry: impressions, clicks, CTR, and budget pacing</li>
+          <li>Admin control room for creative review and slot pricing overrides</li>
+        </ul>
+      </div>
+      <div class="module-card" style="margin-bottom:0;">
+        <div class="module-card-head"><h3>Car swap &amp; trade-in engine</h3><span class="tag" style="background:var(--growth-soft); color:var(--growth);">High Liquidity</span></div>
+        <p class="desc">Enables car owners to trade in their current car for an upgraded verified vehicle and pay only the discounted net cash difference.</p>
+        <ul class="module-feature-list" style="grid-template-columns:1fr; margin-top:8px;">
+          <li>Algorithmic appraisal calculator with vehicle defect depreciation</li>
+          <li>5% Verza trade-in incentive subsidy deducted from new vehicle price</li>
+          <li>Dual-inspection escrow protocol ensuring clear title transfer and safe lot exchange</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -764,6 +803,34 @@ footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono';
       <div class="flow-step"><span class="num">05a</span><h4 style="font-size:.9rem;">Shop hidden from search</h4></div>
       <div class="flow-arrow">→</div>
       <div class="flow-step" style="border-color:var(--growth);"><span class="num">06a</span><h4 style="font-size:.9rem;">Payment clears</h4><p>Shop restored automatically</p></div>
+    </div>
+
+    <h3 style="font-size:1rem; margin:40px 0 4px;">Flow 5 — Car swap &amp; trade-in journey</h3>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-bottom:4px;">Upgrading a vehicle by trading in an existing one and paying a discounted net top-up.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.9rem;">Appraise current car</h4><p>Condition, mileage, faults</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.9rem;">Instant valuation equity</h4><p>Market benchmark range</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.9rem;">Select upgrade car</h4><p>Verified dealer stock</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">04</span><h4 style="font-size:.9rem;">Discounted top-up</h4><p>Price - Equity - 5% Subsidy</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--signal);"><span class="num">05</span><h4 style="font-size:.9rem;">Dual audit &amp; lot swap</h4><p>Escrow title &amp; keys handover</p></div>
+    </div>
+
+    <h3 style="font-size:1rem; margin:40px 0 4px;">Flow 6 — Advertiser campaign flight</h3>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-bottom:4px;">Self-serve ad booking from placement selection to live performance telemetry.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.9rem;">Select ad format</h4><p>Leaderboard, card, hero</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.9rem;">Geotargeting &amp; dates</h4><p>Lagos, Abuja, PH</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.9rem;">Upload creative</h4><p>Banner, headline, CTA URL</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">04</span><h4 style="font-size:.9rem;">Admin review</h4><p>Brand safety &amp; moderation</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--growth); background:var(--growth-soft);"><span class="num" style="color:var(--growth);">05</span><h4 style="font-size:.9rem;">Live flight &amp; metrics</h4><p>Impressions, clicks, CTR</p></div>
     </div>
   </section>
 
@@ -866,6 +933,21 @@ footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono';
         </div>
         <div class="schema-card"><h4>notifications</h4><span class="schema-desc">Event-driven, per user</span>
           <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>user_id fk, type, payload jsonb</li><li>read_at, created_at</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="schema-domain">
+      <span class="schema-domain-label">Advertising &amp; Car Swap</span>
+      <div class="schema-grid">
+        <div class="schema-card"><h4>ad_campaigns</h4><span class="schema-desc">Advertiser campaign flight</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>advertiser_id, slot_id, format</li><li>budget, spent, impressions, clicks</li><li>target_geo jsonb, status</li></ul>
+        </div>
+        <div class="schema-card"><h4>car_swaps</h4><span class="schema-desc">Trade-in exchange agreement</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>owner_id, target_vehicle_id fk</li><li>trade_in_appraisal, discount_subsidy</li><li>net_top_up_due, escrow_status</li></ul>
+        </div>
+        <div class="schema-card"><h4>swap_appraisals</h4><span class="schema-desc">Trade-in valuation &amp; condition</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>swap_id fk, vehicle_data jsonb</li><li>mileage, condition, inspection_score</li><li>estimated_equity, technician_notes</li></ul>
         </div>
       </div>
     </div>
@@ -980,6 +1062,8 @@ footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono';
           <li>Paid lead access for sellers wanting verified, serious buyers</li>
           <li>Technician access &amp; premium-visibility fees</li>
           <li>Concierge and import-sourcing service fees</li>
+          <li>Advertising &amp; sponsored media (Leaderboard banners, sponsored search cards, brand takeovers)</li>
+          <li>Car swap &amp; trade-in facilitation fee (1.5%–2% on discounted net cash top-up)</li>
         </ul>
       </div>
       <div class="card">

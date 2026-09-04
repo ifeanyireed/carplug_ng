@@ -234,6 +234,20 @@ export const Navbar = ({
             Sell Car
           </Link>
 
+          <Link
+            href="/swap"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-emerald-400 font-medium"
+          >
+            Swap Car
+          </Link>
+
+          <Link
+            href="/advertise"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+          >
+            Advertise
+          </Link>
+
           {/* Dedicated User Portals Dropdown */}
           <div className="relative">
             <button
@@ -301,6 +315,22 @@ export const Navbar = ({
                     className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-red-400 font-medium"
                   >
                     <span>Admin Console</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/swap"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-emerald-400 font-medium"
+                  >
+                    <span>Car Swap &amp; Trade-In</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/advertise"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-sky-400 font-medium"
+                  >
+                    <span>Advertise on Verza</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

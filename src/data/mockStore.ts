@@ -451,8 +451,8 @@ export const MOCK_INSPECTIONS: InspectionReport[] = [
     technicianSummary: "Exceptional specimen. Engine, transmission, and auxiliary systems tested in top quartile. Front lower control arm bushings show slight superficial wear typical of 28k miles on rough roads — budget approximately ₦80k-₦120k for OEM bushings within the next year. Clean title and Tin Can customs docs confirmed genuine.",
     estimatedRepairCostRange: [80000, 140000],
     media: [
-      { type: "image", url: "/images/cars/lexus-is250.webp", caption: "Engine bay top-down view" },
-      { type: "image", url: "/images/cars/audi-a4.webp", caption: "Undercarriage rail inspection" },
+      { type: "image", url: "/images/cars/car15.jpeg", caption: "Engine bay top-down view" },
+      { type: "image", url: "/images/cars/car16.jpeg", caption: "Undercarriage rail inspection" },
     ],
   },
   {
@@ -502,7 +502,7 @@ export const MOCK_INSPECTIONS: InspectionReport[] = [
     technicianSummary: "Solid mechanical baseline. Front stabilizer bar links require replacement (budget ₦45,000 for pair). Front bumper was resprayed for cosmetic stone chips, but chassis rails and radiator support are 100% factory original.",
     estimatedRepairCostRange: [45000, 75000],
     media: [
-      { type: "image", url: "/images/cars/audi-a4.webp", caption: "Stabilizer link inspection" }
+      { type: "image", url: "/images/cars/car13.jpeg", caption: "Stabilizer link inspection" }
     ]
   }
 ];

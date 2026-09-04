@@ -123,7 +123,7 @@ export default async function VehicleDetailPage({
             <div className="bg-white border border-gray-200 rounded-3xl p-3 shadow-xs overflow-hidden">
               <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
                 <img
-                  src={vehicle.images[0] || "/images/cars/audi-a4.webp"}
+                  src={vehicle.images[0] || "/images/cars/car18.jpeg"}
                   alt={vehicle.title}
                   className="w-full h-full object-cover"
                 />

@@ -112,7 +112,7 @@ export default function ComparePage() {
                           </button>
                           <div className="aspect-[16/10] rounded-xl bg-gray-100 overflow-hidden mb-3">
                             <img
-                              src={car.images[0] || "/images/cars/audi-a4.webp"}
+                              src={car.images[0] || "/images/cars/car18.jpeg"}
                               alt={car.title}
                               className="w-full h-full object-cover"
                             />

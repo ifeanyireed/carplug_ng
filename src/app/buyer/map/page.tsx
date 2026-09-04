@@ -137,7 +137,7 @@ export default function MapDiscoveryPage() {
 
                 <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
                   <img
-                    src={selectedCar.images[0] || "/images/cars/audi-a4.webp"}
+                    src={selectedCar.images[0] || "/images/cars/car18.jpeg"}
                     alt={selectedCar.title}
                     className="w-full h-full object-cover"
                   />

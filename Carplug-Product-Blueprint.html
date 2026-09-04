@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verza — Product Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#FAF9F6;
+  --surface:#FFFFFF;
+  --surface-2:#F2F0E9;
+  --ink:#14151F;
+  --ink-soft:#5C5E6B;
+  --ink-faint:#9A9CAA;
+  --line:#E7E4DC;
+  --signal:#2A6BE0;
+  --signal-2:#5C93F0;
+  --signal-soft:#EAF1FD;
+  --ember:#EF8B3C;
+  --ember-soft:#FCEBDA;
+  --growth:#1E9E6B;
+  --growth-soft:#E3F5EC;
+  --rose:#D9555C;
+  --rose-soft:#FBEAEA;
+  --radius-sm:10px;
+  --radius-md:16px;
+  --radius-lg:24px;
+  --shadow-sm:0 1px 2px rgba(20,21,31,.05), 0 1px 1px rgba(20,21,31,.03);
+  --shadow-md:0 10px 26px rgba(20,21,31,.07), 0 2px 8px rgba(20,21,31,.04);
+  --shadow-lg:0 28px 64px rgba(20,21,31,.12), 0 10px 22px rgba(20,21,31,.06);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+body{
+  margin:0; background:var(--canvas); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{ font-family:'Space Grotesk',sans-serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); line-height:1.15; }
+p{ margin:0; }
+a{ color:inherit; text-decoration:none; }
+.mono{ font-family:'IBM Plex Mono',monospace; }
+ul{ margin:0; padding:0; }
+img,svg{ display:block; max-width:100%; }
+::selection{ background:var(--signal-soft); color:var(--signal); }
+:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; border-radius:4px; }
+
+.shell{ display:grid; grid-template-columns:272px 1fr; max-width:1440px; margin:0 auto; }
+.sidebar{
+  position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+  padding:28px 20px 40px; border-right:1px solid var(--line);
+  scrollbar-width:thin;
+}
+.sidebar::-webkit-scrollbar{ width:6px; }
+.sidebar::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
+.brand{ display:flex; align-items:center; gap:10px; padding:6px 10px 22px; }
+.brand-mark{ width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,var(--signal),var(--signal-2)); position:relative; flex:none; }
+.brand-mark::after{ content:""; position:absolute; inset:8px; border:2px solid rgba(255,255,255,.85); border-radius:4px; }
+.brand-name{ font-family:'Space Grotesk'; font-weight:700; font-size:15px; letter-spacing:-0.01em; }
+.brand-sub{ font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-faint); letter-spacing:.04em; }
+
+.nav-group{ margin-bottom:22px; }
+.nav-group-label{ font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-faint); padding:0 10px; margin-bottom:8px; display:block; }
+.nav-link{
+  display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:9px;
+  font-size:13.5px; color:var(--ink-soft); font-weight:500; transition:background .15s ease,color .15s ease;
+  border-left:2px solid transparent;
+}
+.nav-link .dot{ width:5px; height:5px; border-radius:50%; background:var(--ink-faint); flex:none; transition:background .15s ease,transform .15s ease; }
+.nav-link:hover{ background:var(--surface-2); color:var(--ink); }
+.nav-link.active{ background:var(--signal-soft); color:var(--signal); font-weight:600; }
+.nav-link.active .dot{ background:var(--signal); transform:scale(1.4); }
+
+.mobile-bar{ display:none; }
+
+.main{ padding:0 56px 140px; min-width:0; }
+.section{ padding:68px 0; border-bottom:1px solid var(--line); scroll-margin-top:20px; }
+.section:last-of-type{ border-bottom:none; }
+.section-head{ margin-bottom:36px; }
+.eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Mono'; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:16px; }
+.eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--signal); }
+.eyebrow.ember .dot{ background:var(--ember); }
+.eyebrow.growth .dot{ background:var(--growth); }
+.section h2{ font-size:clamp(1.55rem,2.6vw,2.1rem); margin-bottom:14px; }
+.section-lede{ color:var(--ink-soft); max-width:70ch; font-size:1.02rem; }
+
+.reveal{ opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease; }
+.reveal.in-view{ opacity:1; transform:translateY(0); }
+
+.hero{ padding:64px 0 56px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1.15fr .85fr; gap:52px; align-items:center; }
+.hero-eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Mono'; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--signal); background:var(--signal-soft); padding:7px 13px; border-radius:999px; }
+.hero-eyebrow .pulse{ width:6px; height:6px; border-radius:50%; background:var(--signal); animation:pulse 2s infinite; }
+@keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+.hero h1{ font-size:clamp(2.3rem,4vw,3.5rem); margin:20px 0 18px; }
+.hero h1 em{ font-style:normal; color:var(--signal); }
+.hero .lede{ font-size:1.13rem; color:var(--ink-soft); max-width:56ch; }
+.hero-meta{ display:flex; gap:10px; margin-top:30px; flex-wrap:wrap; }
+.meta-chip{ border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:9px 14px; font-size:12.5px; font-family:'IBM Plex Mono'; color:var(--ink-soft); }
+.meta-chip b{ color:var(--ink); }
+
+.dash-preview{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:18px; position:relative; }
+.dash-chrome{ display:flex; align-items:center; gap:6px; margin-bottom:14px; padding:0 2px; }
+.dash-chrome .cdot{ width:8px; height:8px; border-radius:50%; background:var(--line); }
+.dash-chrome .clabel{ margin-left:8px; font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-faint); letter-spacing:.05em; }
+.dash-card{ background:var(--surface-2); border-radius:var(--radius-md); padding:14px 16px; }
+.dash-row{ display:flex; gap:10px; margin-bottom:10px; }
+.dash-row:last-child{ margin-bottom:0; }
+.avatar-stack{ display:flex; align-items:center; }
+.avatar{ width:26px; height:26px; border-radius:50%; border:2px solid var(--surface-2); margin-left:-8px; position:relative; flex:none; }
+.avatar:first-child{ margin-left:0; }
+.avatar.a1{ background:var(--signal); } .avatar.a2{ background:var(--ember); } .avatar.a3{ background:var(--growth); } .avatar.a4{ background:#B7C8F0; }
+.avatar .live{ position:absolute; bottom:-1px; right:-1px; width:8px; height:8px; border-radius:50%; background:var(--growth); border:2px solid var(--surface-2); }
+.presence-text{ font-size:12px; color:var(--ink-soft); margin-left:10px; align-self:center; }
+.presence-text b{ color:var(--ink); }
+.dash-card.split{ flex:1; display:flex; flex-direction:column; gap:2px; }
+.streak-flame{ display:flex; align-items:center; gap:8px; }
+.streak-num{ font-family:'Space Grotesk'; font-size:22px; font-weight:700; color:var(--ink); }
+.streak-label{ font-size:11px; color:var(--ink-soft); }
+.ring{ width:52px; height:52px; border-radius:50%; background:conic-gradient(var(--signal) 0 82%, var(--surface) 82% 100%); display:flex; align-items:center; justify-content:center; flex:none; }
+.ring-inner{ width:38px; height:38px; border-radius:50%; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:600; color:var(--signal); }
+.ring-row{ display:flex; align-items:center; gap:12px; }
+.ring-row .rl{ font-size:11px; color:var(--ink-soft); line-height:1.4; }
+.lb-row{ display:flex; justify-content:space-between; font-size:12px; padding:5px 0; color:var(--ink-soft); }
+.lb-row.me{ background:var(--signal-soft); border-radius:8px; padding:5px 8px; color:var(--signal); font-weight:600; margin:0 -8px; }
+.mentor-quote{ font-size:12.5px; color:var(--ink-soft); font-style:italic; line-height:1.5; }
+.mentor-who{ display:flex; align-items:center; gap:8px; margin-top:8px; }
+.mentor-who .avatar{ margin-left:0; width:20px; height:20px; }
+.mentor-who span{ font-size:11px; color:var(--ink-faint); }
+
+.grid-2{ display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:24px; box-shadow:var(--shadow-sm); transition:transform .18s ease, box-shadow .18s ease; }
+.card:hover{ transform:translateY(-2px); box-shadow:var(--shadow-md); }
+.card h3{ font-size:1.02rem; margin-bottom:8px; }
+.card p{ color:var(--ink-soft); font-size:.92rem; }
+.card .card-tag{ display:inline-block; font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--signal); background:var(--signal-soft); padding:3px 9px; border-radius:6px; margin-bottom:12px; }
+
+.tag{ display:inline-block; font-family:'IBM Plex Mono'; font-size:11px; padding:4px 10px; border-radius:6px; background:var(--surface-2); color:var(--ink-soft); margin:0 6px 6px 0; }
+
+table{ width:100%; border-collapse:collapse; font-size:.9rem; }
+th,td{ padding:13px 14px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+th{ font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase; color:var(--ink-faint); letter-spacing:.06em; font-weight:500; }
+tr:last-child td{ border-bottom:none; }
+.table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface); }
+.table-wrap table{ min-width:640px; }
+.table-wrap .table-wrap{ border:none; }
+
+.chip{ font-family:'IBM Plex Mono'; font-size:10.5px; padding:3px 9px; border-radius:6px; display:inline-block; white-space:nowrap; }
+.chip.high{ background:var(--rose-soft); color:var(--rose); }
+.chip.med{ background:var(--ember-soft); color:var(--ember); }
+.chip.low{ background:var(--growth-soft); color:var(--growth); }
+.check{ color:var(--growth); font-weight:700; }
+.cross{ color:var(--rose); font-weight:700; }
+.partial{ color:var(--ember); font-weight:700; }
+
+footer{ padding:56px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+footer .fbrand{ display:flex; align-items:center; gap:10px; }
+footer p{ color:var(--ink-faint); font-size:12.5px; font-family:'IBM Plex Mono'; }
+
+.flow{ display:flex; align-items:stretch; gap:0; margin-top:20px; }
+.flow-step{ flex:1; min-width:140px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 16px; }
+.flow-step .num{ font-family:'IBM Plex Mono'; font-size:11px; color:var(--signal); margin-bottom:6px; display:block; }
+.flow-step p{ font-size:.82rem; color:var(--ink-soft); margin-top:6px; }
+.flow-arrow{ display:flex; align-items:center; justify-content:center; width:30px; color:var(--ink-faint); font-size:16px; flex:none; }
+.flow-branch-label{ font-family:'IBM Plex Mono'; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin:22px 0 4px; display:block; }
+
+.screen-category{ margin-bottom:38px; }
+.screen-category:last-child{ margin-bottom:0; }
+.screen-category-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.screen-category-head .num-badge{ width:26px; height:26px; border-radius:8px; background:var(--signal-soft); color:var(--signal); font-family:'IBM Plex Mono'; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; }
+.screen-category-head h3{ font-size:1.02rem; }
+.screen-list{ display:grid; grid-template-columns:repeat(2,1fr); gap:0 32px; margin-top:10px; }
+.screen-item{ display:flex; gap:14px; padding:11px 0; border-bottom:1px dashed var(--line); }
+.screen-item .name{ min-width:168px; max-width:168px; font-weight:600; font-size:.86rem; flex:none; }
+.screen-item .desc{ color:var(--ink-soft); font-size:.85rem; }
+
+.module-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:22px; margin-bottom:16px; }
+.module-card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+.module-card h3{ font-size:1.05rem; }
+.module-card .desc{ color:var(--ink-soft); font-size:.9rem; margin-bottom:14px; }
+.module-feature-list{ list-style:none; display:grid; grid-template-columns:repeat(2,1fr); gap:6px 24px; }
+.module-feature-list li{ font-size:.84rem; color:var(--ink-soft); padding-left:14px; position:relative; }
+.module-feature-list li::before{ content:"–"; position:absolute; left:0; color:var(--ink-faint); }
+
+.schema-domain{ margin-bottom:36px; }
+.schema-domain:last-child{ margin-bottom:0; }
+.schema-domain-label{ font-family:'IBM Plex Mono'; font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:14px; display:block; }
+.schema-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.schema-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:18px; }
+.schema-card h4{ font-family:'IBM Plex Mono'; font-size:.88rem; color:var(--signal); margin-bottom:4px; font-weight:600; }
+.schema-card .schema-desc{ font-size:.76rem; color:var(--ink-faint); margin-bottom:10px; }
+.schema-fields{ list-style:none; font-family:'IBM Plex Mono'; font-size:.74rem; color:var(--ink-soft); line-height:1.85; }
+.schema-fields b{ color:var(--ink); font-weight:600; }
+
+.arch-diagram{ display:flex; flex-direction:column; gap:8px; margin-top:24px; }
+.arch-layer{ border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 20px; background:var(--surface); }
+.arch-layer .layer-label{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; display:block; }
+.arch-layer .layer-items{ display:flex; gap:8px; flex-wrap:wrap; }
+.arch-layer .layer-items span{ font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--surface-2); border-radius:6px; padding:5px 10px; color:var(--ink); }
+.arch-layer.accent{ border-color:var(--signal); background:var(--signal-soft); }
+.arch-layer.accent .layer-items span{ background:var(--surface); }
+.stack-col-title{ font-size:.82rem; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.stack-col-title .sw{ width:8px; height:8px; border-radius:2px; }
+
+.price-card{ border:1px solid var(--line); border-radius:var(--radius-lg); padding:26px; background:var(--surface); position:relative; }
+.price-card.featured{ border-color:var(--signal); box-shadow:var(--shadow-md); }
+.price-card .fplan{ position:absolute; top:-11px; right:22px; background:var(--signal); color:#fff; font-family:'IBM Plex Mono'; font-size:10px; padding:4px 10px; border-radius:999px; letter-spacing:.04em; }
+.price-card .plan-name{ font-family:'IBM Plex Mono'; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); }
+.price-card .price{ font-family:'Space Grotesk'; font-size:1.8rem; margin:10px 0 4px; }
+.price-card .price span{ font-size:.85rem; color:var(--ink-faint); font-family:'Inter'; font-weight:400; }
+.price-card .price-note{ font-size:.75rem; color:var(--ink-faint); margin-bottom:16px; display:block; }
+.price-card ul{ list-style:none; font-size:.84rem; color:var(--ink-soft); line-height:2.15; }
+.price-card ul li::before{ content:"✓"; color:var(--growth); margin-right:8px; font-weight:700; }
+
+.timeline{ position:relative; margin-top:30px; padding-left:34px; border-left:2px solid var(--line); }
+.timeline-item{ position:relative; padding-bottom:42px; }
+.timeline-item:last-child{ padding-bottom:0; }
+.timeline-item::before{ content:""; position:absolute; left:-42px; top:3px; width:14px; height:14px; border-radius:50%; background:var(--signal); box-shadow:0 0 0 4px var(--signal-soft); }
+.timeline-item .phase-tag{ font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--signal); font-weight:600; letter-spacing:.03em; }
+.timeline-item h3{ margin:6px 0 6px; font-size:1.08rem; }
+.timeline-item .when{ color:var(--ink-faint); font-size:.8rem; margin-bottom:12px; font-family:'IBM Plex Mono'; }
+.timeline-item .desc{ color:var(--ink-soft); font-size:.9rem; margin-bottom:12px; max-width:70ch; }
+
+.funnel{ display:flex; flex-direction:column; gap:8px; margin-top:22px; }
+.funnel-row{ background:var(--signal-soft); border-radius:9px; padding:13px 20px; font-size:.86rem; display:flex; justify-content:space-between; color:var(--signal); font-weight:600; }
+.funnel-row span:last-child{ font-family:'IBM Plex Mono'; font-weight:400; color:var(--ink-soft); font-size:.8rem; }
+.channel-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:20px; }
+.channel-card .ch-tag{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:block; }
+
+.bar-chart{ display:flex; align-items:flex-end; gap:28px; height:230px; margin-top:26px; padding:0 12px 0; border-bottom:1px solid var(--line); }
+.bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; max-width:120px; }
+.bar-col .value{ font-family:'IBM Plex Mono'; font-size:12px; margin-bottom:8px; color:var(--ink); font-weight:600; }
+.bar{ width:100%; background:linear-gradient(180deg,var(--signal-2),var(--signal)); border-radius:8px 8px 0 0; }
+.bar-col .label{ margin-top:10px; font-size:.8rem; color:var(--ink-soft); font-family:'IBM Plex Mono'; }
+.unit-econ-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:18px; text-align:center; }
+.unit-econ-card .ue-val{ font-family:'Space Grotesk'; font-size:1.5rem; color:var(--signal); }
+.unit-econ-card .ue-label{ font-size:.76rem; color:var(--ink-soft); margin-top:4px; }
+
+.kpi-card{ border:1px solid var(--line); border-radius:var(--radius-md); padding:20px; background:var(--surface); }
+.kpi-card .kpi-value{ font-family:'Space Grotesk'; font-size:1.7rem; color:var(--signal); }
+.kpi-card .kpi-label{ font-size:.82rem; color:var(--ink-soft); margin-top:4px; }
+.kpi-card .kpi-target{ font-family:'IBM Plex Mono'; font-size:.7rem; color:var(--ink-faint); margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+
+.glossary-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:0 32px; }
+.glossary-item{ padding:14px 0; border-bottom:1px dashed var(--line); }
+.glossary-item .term{ font-weight:600; font-size:.9rem; margin-bottom:3px; }
+.glossary-item .def{ font-size:.84rem; color:var(--ink-soft); }
+.glossary-item .not{ font-family:'IBM Plex Mono'; font-size:.72rem; color:var(--ink-faint); }
+
+@media (max-width:980px){
+  .shell{ grid-template-columns:1fr; }
+  .sidebar{ position:fixed; top:0; left:0; right:0; height:auto; max-height:100vh; z-index:50; background:var(--canvas); border-right:none; border-bottom:1px solid var(--line); transform:translateY(-100%); transition:transform .25s ease; padding-top:70px; }
+  .sidebar.open{ transform:translateY(0); overflow-y:auto; }
+  .mobile-bar{ display:flex; position:fixed; top:0; left:0; right:0; height:56px; background:var(--canvas); border-bottom:1px solid var(--line); z-index:60; align-items:center; justify-content:space-between; padding:0 18px; }
+  .mobile-bar .brand{ padding:0; }
+  .menu-btn{ width:36px; height:36px; border-radius:9px; border:1px solid var(--line); background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+  .menu-btn span{ width:16px; height:2px; background:var(--ink); border-radius:2px; }
+  .main{ padding:70px 22px 100px; }
+  .hero{ grid-template-columns:1fr; padding-top:24px; }
+  .grid-2,.grid-3,.grid-4{ grid-template-columns:1fr; }
+  .screen-list{ grid-template-columns:1fr; }
+  .screen-item .name{ min-width:130px; max-width:130px; }
+  .module-feature-list{ grid-template-columns:1fr; }
+  .schema-grid{ grid-template-columns:1fr; }
+  .glossary-grid{ grid-template-columns:1fr; }
+  .flow{ flex-direction:column; }
+  .flow-arrow{ width:100%; height:22px; transform:rotate(90deg); }
+  .bar-chart{ gap:14px; }
+  footer{ padding:32px 22px; }
+}
+</style>
+</head>
+<body>
+
+<div class="mobile-bar">
+  <div class="brand"><div class="brand-mark"></div><div><div class="brand-name">Verza</div></div></div>
+  <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation"><span></span><span></span><span></span></button>
+</div>
+
+<div class="shell">
+<nav class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <div class="brand-name">Verza</div>
+      <div class="brand-sub">PRODUCT BLUEPRINT</div>
+    </div>
+  </div>
+
+  <div class="nav-group">
+    <span class="nav-group-label">Foundation</span>
+    <a class="nav-link" href="#vision"><span class="dot"></span>Vision &amp; philosophy</a>
+    <a class="nav-link" href="#audience"><span class="dot"></span>Audience &amp; personas</a>
+  </div>
+
+  <div class="nav-group">
+    <span class="nav-group-label">People</span>
+    <a class="nav-link" href="#roles"><span class="dot"></span>Roles &amp; responsibilities</a>
+  </div>
+
+  <div class="nav-group">
+    <span class="nav-group-label">Product</span>
+    <a class="nav-link" href="#ia"><span class="dot"></span>Information architecture</a>
+    <a class="nav-link" href="#screens"><span class="dot"></span>Screens directory</a>
+    <a class="nav-link" href="#modules"><span class="dot"></span>Core modules</a>
+    <a class="nav-link" href="#flows"><span class="dot"></span>User flows</a>
+  </div>
+
+  <div class="nav-group">
+    <span class="nav-group-label">Engineering</span>
+    <a class="nav-link" href="#schema"><span class="dot"></span>Data schema</a>
+    <a class="nav-link" href="#architecture"><span class="dot"></span>Tech architecture</a>
+    <a class="nav-link" href="#ai-layer"><span class="dot"></span>AI layer</a>
+  </div>
+
+  <div class="nav-group">
+    <span class="nav-group-label">Business</span>
+    <a class="nav-link" href="#monetization"><span class="dot"></span>Monetization</a>
+    <a class="nav-link" href="#roadmap"><span class="dot"></span>Roadmap</a>
+    <a class="nav-link" href="#gtm"><span class="dot"></span>Go-to-market</a>
+    <a class="nav-link" href="#competitive"><span class="dot"></span>Competitive landscape</a>
+    <a class="nav-link" href="#risks"><span class="dot"></span>Risks &amp; mitigation</a>
+    <a class="nav-link" href="#financials"><span class="dot"></span>Financial projections</a>
+    <a class="nav-link" href="#kpis"><span class="dot"></span>Success metrics</a>
+    <a class="nav-link" href="#glossary"><span class="dot"></span>Glossary</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <section class="hero">
+    <div>
+      <span class="hero-eyebrow"><span class="pulse"></span>Product Blueprint · v1.0</span>
+      <h1>Verza is the <em>trust layer</em> for Nigerian car discovery.</h1>
+      <p class="lede">Not a listing site. A Discovery &amp; Verification Engine — matching buyers with independently inspected, fair-price-scored vehicles from dealers and private sellers, so nobody drives across town to find out the photos lied.</p>
+      <div class="hero-meta">
+        <span class="meta-chip"><b>Prepared for</b> · Reed Breed Technologies</span>
+        <span class="meta-chip"><b>Category</b> · AutoTech / Trust Marketplace</span>
+        <span class="meta-chip"><b>Market</b> · Nigeria → West Africa</span>
+        <span class="meta-chip"><b>Date</b> · September 2026</span>
+      </div>
+    </div>
+    <div class="dash-preview">
+      <div class="dash-chrome"><span class="cdot"></span><span class="cdot"></span><span class="cdot"></span><span class="clabel">VEHICLE DETAIL · LIVE</span></div>
+      <div class="dash-row">
+        <div class="dash-card" style="flex:1;display:flex;align-items:center;">
+          <div class="avatar-stack">
+            <div class="avatar a1"><span class="live"></span></div>
+            <div class="avatar a2"><span class="live"></span></div>
+            <div class="avatar a3"></div>
+          </div>
+          <span class="presence-text"><b>3 technicians</b> available near this car</span>
+        </div>
+      </div>
+      <div class="dash-row">
+        <div class="dash-card split" style="align-items:center;">
+          <div class="ring-row">
+            <div class="ring"><div class="ring-inner">82%</div></div>
+            <span class="rl">Vehicle Health<br>Score</span>
+          </div>
+        </div>
+        <div class="dash-card split">
+          <span class="streak-label">PRICE RATING</span>
+          <div class="streak-flame"><span class="streak-num" style="font-size:16px;color:var(--growth);">🟢 Fair</span></div>
+          <span class="streak-label">₦27m–₦30m market range</span>
+        </div>
+      </div>
+      <div class="dash-row">
+        <div class="dash-card" style="flex:1;">
+          <span class="streak-label">TRUST TIER</span>
+          <div class="lb-row"><span>Documents uploaded</span><span class="mono check">✓</span></div>
+          <div class="lb-row me"><span>Technician inspected</span><span class="mono">In progress</span></div>
+          <div class="lb-row"><span>Premium verified</span><span class="mono">Locked</span></div>
+        </div>
+      </div>
+      <div class="dash-row">
+        <div class="dash-card" style="flex:1;">
+          <p class="mentor-quote">"Suspension shows wear — budget ₦150k–₦250k for bushings. Everything else checks out clean."</p>
+          <div class="mentor-who"><div class="avatar a1" style="width:20px;height:20px;"></div><span>Tech. Musa · inspected 40m ago</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="vision">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>01 · Foundation</span>
+      <h2>Vision &amp; core philosophy</h2>
+      <p class="section-lede">Most car sites in Nigeria sell exposure — a photo, a price, a phone number, and a prayer. Verza doesn't sell listings. It sells certainty: independently verified condition, fair-price scoring, and a controlled connection to the seller, so nobody drives across Lagos only to discover the car was never what the photos promised.</p>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px;">
+      <div class="card">
+        <span class="card-tag">Not this</span>
+        <h3>Photo-and-phone-number listing board</h3>
+        <p>Jiji, Facebook Marketplace, and WhatsApp groups — anyone can post anything, buyers verify nothing until they've already made the trip, and trust is entirely improvised.</p>
+      </div>
+      <div class="card" style="border-color:var(--signal);">
+        <span class="card-tag">This</span>
+        <h3>Discovery, verification &amp; connection engine</h3>
+        <p>Every serious vehicle carries a Trust Tier, a technician-filed Vehicle Health Report, and a Price Score before a buyer ever calls the seller — the platform controls the lead, not just the listing.</p>
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--surface-2); border:none; box-shadow:none;">
+      <p style="font-family:'Space Grotesk'; font-size:1.15rem; color:var(--ink); line-height:1.5;">"How do we let a buyer know exactly what they're getting before they've driven anywhere to see it?" — <span style="color:var(--ink-soft); font-family:'Inter'; font-size:.95rem; font-weight:400;">the single question every screen in Verza must answer.</span></p>
+    </div>
+
+    <div class="grid-4" style="margin-top:20px;">
+      <div class="card"><h3>Verification</h3><p>Independent technicians, not the seller, decide what condition a car is actually in.</p></div>
+      <div class="card"><h3>Transparency</h3><p>Documentation status and price fairness shown plainly, before contact happens.</p></div>
+      <div class="card"><h3>Control</h3><p>The platform routes every lead — sellers and technicians never bypass it for free.</p></div>
+      <div class="card"><h3>Confidence</h3><p>The feeling that makes someone buy a car they've never personally driven off a lot.</p></div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="audience">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Foundation</span>
+      <h2>Target audience</h2>
+      <p class="section-lede">Verza is built for the Nigerian buyer spending ₦3m–₦50m on a used car who has been burned before — not the casual browser scrolling for entertainment.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Buyers</h3>
+        <ul style="list-style:none; font-size:.92rem; color:var(--ink-soft); line-height:2.1;">
+          <li>→ Age 28–55, first car or trading up, cash or bank-financed</li>
+          <li>→ Based in Lagos, Abuja, Port Harcourt, and other urban centers</li>
+          <li>→ Has visited multiple car lots and been misled at least once</li>
+          <li>→ Wants a mechanic's honest opinion but doesn't have one they trust</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sellers &amp; dealers</h3>
+        <ul style="list-style:none; font-size:.92rem; color:var(--ink-soft); line-height:2.1;">
+          <li>→ Independent car lots and multi-brand dealers across major cities</li>
+          <li>→ Private owners selling one vehicle, often for the first time</li>
+          <li>→ Want serious buyer leads, not tire-kickers and time-wasters</li>
+          <li>→ Willing to pay for verified exposure once trust is proven</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:28px;">
+      <span class="eyebrow ember"><span class="dot"></span>What the product must make buyers feel</span>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <span class="tag">"I know what's wrong with it."</span><span class="tag">"This price is fair."</span>
+        <span class="tag">"Nobody's hiding anything."</span><span class="tag">"I didn't waste my Saturday."</span>
+        <span class="tag">"I can trust this seller."</span><span class="tag">"I'm in control of who contacts me."</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="roles">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>02 · People</span>
+      <h2>Roles &amp; responsibilities</h2>
+      <p class="section-lede">Four roles run Verza. Sellers cover both private owners and dealers — their dashboards diverge once a shop is involved.</p>
+    </div>
+    <div class="grid-4">
+      <div class="card">
+        <span class="card-tag" style="background:var(--signal-soft); color:var(--signal);">Buyer</span>
+        <h3>The searcher</h3>
+        <p>Discovers, filters, compares, saves, requests inspections, contacts sellers, and tracks price drops on saved cars.</p>
+      </div>
+      <div class="card">
+        <span class="card-tag" style="background:var(--ember-soft); color:var(--ember);">Seller / Dealer</span>
+        <h3>Private owner or shop</h3>
+        <p>Lists vehicles, uploads documents and media, manages leads and messages, and runs a shop storefront if a dealer.</p>
+      </div>
+      <div class="card">
+        <span class="card-tag" style="background:var(--growth-soft); color:var(--growth);">Technician</span>
+        <h3>The verifier</h3>
+        <p>Accepts inspection requests, runs the structured checklist, files the Vehicle Health Report, and builds a rating.</p>
+      </div>
+      <div class="card">
+        <span class="card-tag" style="background:var(--surface-2); color:var(--ink-soft);">Admin</span>
+        <h3>Platform control</h3>
+        <p>Verifies sellers and technicians, moderates listings, oversees lead routing, and manages payments and disputes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="ia">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>03 · Product</span>
+      <h2>Information architecture</h2>
+      <p class="section-lede">Buyer navigation spans eleven entries; every module below hangs off one of them.</p>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:44px;">
+      <span class="tag" style="background:var(--signal-soft); color:var(--signal);">Home</span>
+      <span class="tag">Search</span><span class="tag">Vehicle Details</span><span class="tag">Compare</span>
+      <span class="tag">Garage</span><span class="tag">Inspections</span><span class="tag">Map</span>
+      <span class="tag">Shops</span><span class="tag">Messages</span><span class="tag">Sell / Concierge</span><span class="tag">Settings</span>
+    </div>
+
+    <span class="eyebrow ember"><span class="dot"></span>The Trust Tier — a listing's verification ladder</span>
+    <div class="flow" style="display:flex; flex-wrap:wrap; gap:0; margin-top:10px;">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.95rem;">Seller Listed</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.95rem;">Documents Uploaded</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.95rem;">Platform Verified</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">04</span><h4 style="font-size:.95rem;">Technician Inspected</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--signal);"><span class="num">05</span><h4 style="font-size:.95rem;">Premium Verified</h4></div>
+    </div>
+    <p style="color:var(--ink-soft); font-size:.88rem; margin-top:14px;">A listing's tier is shown on every card and detail page — buyers can filter by minimum tier before they see a single photo.</p>
+  </section>
+
+  <section class="section reveal" id="screens">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Product</span>
+      <h2>Screens directory</h2>
+      <p class="section-lede">Every screen across the four roles, grouped by the nav category it lives under. This is the full surface area of Verza.</p>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">1</span><h3>Home &amp; discovery</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Home</span><span class="desc">Search bar, "Tell us the car you're looking for", curated rails: verified, recently added, deals near you.</span></div>
+        <div class="screen-item"><span class="name">Search Results</span><span class="desc">Grid or map toggle with trust-tier and price-rating badges on every card.</span></div>
+        <div class="screen-item"><span class="name">Filters Panel</span><span class="desc">Nigerian-specific filters — Tokunbo/Nigerian Used, customs status, number of owners, condition.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">2</span><h3>Vehicle details</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Vehicle Detail Page</span><span class="desc">Gallery, price, trust tier, document status table, and Request Inspection / Contact Seller CTAs.</span></div>
+        <div class="screen-item"><span class="name">Price Intelligence Panel</span><span class="desc">Market range and fairness rating shown against the listed price.</span></div>
+        <div class="screen-item"><span class="name">Vehicle History</span><span class="desc">Import status, registration history, accident disclosure, service history.</span></div>
+        <div class="screen-item"><span class="name">Compare Sheet</span><span class="desc">Side-by-side spec, price score, and inspection comparison across saved vehicles.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">3</span><h3>Inspection &amp; verification</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Choose Inspection</span><span class="desc">Standard, Premium, or Comprehensive tier with pricing.</span></div>
+        <div class="screen-item"><span class="name">Choose Technician</span><span class="desc">Verified technicians near the vehicle — rating, inspections completed, distance, availability.</span></div>
+        <div class="screen-item"><span class="name">Inspection Tracker</span><span class="desc">Live status from accepted through in-progress to report filed.</span></div>
+        <div class="screen-item"><span class="name">Vehicle Health Report</span><span class="desc">Category scores, photos, video, technician recommendation — a shareable asset.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">4</span><h3>Map &amp; garage</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Map View</span><span class="desc">Cars clustered by public area — Lekki, Ikeja, Abuja — exact addresses stay hidden until a viewing is booked.</span></div>
+        <div class="screen-item"><span class="name">Garage</span><span class="desc">Saved cars, collections, and price-drop alerts.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">5</span><h3>Shops (dealer-facing)</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Shop Storefront</span><span class="desc">Logo, rating, verification badge, inventory grid — a dealer's public page.</span></div>
+        <div class="screen-item"><span class="name">Dealer Dashboard</span><span class="desc">Active listings, leads, inspection requests, revenue, shop rating.</span></div>
+        <div class="screen-item"><span class="name">Add Vehicle Wizard</span><span class="desc">Ten-step flow from vehicle type to publish, including document and media upload.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">6</span><h3>Private seller</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Seller Onboarding</span><span class="desc">Identity verification before a private listing goes live.</span></div>
+        <div class="screen-item"><span class="name">My Listings</span><span class="desc">Status, views, saves, and leads on a private seller's own vehicles.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">7</span><h3>Technician app</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Technician Dashboard</span><span class="desc">New requests, upcoming inspections, earnings, rating, performance.</span></div>
+        <div class="screen-item"><span class="name">Inspection Checklist</span><span class="desc">Structured engine, transmission, exterior, interior, suspension, and document checks.</span></div>
+        <div class="screen-item"><span class="name">Report Composer</span><span class="desc">Attach photos, video, audio, and a plain-language recommendation before filing.</span></div>
+        <div class="screen-item"><span class="name">Technician Onboarding</span><span class="desc">Certification, workshop info, service area, and reference checks for admin approval.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">8</span><h3>Messaging &amp; leads</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Contact Seller Sheet</span><span class="desc">Call, WhatsApp, chat, or request-viewing options behind a masked number.</span></div>
+        <div class="screen-item"><span class="name">Conversation Thread</span><span class="desc">Buyer–seller messaging scoped to a single vehicle.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">9</span><h3>Sell &amp; concierge</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Sell My Car</span><span class="desc">Enter details, get an estimated market range, receive dealer offers.</span></div>
+        <div class="screen-item"><span class="name">Find It For Me</span><span class="desc">Concierge request — budget, purpose, and preferences matched against live and off-platform inventory.</span></div>
+        <div class="screen-item"><span class="name">Imported Cars</span><span class="desc">USA/UK/Dubai/Japan sourcing with customs and landing-cost estimates.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">10</span><h3>Admin console</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Verification Queue</span><span class="desc">Review seller documents and technician applications before approval.</span></div>
+        <div class="screen-item"><span class="name">Lead Routing Board</span><span class="desc">See a buyer request, potential sellers, and potential technicians, with an override on the auto-match.</span></div>
+        <div class="screen-item"><span class="name">Listings &amp; Moderation</span><span class="desc">Flagged vehicles, reported sellers, and content quality control.</span></div>
+        <div class="screen-item"><span class="name">Payments Console</span><span class="desc">Inspection fees, lead fees, dealer subscriptions, and refunds.</span></div>
+      </div>
+    </div>
+
+    <div class="screen-category">
+      <div class="screen-category-head"><span class="num-badge">11</span><h3>Cross-cutting: auth &amp; onboarding</h3></div>
+      <div class="screen-list">
+        <div class="screen-item"><span class="name">Sign Up / Role Select</span><span class="desc">Buyer, private seller, dealer, or technician path chosen at registration.</span></div>
+        <div class="screen-item"><span class="name">Identity Verification</span><span class="desc">Required before a private seller or technician can transact.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="modules">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Product</span>
+      <h2>Core modules</h2>
+      <p class="section-lede">The systems that actually deliver the "trust layer" promise — expanded from concept to feature list.</p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-card-head"><h3>Trust Tier &amp; verification engine</h3><span class="tag">Foundation</span></div>
+      <p class="desc">Every listing climbs a five-level ladder rather than being automatically "verified" on day one — this is what makes the badge mean something.</p>
+      <ul class="module-feature-list">
+        <li>Seller Listed</li><li>Documents Uploaded</li>
+        <li>Platform Verified</li><li>Technician Inspected</li>
+        <li>Premium Verified</li><li>Tier shown on every card and detail page</li>
+        <li>Filter search by minimum tier</li><li>Re-verification triggers on price or ownership change</li>
+      </ul>
+    </div>
+
+    <div class="module-card">
+      <div class="module-card-head"><h3>Inspection flow &amp; technician routing</h3><span class="tag" style="background:var(--signal-soft); color:var(--signal);">Differentiator</span></div>
+      <p class="desc">The strongest wedge against classifieds sites — buyers get an independent technician's word, not the seller's.</p>
+      <ul class="module-feature-list">
+        <li><b style="color:var(--ink);">Tiered inspections</b> — Standard, Premium, Comprehensive, priced separately</li>
+        <li><b style="color:var(--ink);">Routing engine</b> — matches by location, availability, rating, experience, and current load</li>
+        <li><b style="color:var(--ink);">Preferred / Premium / Platform Certified</b> technician hierarchy</li>
+        <li><b style="color:var(--ink);">Structured checklist</b> — engine, transmission, exterior, interior, suspension, documentation</li>
+        <li><b style="color:var(--ink);">Vehicle Health Report</b> — scored, photo/video/audio backed, shareable</li>
+      </ul>
+    </div>
+
+    <div class="module-card">
+      <div class="module-card-head"><h3>Price intelligence</h3><span class="tag">AI layer</span></div>
+      <p class="desc">Every vehicle carries a Price Score against a live market range for its make, model, year, and condition — fair, above market, or a deal.</p>
+      <ul class="module-feature-list" style="grid-template-columns:1fr;">
+        <li>Market range computed from comparable active and sold listings</li>
+        <li>Plain-language read: "Suitable for purchase, subject to negotiation on identified defects"</li>
+        <li>Feeds Compare and the AI concierge match score</li>
+      </ul>
+    </div>
+
+    <div class="grid-2">
+      <div class="module-card" style="margin-bottom:0;">
+        <div class="module-card-head"><h3>Geo-privacy</h3><span class="tag">Public vs. exact location</span></div>
+        <p class="desc">Public area shown for discovery ("Lekki Phase 1"); exact address revealed only once a viewing or inspection is booked and the seller accepts.</p>
+      </div>
+      <div class="module-card" style="margin-bottom:0;">
+        <div class="module-card-head"><h3>Masked seller contact</h3><span class="tag">Lead control</span></div>
+        <p class="desc">Phone numbers appear partially masked; Contact Seller opens an in-platform conversation the platform can track and monetize.</p>
+      </div>
+    </div>
+
+    <div class="module-card" style="margin-top:20px;">
+      <div class="module-card-head"><h3>Dealer shop system</h3><span class="tag">UGC growth engine</span></div>
+      <p class="desc">Every dealer gets a storefront with logo, hours, rating, and inventory — the marketplace grows because dealers manage their own shops.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
+        <span class="tag">Basic Shop</span><span class="tag">Pro Shop</span><span class="tag">Premium Shop</span>
+        <span class="tag">Inventory filters</span><span class="tag">Shop analytics</span>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="module-card" style="margin-bottom:0;">
+        <div class="module-card-head"><h3>Lead routing engine</h3></div>
+        <p class="desc">Buyer requests are matched to sellers and technicians by location, availability, rating, and performance — free and paid lead tiers give the platform its core revenue lever.</p>
+      </div>
+      <div class="module-card" style="margin-bottom:0;">
+        <div class="module-card-head"><h3>Concierge &amp; sell/trade-in</h3></div>
+        <p class="desc">"Find It For Me" sources vehicles the buyer can't find on-platform; "Sell My Car" gives owners a market estimate and routes offers from dealers.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="flows">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Product</span>
+      <h2>User flows</h2>
+      <p class="section-lede">The sequences that carry Verza's core promise — order matters here, so these are the only places in this blueprint you'll see numbered steps.</p>
+    </div>
+
+    <h3 style="font-size:1rem; margin-bottom:4px;">Flow 1 — Buyer discovery to inspection request</h3>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-bottom:4px;">The primary journey: discover, evaluate, verify, connect, buy — not search then call.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.9rem;">Search</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.9rem;">Review details</h4><p>Specs, history, documents</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.9rem;">Check price score</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">04</span><h4 style="font-size:.9rem;">Request inspection</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">05</span><h4 style="font-size:.9rem;">Receive report</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--signal);"><span class="num">06</span><h4 style="font-size:.9rem;">Connect &amp; negotiate</h4></div>
+    </div>
+
+    <h3 style="font-size:1rem; margin:40px 0 4px;">Flow 2 — Inspection request to report</h3>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-bottom:4px;">What happens between a buyer clicking Inspect and a report landing in their hands.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.9rem;">Buyer selects tier</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.9rem;">Technician matched</h4><p>Routing engine ranks by fit</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.9rem;">Technician accepts</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">04</span><h4 style="font-size:.9rem;">On-site inspection</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--growth); background:var(--growth-soft);"><span class="num" style="color:var(--growth);">05</span><h4 style="font-size:.9rem;">Report filed &amp; shared</h4></div>
+    </div>
+
+    <h3 style="font-size:1rem; margin:40px 0 4px;">Flow 3 — Listing verification ladder</h3>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-bottom:4px;">A seller's path from a bare listing to a Premium Verified vehicle.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.9rem;">Publish listing</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.9rem;">Upload documents</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.9rem;">Admin verifies</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">04</span><h4 style="font-size:.9rem;">Buyer books inspection</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--signal);"><span class="num">05</span><h4 style="font-size:.9rem;">Premium Verified badge</h4></div>
+    </div>
+
+    <h3 style="font-size:1rem; margin:40px 0 4px;">Flow 4 — Dealer subscription lifecycle</h3>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-bottom:4px;">Billing has to feel fair in a price-sensitive market — grace periods do real work here.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="num">01</span><h4 style="font-size:.9rem;">Active shop plan</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">02</span><h4 style="font-size:.9rem;">Renewal reminder</h4><p>3 days before due date</p></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">03</span><h4 style="font-size:.9rem;">Auto-charge attempt</h4></div>
+    </div>
+    <span class="flow-branch-label" style="color:var(--growth);">If payment succeeds</span>
+    <div class="flow">
+      <div class="flow-step" style="border-color:var(--growth); background:var(--growth-soft);"><h4 style="font-size:.9rem;">Shop stays live</h4><p>Receipt issued automatically</p></div>
+    </div>
+    <span class="flow-branch-label" style="color:var(--rose);">If payment fails</span>
+    <div class="flow">
+      <div class="flow-step"><span class="num">04a</span><h4 style="font-size:.9rem;">Grace period starts</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><span class="num">05a</span><h4 style="font-size:.9rem;">Shop hidden from search</h4></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--growth);"><span class="num">06a</span><h4 style="font-size:.9rem;">Payment clears</h4><p>Shop restored automatically</p></div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="schema">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>04 · Engineering</span>
+      <h2>Data schema</h2>
+      <p class="section-lede">Core entities grouped by domain. PostgreSQL as system of record, Redis for presence/lead-routing state — field lists below are the working contract, not final DDL.</p>
+    </div>
+
+    <div style="margin-bottom:36px;">
+      <span class="eyebrow ember" style="margin-bottom:10px;"><span class="dot"></span>Core loop, end to end</span>
+      <div class="flow">
+        <div class="flow-step"><span class="num mono">vehicles</span></div><div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num mono">leads</span></div><div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num mono">inspections</span></div><div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num mono">inspection_items</span></div><div class="flow-arrow">→</div>
+        <div class="flow-step"><span class="num mono">reviews</span></div><div class="flow-arrow">→</div>
+        <div class="flow-step" style="border-color:var(--signal);"><span class="num mono">conversations</span></div>
+      </div>
+    </div>
+
+    <div class="schema-domain">
+      <span class="schema-domain-label">Identity &amp; access</span>
+      <div class="schema-grid">
+        <div class="schema-card"><h4>users</h4><span class="schema-desc">One row per human on the platform</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>name, email, phone</li><li>role: buyer|private_seller|dealer|dealer_staff|technician|admin|super_admin</li><li>verification_status</li></ul>
+        </div>
+        <div class="schema-card"><h4>sessions</h4><span class="schema-desc">Auth session tokens</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>user_id fk</li><li>device, ip</li><li>expires_at</li></ul>
+        </div>
+        <div class="schema-card"><h4>kyc_documents</h4><span class="schema-desc">Identity verification for sellers &amp; technicians</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>user_id fk, type</li><li>file_url, status</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="schema-domain">
+      <span class="schema-domain-label">Vehicles &amp; listings</span>
+      <div class="schema-grid">
+        <div class="schema-card"><h4>vehicles</h4><span class="schema-desc">Core listing record</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>seller_id fk, make, model, year</li><li>price, mileage, condition</li><li>public_location, exact_location</li><li>trust_tier, status</li></ul>
+        </div>
+        <div class="schema-card"><h4>vehicle_media</h4><span class="schema-desc">Photos &amp; video</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>vehicle_id fk, type</li><li>url, order_index</li></ul>
+        </div>
+        <div class="schema-card"><h4>vehicle_documents</h4><span class="schema-desc">Customs, registration, particulars</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>vehicle_id fk, document_type</li><li>verification_status, file_url</li></ul>
+        </div>
+        <div class="schema-card"><h4>price_scores</h4><span class="schema-desc">Computed market comparison</span>
+          <ul class="schema-fields"><li><b>vehicle_id</b> fk pk</li><li>market_low, market_high</li><li>rating: fair|below|above</li><li>computed_at</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="schema-domain">
+      <span class="schema-domain-label">Verification &amp; inspections</span>
+      <div class="schema-grid">
+        <div class="schema-card"><h4>inspections</h4><span class="schema-desc">A booked inspection job</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>vehicle_id, buyer_id, technician_id fk</li><li>tier, status, scheduled_at</li><li>overall_score</li></ul>
+        </div>
+        <div class="schema-card"><h4>inspection_items</h4><span class="schema-desc">Per-category checklist result</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>inspection_id fk, category</li><li>item, condition, comment</li><li>media_urls</li></ul>
+        </div>
+        <div class="schema-card"><h4>technicians</h4><span class="schema-desc">Profile &amp; standing</span>
+          <ul class="schema-fields"><li><b>user_id</b> fk pk</li><li>certification, service_area</li><li>rating, status</li><li>tier: standard|preferred|premium|certified</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="schema-domain">
+      <span class="schema-domain-label">Shops &amp; leads</span>
+      <div class="schema-grid">
+        <div class="schema-card"><h4>shops</h4><span class="schema-desc">Dealer storefront</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>owner_id fk, name, location</li><li>verification, rating</li><li>plan: basic|pro|premium</li></ul>
+        </div>
+        <div class="schema-card"><h4>leads</h4><span class="schema-desc">Buyer interest routed to a seller</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>buyer_id, vehicle_id, seller_id fk</li><li>source, status</li><li>paid bool</li></ul>
+        </div>
+        <div class="schema-card"><h4>conversations / messages</h4><span class="schema-desc">Buyer–seller threads, scoped per vehicle</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>vehicle_id, buyer_id, seller_id fk</li><li>messages: sender_id, content, sent_at</li></ul>
+        </div>
+        <div class="schema-card"><h4>saved_vehicles</h4><span class="schema-desc">Buyer's Garage</span>
+          <ul class="schema-fields"><li><b>user_id, vehicle_id</b> pk</li><li>saved_at</li><li>last_price_seen</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="schema-domain">
+      <span class="schema-domain-label">Commerce &amp; platform</span>
+      <div class="schema-grid">
+        <div class="schema-card"><h4>payments</h4><span class="schema-desc">Inspection fees, lead fees, shop plans</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>user_id fk, amount, type</li><li>status, provider_ref</li></ul>
+        </div>
+        <div class="schema-card"><h4>subscriptions</h4><span class="schema-desc">Dealer shop billing state</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>shop_id fk, plan_id</li><li>status, renews_at, grace_period_until</li></ul>
+        </div>
+        <div class="schema-card"><h4>concierge_requests</h4><span class="schema-desc">"Find It For Me" briefs</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>buyer_id fk, budget, preferences jsonb</li><li>status</li></ul>
+        </div>
+        <div class="schema-card"><h4>notifications</h4><span class="schema-desc">Event-driven, per user</span>
+          <ul class="schema-fields"><li><b>id</b> uuid pk</li><li>user_id fk, type, payload jsonb</li><li>read_at, created_at</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="architecture">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Engineering</span>
+      <h2>Technical architecture</h2>
+      <p class="section-lede">A pragmatic stack for a platform that needs heavy media, live location, and real-time lead routing from day one.</p>
+    </div>
+
+    <div class="grid-4">
+      <div class="card">
+        <div class="stack-col-title"><span class="sw" style="background:var(--signal);"></span>Frontend</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Next.js (web)</span><span class="tag">React Native (mobile)</span><span class="tag">Map SDK</span></div>
+      </div>
+      <div class="card">
+        <div class="stack-col-title"><span class="sw" style="background:var(--ember);"></span>Backend</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Go microservices</span><span class="tag">REST + WebSockets</span><span class="tag">Background workers</span></div>
+      </div>
+      <div class="card">
+        <div class="stack-col-title"><span class="sw" style="background:var(--growth);"></span>Storage</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">PostgreSQL + PostGIS</span><span class="tag">Redis</span><span class="tag">Object storage + CDN</span></div>
+      </div>
+      <div class="card">
+        <div class="stack-col-title"><span class="sw" style="background:#B7C8F0;"></span>AI services</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Price scoring</span><span class="tag">Concierge matching</span><span class="tag">Vehicle analysis</span></div>
+      </div>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-layer">
+        <span class="layer-label">Client layer</span>
+        <div class="layer-items"><span>Next.js web app</span><span>React Native mobile app</span><span>Map-based discovery UI</span></div>
+      </div>
+      <div class="arch-layer accent">
+        <span class="layer-label">Realtime &amp; edge</span>
+        <div class="layer-items"><span>WebSocket gateway (chat, inspection status, lead updates)</span><span>CDN for photos &amp; video</span></div>
+      </div>
+      <div class="arch-layer">
+        <span class="layer-label">API layer — Go microservices</span>
+        <div class="layer-items"><span>Identity &amp; Access</span><span>Vehicle Catalog</span><span>Verification &amp; Inspection</span><span>Shops &amp; Leads</span><span>Commerce &amp; Billing</span><span>AI Orchestrator</span></div>
+      </div>
+      <div class="arch-layer">
+        <span class="layer-label">Background workers</span>
+        <div class="layer-items"><span>Notification dispatch</span><span>Price score recompute</span><span>Media transcoding</span><span>Lead routing matcher</span><span>Dunning &amp; renewal jobs</span></div>
+      </div>
+      <div class="arch-layer">
+        <span class="layer-label">Data layer</span>
+        <div class="layer-items"><span>PostgreSQL + PostGIS — system of record &amp; geo queries</span><span>Redis — cache, sessions, live routing state</span><span>Object storage — documents, photos, inspection media</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="ai-layer">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Engineering</span>
+      <h2>AI layer</h2>
+      <p class="section-lede">AI exists to translate mechanical and market data into a plain-language verdict a non-mechanic can act on. Every AI feature routes through a shared orchestrator, not disconnected integrations.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>AI job</th><th>Trigger</th><th>Input</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td>Price scoring</td><td>Listing published or price changed</td><td>Make, model, year, mileage, condition, comparable listings</td><td>Market range and fair/above/below rating</td></tr>
+          <tr><td>Vehicle analysis</td><td>Inspection report filed</td><td>Structured checklist + technician notes</td><td>Plain-language summary and estimated repair cost range</td></tr>
+          <tr><td>Concierge matching</td><td>Buyer submits "Find It For Me"</td><td>Budget, purpose, location, preferences</td><td>Ranked matches from live listings and dealer inventory</td></tr>
+          <tr><td>Technician routing</td><td>Inspection requested</td><td>Location, availability, rating, current load</td><td>Ranked technician recommendations</td></tr>
+          <tr><td>Document assist</td><td>Document uploaded</td><td>Customs / registration / particulars scan</td><td>OCR extraction and completeness flag for admin review</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--ink-soft); font-size:.86rem; margin-top:16px; max-width:70ch;">All jobs run asynchronously so a slow generation never blocks a buyer's or technician's UI — they get a notification when output is ready.</p>
+  </section>
+
+  <section class="section reveal" id="monetization">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>05 · Business</span>
+      <h2>Monetization model</h2>
+      <p class="section-lede">Multiple revenue lines without owning a single car — the listing is the entry point, the trust and transaction layer is the product. All figures illustrative planning estimates.</p>
+    </div>
+
+    <div class="grid-3" style="align-items:stretch;">
+      <div class="price-card">
+        <span class="plan-name">Basic Shop</span>
+        <div class="price">₦25,000<span>/mo</span></div>
+        <span class="price-note">Storefront + standard listing exposure</span>
+        <ul><li>Up to 15 active listings</li><li>Standard search placement</li><li>Basic dashboard analytics</li></ul>
+      </div>
+      <div class="price-card featured">
+        <span class="fplan">Core offer</span>
+        <span class="plan-name">Pro Shop</span>
+        <div class="price">₦65,000<span>/mo</span></div>
+        <span class="price-note">Priority placement + verified leads</span>
+        <ul><li>Up to 60 active listings</li><li>Priority search &amp; map placement</li><li>Verified buyer lead access</li><li>Full shop analytics</li></ul>
+      </div>
+      <div class="price-card">
+        <span class="plan-name">Premium Shop</span>
+        <div class="price">₦150,000<span>/mo</span></div>
+        <span class="price-note">Unlimited listings + featured placement</span>
+        <ul><li>Unlimited listings</li><li>Featured homepage placement</li><li>Discounted inspection bundles</li><li>Dedicated account support</li></ul>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:28px;">
+      <div class="card">
+        <h3>Revenue streams</h3>
+        <ul class="module-feature-list" style="grid-template-columns:1fr;">
+          <li>Dealer shop subscriptions across the three tiers above</li>
+          <li>Per-inspection fee, split with the assigned technician</li>
+          <li>Paid lead access for sellers wanting verified, serious buyers</li>
+          <li>Technician access &amp; premium-visibility fees</li>
+          <li>Concierge and import-sourcing service fees</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Billing mechanics</h3>
+        <ul class="module-feature-list" style="grid-template-columns:1fr;">
+          <li>Monthly auto-renewal via Paystack / Flutterwave</li>
+          <li>3-day pre-charge reminder, then a grace period on failure</li>
+          <li>Shop hidden from search during grace, restored on payment</li>
+          <li>Inspection fees held in escrow until report is filed</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="roadmap">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Business</span>
+      <h2>Product roadmap</h2>
+      <p class="section-lede">Four phases from a manually-verified pilot market to an AI-assisted, pan-regional trust layer.</p>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <span class="phase-tag">PHASE 0 · FOUNDATION</span>
+        <h3>Prove the loop in Lagos</h3>
+        <span class="when">Q4 2026</span>
+        <p class="desc">Core listing &amp; search, manual document verification, a small hand-vetted technician pool, Standard inspections only, Paystack payments.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Auth &amp; roles</span><span class="tag">Listings &amp; search</span><span class="tag">Manual verification</span><span class="tag">Standard inspection</span><span class="tag">Payments</span></div>
+      </div>
+      <div class="timeline-item">
+        <span class="phase-tag">PHASE 1 · TRUST ENGINE</span>
+        <h3>Make verification systematic</h3>
+        <span class="when">Q1 2027</span>
+        <p class="desc">Full Trust Tier ladder, technician routing engine, dealer shops and subscriptions, masked contact, in-app messaging, map-based discovery.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Trust Tier ladder</span><span class="tag">Technician routing</span><span class="tag">Dealer shops</span><span class="tag">Map discovery</span></div>
+      </div>
+      <div class="timeline-item">
+        <span class="phase-tag">PHASE 2 · AI LAYER + MOBILE</span>
+        <h3>Score, match, and mobilize</h3>
+        <span class="when">Q2 – Q3 2027</span>
+        <p class="desc">Price intelligence, AI vehicle analysis, concierge matching, native mobile app for buyers, sellers, and technicians.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Price intelligence</span><span class="tag">AI analysis</span><span class="tag">Concierge</span><span class="tag">Mobile app</span></div>
+      </div>
+      <div class="timeline-item">
+        <span class="phase-tag">PHASE 3 · SCALE &amp; MARKETPLACE</span>
+        <h3>Beyond the listing</h3>
+        <span class="when">Q4 2027 →</span>
+        <p class="desc">Imported car marketplace, financing &amp; insurance partnerships, trade-in offers, employer/fleet accounts, first markets outside Nigeria.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;"><span class="tag">Import marketplace</span><span class="tag">Financing &amp; insurance</span><span class="tag">Trade-in</span><span class="tag">Regional expansion</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="gtm">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Business</span>
+      <h2>Go-to-market strategy</h2>
+      <p class="section-lede">Lagos-first, technician-network-led, and anchored on a wedge most listing sites don't have: independently verifiable trust.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="channel-card"><span class="ch-tag">Channel 01</span><h3 style="font-size:.98rem;">Technician network recruitment</h3><p style="font-size:.86rem; color:var(--ink-soft);">Recruit and certify independent auto technicians and workshops first — inspection supply is the credibility engine everything else depends on.</p></div>
+      <div class="channel-card"><span class="ch-tag">Channel 02</span><h3 style="font-size:.98rem;">Dealer lot onboarding</h3><p style="font-size:.86rem; color:var(--ink-soft);">Onboard established Lagos car lots with free Basic Shops for the first cohort, converting to paid once leads prove out.</p></div>
+      <div class="channel-card"><span class="ch-tag">Channel 03</span><h3 style="font-size:.98rem;">Trust-content marketing</h3><p style="font-size:.86rem; color:var(--ink-soft);">Publish real inspection teardown videos and "we caught this before you bought it" stories — the report itself is the marketing asset.</p></div>
+      <div class="channel-card"><span class="ch-tag">Channel 04</span><h3 style="font-size:.98rem;">Referral &amp; buyer incentives</h3><p style="font-size:.86rem; color:var(--ink-soft);">Discounted first inspection for buyers referred by a friend — word of mouth around a good/bad purchase story travels fast.</p></div>
+      <div class="channel-card"><span class="ch-tag">Channel 05</span><h3 style="font-size:.98rem;">SME &amp; agency network</h3><p style="font-size:.86rem; color:var(--ink-soft);">Introduce Verza to Reed Breed Technologies' existing Nigerian SME client base as a first source of dealer partners.</p></div>
+      <div class="channel-card"><span class="ch-tag">Channel 06</span><h3 style="font-size:.98rem;">Fleet &amp; corporate partnerships</h3><p style="font-size:.86rem; color:var(--ink-soft);">Sell verified sourcing and inspection bundles to companies replacing or expanding vehicle fleets.</p></div>
+    </div>
+
+    <div style="margin-top:32px;">
+      <h3 style="font-size:1rem; margin-bottom:6px;">Launch-market funnel</h3>
+      <div class="funnel">
+        <div class="funnel-row"><span>Site visits</span><span>20,000</span></div>
+        <div class="funnel-row" style="width:60%;"><span>Vehicle detail views</span><span>6,500</span></div>
+        <div class="funnel-row" style="width:22%;"><span>Inspection requested</span><span>900</span></div>
+        <div class="funnel-row" style="width:12%;"><span>Purchase reported</span><span>210</span></div>
+      </div>
+      <p style="font-size:.78rem; color:var(--ink-faint); margin-top:10px;" class="mono">Illustrative funnel for a single-city launch quarter</p>
+    </div>
+  </section>
+
+  <section class="section reveal" id="competitive">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Business</span>
+      <h2>Competitive landscape</h2>
+      <p class="section-lede">Verza doesn't compete on listing volume — it competes on whether a buyer can trust what they're seeing before they show up.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Capability</th><th>Verza</th><th>Jiji / Facebook Marketplace</th><th>Autochek-style financing platforms</th><th>WhatsApp / Telegram groups</th></tr></thead>
+        <tbody>
+          <tr><td>Independent technician inspection</td><td class="check">✓</td><td class="cross">✗</td><td class="partial">Partial</td><td class="cross">✗</td></tr>
+          <tr><td>Tiered listing verification</td><td class="check">✓</td><td class="cross">✗</td><td class="partial">Partial</td><td class="cross">✗</td></tr>
+          <tr><td>Price fairness scoring</td><td class="check">✓</td><td class="cross">✗</td><td class="cross">✗</td><td class="cross">✗</td></tr>
+          <tr><td>Controlled, masked seller contact</td><td class="check">✓</td><td class="cross">✗</td><td class="partial">Partial</td><td class="cross">✗</td></tr>
+          <tr><td>Dealer storefront + inventory tools</td><td class="check">✓</td><td class="partial">Partial</td><td class="check">✓</td><td class="cross">✗</td></tr>
+          <tr><td>Buyer concierge sourcing</td><td class="check">✓</td><td class="cross">✗</td><td class="cross">✗</td><td class="partial">Partial</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section reveal" id="risks">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Business</span>
+      <h2>Risks &amp; mitigation</h2>
+      <p class="section-lede">The honest list — including the ways trust itself can be gamed.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="width:22%;">Risk</th><th style="width:10%;">Severity</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Technician collusion or falsified inspection reports</td><td><span class="chip high">High</span></td><td>Random audit re-inspections, photo/video evidence requirements, technician rating decay on disputed reports</td></tr>
+          <tr><td>Buyers and sellers taking the deal off-platform to avoid fees</td><td><span class="chip high">High</span></td><td>Masked contact until a paid inspection or lead is triggered, value-add (trust, escrow-style fee holding) strong enough to justify staying on-platform</td></tr>
+          <tr><td>Chicken-and-egg — not enough verified inventory to attract buyers, or vice versa</td><td><span class="chip high">High</span></td><td>Manually seed one city with hand-vetted dealer inventory before opening self-serve listing</td></tr>
+          <tr><td>Seller document fraud (forged customs or registration papers)</td><td><span class="chip med">Medium</span></td><td>AI document assist flags inconsistencies, human admin review before "Platform Verified" status</td></tr>
+          <tr><td>Inconsistent inspection quality across technicians</td><td><span class="chip med">Medium</span></td><td>Standardized checklist, mandatory certification, buyer feedback rolled into technician rating</td></tr>
+          <tr><td>Low dealer compliance with document upload requirements</td><td><span class="chip med">Medium</span></td><td>Tier gating — undocumented listings rank lower and can't reach Premium Verified</td></tr>
+          <tr><td>Data protection compliance (NDPR) for location and identity data</td><td><span class="chip med">Medium</span></td><td>NDPR-aligned data handling review, exact-location masking by default, clear consent flows</td></tr>
+          <tr><td>Rising infra cost as photo/video inspection media grows</td><td><span class="chip low">Low</span></td><td>CDN + tiered object storage, adaptive media compression</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section reveal" id="financials">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Business</span>
+      <h2>Financial projections</h2>
+      <p class="section-lede">Illustrative planning estimates in Naira (₦), to be replaced with real numbers after the first launch market. Not a forecast guarantee.</p>
+    </div>
+
+    <div class="bar-chart">
+      <div class="bar-col"><span class="value">₦38.0M</span><div class="bar" style="height:20%;"></div><span class="label">Year 1</span></div>
+      <div class="bar-col"><span class="value">₦145.0M</span><div class="bar" style="height:60%;"></div><span class="label">Year 2</span></div>
+      <div class="bar-col"><span class="value">₦410.0M</span><div class="bar" style="height:100%;"></div><span class="label">Year 3</span></div>
+    </div>
+    <p style="font-size:.76rem; color:var(--ink-faint); margin-top:8px;" class="mono">Total revenue by year, bar height relative to Year 3</p>
+
+    <div class="table-wrap" style="margin-top:32px;">
+      <table>
+        <thead><tr><th>Metric</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr></thead>
+        <tbody>
+          <tr><td>Active dealer shops</td><td>60</td><td>220</td><td>560</td></tr>
+          <tr><td>Inspections completed / month (exit rate)</td><td>150</td><td>650</td><td>1,900</td></tr>
+          <tr><td>Shop subscription revenue</td><td>₦18.0M</td><td>₦70.0M</td><td>₦195.0M</td></tr>
+          <tr><td>Inspection &amp; lead fee revenue</td><td>₦16.0M</td><td>₦62.0M</td><td>₦175.0M</td></tr>
+          <tr><td>Concierge / import sourcing revenue</td><td>₦4.0M</td><td>₦13.0M</td><td>₦40.0M</td></tr>
+          <tr><td><b>Total revenue</b></td><td><b>₦38.0M</b></td><td><b>₦145.0M</b></td><td><b>₦410.0M</b></td></tr>
+          <tr><td>Direct costs (technician payouts, infra, AI)</td><td>₦17.0M</td><td>₦58.0M</td><td>₦152.0M</td></tr>
+          <tr><td>Gross margin</td><td>~55%</td><td>~60%</td><td>~63%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-4" style="margin-top:28px;">
+      <div class="unit-econ-card"><div class="ue-val">₦8k</div><div class="ue-label">Avg. revenue per completed inspection</div></div>
+      <div class="unit-econ-card"><div class="ue-val">₦2.5k</div><div class="ue-label">Technician payout cost per inspection</div></div>
+      <div class="unit-econ-card"><div class="ue-val">₦12k</div><div class="ue-label">Blended CAC per active dealer shop</div></div>
+      <div class="unit-econ-card"><div class="ue-val">5–6×</div><div class="ue-label">Target LTV : CAC by Year 2</div></div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="kpis">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Business</span>
+      <h2>Success metrics</h2>
+      <p class="section-lede">The numbers that tell us the "trust layer" promise is actually landing — not just listing count.</p>
+    </div>
+    <div class="grid-4">
+      <div class="kpi-card"><div class="kpi-value">≥90%</div><div class="kpi-label">Inspection completion rate once requested</div><div class="kpi-target mono">vs. requests dropped or abandoned</div></div>
+      <div class="kpi-card"><div class="kpi-value">&lt;24h</div><div class="kpi-label">Technician acceptance-to-completion SLA</div><div class="kpi-target mono">Time from request accepted to report filed</div></div>
+      <div class="kpi-card"><div class="kpi-value">≥35%</div><div class="kpi-label">Detail-view to inspection-request conversion</div><div class="kpi-target mono">On Premium Verified listings</div></div>
+      <div class="kpi-card"><div class="kpi-value">≥60%</div><div class="kpi-label">Share of live listings at Platform Verified or higher</div><div class="kpi-target mono">Measured monthly</div></div>
+      <div class="kpi-card"><div class="kpi-value">≥80%</div><div class="kpi-label">Dealer shop renewal rate</div><div class="kpi-target mono">Month-over-month</div></div>
+      <div class="kpi-card"><div class="kpi-value">≥50 NPS</div><div class="kpi-label">Buyer trust score</div><div class="kpi-target mono">Surveyed post-transaction</div></div>
+      <div class="kpi-card"><div class="kpi-value">&lt;8%</div><div class="kpi-label">Reported off-platform deal leakage</div><div class="kpi-target mono">Self-reported buyer surveys</div></div>
+      <div class="kpi-card"><div class="kpi-value">≥4.6</div><div class="kpi-label">Average technician rating</div><div class="kpi-target mono">Across completed inspections</div></div>
+    </div>
+  </section>
+
+  <section class="section reveal" id="glossary">
+    <div class="section-head">
+      <span class="eyebrow"><span class="dot"></span>Reference</span>
+      <h2>Glossary</h2>
+      <p class="section-lede">The product's own vocabulary — naming choices that carry the philosophy, not just labels.</p>
+    </div>
+    <div class="glossary-grid">
+      <div class="glossary-item"><div class="term">Trust Tier</div><div class="def">The five-level verification ladder every listing climbs.</div><div class="not mono">not: verification badge</div></div>
+      <div class="glossary-item"><div class="term">Vehicle Health Report</div><div class="def">The technician-filed, scored, media-backed inspection output.</div><div class="not mono">not: inspection report</div></div>
+      <div class="glossary-item"><div class="term">Price Score</div><div class="def">A vehicle's price rated against a live comparable-market range.</div><div class="not mono">not: price estimate</div></div>
+      <div class="glossary-item"><div class="term">Garage</div><div class="def">A buyer's saved cars, collections, and price-drop alerts.</div><div class="not mono">not: wishlist / favorites</div></div>
+      <div class="glossary-item"><div class="term">Shop</div><div class="def">A dealer's public storefront with inventory, rating, and hours.</div><div class="not mono">not: dealer profile</div></div>
+      <div class="glossary-item"><div class="term">Lead</div><div class="def">A tracked, routable unit of buyer interest in a specific vehicle.</div><div class="not mono">not: inquiry</div></div>
+      <div class="glossary-item"><div class="term">Concierge Request</div><div class="def">A buyer's "Find It For Me" brief matched against and beyond live inventory.</div><div class="not mono">not: custom search</div></div>
+      <div class="glossary-item"><div class="term">DVE</div><div class="def">Discovery &amp; Verification Engine — the category Verza is defining, not competing inside "listing site."</div><div class="not mono">not: classifieds</div></div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<footer>
+  <div class="fbrand">
+    <div class="brand-mark" style="width:26px;height:26px;"></div>
+    <div>
+      <div class="brand-name" style="font-size:13px;">Verza</div>
+      <div class="brand-sub">A DISCOVERY &amp; VERIFICATION ENGINE</div>
+    </div>
+  </div>
+  <p>PRODUCT BLUEPRINT · V1.0 · REED BREED TECHNOLOGIES · SEPTEMBER 2026</p>
+</footer>
+
+<script>
+const menuBtn = document.getElementById('menuBtn');
+const sidebar = document.getElementById('sidebar');
+if (menuBtn) {
+  menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+  document.querySelectorAll('.nav-link').forEach(l => l.addEventListener('click', () => sidebar.classList.remove('open')));
+}
+
+const navLinks = Array.from(document.querySelectorAll('.nav-link'));
+const sections = navLinks.map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+const spy = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const id = '#' + entry.target.id;
+    const link = navLinks.find(l => l.getAttribute('href') === id);
+    if (!link) return;
+    if (entry.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+sections.forEach(s => spy.observe(s));
+
+const reveals = document.querySelectorAll('.reveal');
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('in-view');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08 });
+reveals.forEach(r => revealObserver.observe(r));
+</script>
+</body>
+</html>

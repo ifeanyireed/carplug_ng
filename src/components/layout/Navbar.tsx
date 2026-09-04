@@ -207,51 +207,122 @@ export const Navbar = ({
           </div>
 
           <Link
-            href="#new-cars"
+            href="/buyer/search"
             className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
           >
-            New Cars
+            Find Cars
           </Link>
 
           <Link
-            href="#sell"
+            href="/buyer/compare"
             className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
           >
-            Sell Cars
+            Compare
           </Link>
 
           <Link
-            href="#dealers"
+            href="/buyer/concierge"
             className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
           >
-            Local Dealers
+            Find For Me
           </Link>
+
+          <Link
+            href="/seller/sell"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+          >
+            Sell Car
+          </Link>
+
+          {/* Dedicated User Portals Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => toggleDropdown("portals")}
+              onMouseEnter={() => setActiveDropdown("portals")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold ${
+                activeDropdown === "portals"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white/15 text-white hover:bg-white/20"
+              }`}
+            >
+              <span>Portals</span>
+              <ChevronDown
+                className={`w-3 h-3 transition-transform duration-200 ${
+                  activeDropdown === "portals" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {activeDropdown === "portals" && (
+              <div
+                onMouseLeave={() => setActiveDropdown(null)}
+                className="absolute top-full right-0 mt-2 w-56 bg-[#1f2326] border border-white/10 rounded-xl shadow-2xl p-2 text-xs text-gray-200 animate-in fade-in slide-in-from-top-2 duration-150 z-50"
+              >
+                <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                  Dedicated User Portals
+                </div>
+                <div className="space-y-1">
+                  <Link
+                    href="/buyer/search"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-blue-400 font-medium"
+                  >
+                    <span>Buyer Marketplace</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/dealer/dashboard"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-amber-400 font-medium"
+                  >
+                    <span>Dealer Hub</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/seller/dashboard"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-purple-400 font-medium"
+                  >
+                    <span>Private Seller</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/technician/dashboard"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-emerald-400 font-medium"
+                  >
+                    <span>Technician Portal</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <div className="h-px bg-white/10 my-1" />
+                  <Link
+                    href="/admin/dashboard"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-red-400 font-medium"
+                  >
+                    <span>Admin Console</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* User Icon */}
-          <button
-            onClick={() => onOpenAuth?.("login")}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors focus:outline-none"
-            aria-label="User Account"
-            title="Account & Profile"
-          >
-            <User className="w-4 h-4" />
-          </button>
-
-          {/* Cart / Saved vehicles */}
-          <button
-            onClick={onOpenSaved}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors relative focus:outline-none"
-            aria-label="Saved vehicles"
-            title="Saved Vehicles"
+          <Link
+            href="/buyer/garage"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors focus:outline-none relative"
+            aria-label="Garage & Saved Cars"
+            title="My Garage"
           >
             <ShoppingBag className="w-4 h-4" />
             {savedCount > 0 && (
-              <span className="absolute 0 top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#4a4e51]" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#4a4e51]" />
             )}
-          </button>
+          </Link>
 
           {/* Sign Up Button */}
           <button

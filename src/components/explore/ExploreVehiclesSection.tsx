@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowUpRight,
   Heart,
@@ -287,13 +288,13 @@ export const ExploreVehiclesSection = ({
                       </span>
                     </div>
 
-                    <button
-                      type="button"
+                    <Link
+                      href="/buyer/vehicles/v-lexus-rx350-2021"
                       className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black transition"
                     >
                       <span>See Details</span>
                       <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

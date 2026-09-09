@@ -1,13 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { MOCK_LEADS, Lead } from "@/data/mockStore";
-import { Users, Phone, MessageSquare, CheckCircle, Clock, Search, Filter } from "lucide-react";
+import { fetchLeads } from "@/services/api";
+import { MessageSquare } from "lucide-react";
 
 export default function DealerLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>(MOCK_LEADS);
   const [activeFilter, setActiveFilter] = useState<string>("all");
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchLeads().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setLeads(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filtered = leads.filter((l) => {
     if (activeFilter === "inspection") return l.type === "inspection_request";
@@ -85,7 +98,7 @@ export default function DealerLeadsPage() {
 
               {lead.note && (
                 <p className="text-xs text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100 italic">
-                  "{lead.note}"
+                  &ldquo;{lead.note}&rdquo;
                 </p>
               )}
             </div>

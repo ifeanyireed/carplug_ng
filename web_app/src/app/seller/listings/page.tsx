@@ -5,7 +5,7 @@ import Link from "next/link";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { MOCK_VEHICLES } from "@/data/mockStore";
-import { Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default function MyListingsPage() {
   const listing = MOCK_VEHICLES[3];
@@ -16,7 +16,7 @@ export default function MyListingsPage() {
         <div>
           <h1 className="text-2xl font-black text-neutral-900">My Car Listings</h1>
           <p className="text-xs text-gray-500 mt-1">
-            Review status, edit pricing, or upgrade your listing's Trust Tier
+            Review status, edit pricing, or upgrade your listing&apos;s Trust Tier
           </p>
         </div>
 

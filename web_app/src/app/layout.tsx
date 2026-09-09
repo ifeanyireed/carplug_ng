@@ -3,7 +3,7 @@ import { inter } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ROJO - Premium Car Marketplace & Auctions",
+  title: "Verza - Premium Car Marketplace & Verified Auto Network",
   description: "Explore, buy, sell, and auction certified luxury and everyday vehicles with confidence.",
 };
 

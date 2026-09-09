@@ -1,19 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
+import { fetchSwaps, updateSwapStatus } from "@/services/api";
 import {
   ArrowLeftRight,
-  CheckCircle2,
-  XCircle,
-  Wrench,
-  ShieldCheck,
   Percent,
   Clock,
-  CarFront,
   DollarSign,
-  AlertTriangle,
-  ChevronRight,
 } from "lucide-react";
 
 interface SwapRequest {
@@ -99,16 +92,38 @@ export default function AdminSwapsPage() {
   const [swaps, setSwaps] = useState<SwapRequest[]>(INITIAL_SWAPS);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "active">("all");
 
-  const handleApprove = (id: string) => {
+  useEffect(() => {
+    let isMounted = true;
+    fetchSwaps().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setSwaps(data as SwapRequest[]);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleApprove = async (id: string) => {
     setSwaps((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: "Dealer Accepted" } : s))
     );
+    try {
+      await updateSwapStatus(id, "Dealer Accepted");
+    } catch (err) {
+      console.warn("Failed to update swap status on backend:", err);
+    }
   };
 
-  const handleDispatchTech = (id: string) => {
+  const handleDispatchTech = async (id: string) => {
     setSwaps((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: "In Audit", assignedTech: "Engr. Chidi Okafor" } : s))
     );
+    try {
+      await updateSwapStatus(id, "In Audit");
+    } catch (err) {
+      console.warn("Failed to update swap status on backend:", err);
+    }
   };
 
   const filteredSwaps = swaps.filter((s) => {

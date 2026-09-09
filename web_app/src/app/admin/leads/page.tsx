@@ -1,11 +1,35 @@
 "use client";
 
-import React, { useState } from "react";
-import { MOCK_LEADS, MOCK_TECHNICIANS, Lead } from "@/data/mockStore";
-import { GitPullRequest, Wrench, Users, Check, ArrowRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { MOCK_LEADS, Lead } from "@/data/mockStore";
+import { fetchLeads, updateLeadStatus } from "@/services/api";
 
 export default function LeadRoutingBoardPage() {
   const [leads, setLeads] = useState<Lead[]>(MOCK_LEADS);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchLeads().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setLeads(data);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      await updateLeadStatus(id, newStatus);
+      setLeads((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, status: newStatus as Lead["status"] } : l))
+      );
+    } catch (err) {
+      console.warn("Failed to update status on backend:", err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -34,7 +58,7 @@ export default function LeadRoutingBoardPage() {
               <div className="text-neutral-800 font-semibold">
                 Target: {lead.vehicleTitle} (₦{(lead.vehiclePrice / 1000000).toFixed(1)}M)
               </div>
-              <p className="text-gray-500 italic">"{lead.note}"</p>
+              <p className="text-gray-500 italic">&ldquo;{lead.note}&rdquo;</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -46,10 +70,15 @@ export default function LeadRoutingBoardPage() {
               </div>
 
               <button
-                onClick={() => alert("Override technician modal opened")}
+                onClick={() =>
+                  handleStatusChange(
+                    lead.id,
+                    lead.status === "new" ? "routed" : "completed"
+                  )
+                }
                 className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold transition"
               >
-                Override Dispatch
+                {lead.status === "new" ? "Dispatch Tech" : "Mark Completed"}
               </button>
             </div>
           </div>

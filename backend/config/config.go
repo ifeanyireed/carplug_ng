@@ -18,6 +18,7 @@ type Config struct {
 	DBPassword     string
 	DBName         string
 	DBCharset      string
+	AutoMigrate    bool
 	AutoSeed       bool
 }
 
@@ -48,6 +49,7 @@ func LoadConfig() *Config {
 		DBPassword:     getEnv("DB_PASSWORD", "*REDACTED"),
 		DBName:         getEnv("DB_NAME", "u721451974_carplug_ng_db"),
 		DBCharset:      getEnv("DB_CHARSET", "utf8mb4"),
+		AutoMigrate:    getEnv("AUTO_MIGRATE", "true") == "true",
 		AutoSeed:       getEnv("AUTO_SEED", "true") == "true",
 	}
 

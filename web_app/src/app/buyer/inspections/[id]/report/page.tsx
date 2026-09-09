@@ -1,23 +1,9 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_INSPECTIONS } from "@/data/mockStore";
-import {
-  Wrench,
-  CheckCircle2,
-  AlertTriangle,
-  FileCheck,
-  ShieldCheck,
-  ChevronRight,
-  Share2,
-  Printer,
-  Calendar,
-  Award,
-  ArrowLeft,
-  DollarSign,
-} from "lucide-react";
+import { Share2, ArrowLeft } from "lucide-react";
 
 export default async function VehicleHealthReportPage({
   params,
@@ -110,7 +96,7 @@ export default async function VehicleHealthReportPage({
               Plain-Language Mechanic Verdict
             </h3>
             <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 text-sm text-neutral-900 leading-relaxed italic">
-              "{report.technicianSummary}"
+              &ldquo;{report.technicianSummary}&rdquo;
             </div>
             {report.estimatedRepairCostRange && (
               <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs">

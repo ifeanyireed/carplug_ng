@@ -392,7 +392,7 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
                 options.rojoCertified ? "text-emerald-400" : "text-gray-600"
               }`}
             />
-            <span>Rojo Certified</span>
+            <span>Verza Certified</span>
           </button>
 
           {/* 5. Warranty */}

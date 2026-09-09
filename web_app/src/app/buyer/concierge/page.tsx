@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Sparkles, Check, ArrowRight, ShieldCheck, ChevronRight } from "lucide-react";
+import { Sparkles, Check, ArrowRight, ChevronRight } from "lucide-react";
 
 export default function ConciergePage() {
   const [submitted, setSubmitted] = useState(false);
@@ -44,7 +44,7 @@ export default function ConciergePage() {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">
-            Can't find your car on the open market?
+            Can&apos;t find your car on the open market?
           </h1>
           <p className="text-xs text-gray-500 mt-2 leading-relaxed">
             Tell us the exact make, model, budget, and condition you need. Our team matches your request against private off-market dealer lots, sends an independent technician to pre-inspect the vehicle, and presents only verified options.

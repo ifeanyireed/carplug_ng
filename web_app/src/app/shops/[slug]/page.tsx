@@ -4,7 +4,8 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_SHOPS, MOCK_VEHICLES } from "@/data/mockStore";
+import { MOCK_SHOPS } from "@/data/mockStore";
+import { fetchDealerBySlugOrId, fetchDealerInventory } from "@/services/api";
 import {
   ShieldCheck,
   Star,
@@ -24,8 +25,9 @@ export default async function PublicShopStorefrontPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const shop = MOCK_SHOPS.find((s) => s.slug === slug) || MOCK_SHOPS[0];
-  const shopVehicles = MOCK_VEHICLES.filter((v) => v.sellerId === shop.id);
+  const fetchedShop = await fetchDealerBySlugOrId(slug);
+  const shop = fetchedShop || MOCK_SHOPS.find((s) => s.slug === slug) || MOCK_SHOPS[0];
+  const shopVehicles = await fetchDealerInventory(shop.id);
 
   const formatNaira = (amount: number) => {
     return `₦${(amount / 1000000).toFixed(1)}M`;

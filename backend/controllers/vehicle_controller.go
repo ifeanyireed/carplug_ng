@@ -24,7 +24,28 @@ func GetVehicles(c *gin.Context) {
 		query = query.Where("body_type = ?", bodyType)
 	}
 	if condition := c.Query("condition"); condition != "" {
-		query = query.Where("condition = ?", condition)
+		switch condition {
+		case "tokunbo":
+			query = query.Where("`condition` = ?", "Foreign Used (Tokunbo)")
+		case "nigerian_used":
+			query = query.Where("`condition` = ?", "Nigerian Used")
+		case "brand_new":
+			query = query.Where("`condition` = ?", "Brand New")
+		default:
+			query = query.Where("`condition` = ?", condition)
+		}
+	}
+	if minTierStr := c.Query("minTrustTier"); minTierStr != "" {
+		if minTier, err := strconv.Atoi(minTierStr); err == nil {
+			query = query.Where("trust_tier >= ?", minTier)
+		}
+	} else if tierStr := c.Query("trustTier"); tierStr != "" {
+		if tier, err := strconv.Atoi(tierStr); err == nil {
+			query = query.Where("trust_tier = ?", tier)
+		}
+	}
+	if priceRating := c.Query("priceRating"); priceRating != "" {
+		query = query.Where("price_rating = ?", priceRating)
 	}
 	if sellerId := c.Query("sellerId"); sellerId != "" {
 		query = query.Where("seller_id = ?", sellerId)
@@ -47,8 +68,20 @@ func GetVehicles(c *gin.Context) {
 		query = query.Where("title LIKE ? OR make LIKE ? OR model LIKE ? OR public_location LIKE ?", searchPattern, searchPattern, searchPattern, searchPattern)
 	}
 
+	orderClause := "created_at desc"
+	switch c.Query("sortBy") {
+	case "trust":
+		orderClause = "trust_tier desc, created_at desc"
+	case "price_asc":
+		orderClause = "price asc"
+	case "price_desc":
+		orderClause = "price desc"
+	case "featured":
+		orderClause = "featured desc, created_at desc"
+	}
+
 	var vehicles []models.Vehicle
-	if err := query.Order("created_at desc").Find(&vehicles).Error; err != nil {
+	if err := query.Order(orderClause).Find(&vehicles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch vehicles: " + err.Error()})
 		return
 	}

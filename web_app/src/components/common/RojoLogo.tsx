@@ -11,7 +11,7 @@ export const RojoLogo = ({ className = "h-7 w-auto", ...props }: LogoProps) => {
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="ROJO Logo"
+      aria-label="Verza Logo"
       {...props}
     >
       {/* Letter 'R' */}
@@ -56,3 +56,5 @@ export const RojoLogo = ({ className = "h-7 w-auto", ...props }: LogoProps) => {
     </svg>
   );
 };
+
+export const VerzaLogo = RojoLogo;

@@ -51,7 +51,7 @@ export const AuthModal = ({
             <RojoLogo className="h-5 w-auto" />
           </div>
           <h2 className="text-xl font-bold text-gray-900">
-            {mode === "login" ? "Welcome Back to ROJO" : "Join ROJO Marketplace"}
+            {mode === "login" ? "Welcome Back to Verza" : "Join Verza Marketplace"}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             {mode === "login"
@@ -142,7 +142,7 @@ export const AuthModal = ({
             <div className="pt-3 text-center text-xs text-gray-500">
               {mode === "login" ? (
                 <>
-                  Don't have an account?{" "}
+                  Don&apos;t have an account?{" "}
                   <button
                     type="button"
                     onClick={() => setMode("signup")}

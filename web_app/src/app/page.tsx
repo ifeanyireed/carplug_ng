@@ -165,7 +165,7 @@ export default function HomePage() {
           case "trustedDealers":
             return "Trusted Dealers";
           case "rojoCertified":
-            return "Rojo Certified";
+            return "Verza Certified";
           case "warranty":
             return "Warranty";
           default:

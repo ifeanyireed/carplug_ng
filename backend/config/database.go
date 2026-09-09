@@ -42,10 +42,11 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get generic database object: %w", err)
 	}
 
-	// Connection pooling
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(25)
-	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	// Connection pooling optimized for remote cloud MySQL
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(20)
+	sqlDB.SetConnMaxIdleTime(1 * time.Minute)
+	sqlDB.SetConnMaxLifetime(3 * time.Minute)
 
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping MySQL database: %w", err)
@@ -53,21 +54,23 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 
 	log.Printf("[Database] Successfully connected to MySQL at %s:%s / %s\n", cfg.DBHost, cfg.DBPort, cfg.DBName)
 
-	// Run AutoMigrations
-	log.Println("[Database] Running schema migrations with GORM AutoMigrate...")
-	err = DB.AutoMigrate(
-		&models.Vehicle{},
-		&models.DealerShop{},
-		&models.Technician{},
-		&models.InspectionReport{},
-		&models.Lead{},
-		&models.SwapRequest{},
-		&models.Campaign{},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("auto-migration failed: %w", err)
+	// Run AutoMigrations if enabled
+	if cfg.AutoMigrate {
+		log.Println("[Database] Running schema migrations with GORM AutoMigrate...")
+		err = DB.AutoMigrate(
+			&models.Vehicle{},
+			&models.DealerShop{},
+			&models.Technician{},
+			&models.InspectionReport{},
+			&models.Lead{},
+			&models.SwapRequest{},
+			&models.Campaign{},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("auto-migration failed: %w", err)
+		}
+		log.Println("[Database] Schema migrations completed successfully.")
 	}
-	log.Println("[Database] Schema migrations completed successfully.")
 
 	// Auto seed initial data if enabled
 	if cfg.AutoSeed {

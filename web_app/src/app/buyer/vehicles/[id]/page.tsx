@@ -5,26 +5,19 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
-import { MOCK_VEHICLES, MOCK_INSPECTIONS } from "@/data/mockStore";
+import { MOCK_INSPECTIONS } from "@/data/mockStore";
+import { fetchVehicleById, fetchInspectionById } from "@/services/api";
 import {
   ShieldCheck,
   CheckCircle2,
   FileCheck,
-  AlertTriangle,
   MapPin,
-  Calendar,
-  Gauge,
-  Fuel,
   Wrench,
   Award,
   PhoneCall,
-  MessageSquare,
   ArrowRight,
   Share2,
-  Heart,
-  Car,
   ChevronRight,
-  Info,
 } from "lucide-react";
 
 export default async function VehicleDetailPage({
@@ -33,13 +26,15 @@ export default async function VehicleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const vehicle = MOCK_VEHICLES.find((v) => v.id === id);
+  const vehicle = await fetchVehicleById(id);
 
   if (!vehicle) {
     notFound();
   }
 
-  const inspection = MOCK_INSPECTIONS.find((i) => i.vehicleId === vehicle.id);
+  const inspection =
+    (vehicle.latestInspectionId ? await fetchInspectionById(vehicle.latestInspectionId) : undefined) ||
+    MOCK_INSPECTIONS.find((i) => i.vehicleId === vehicle.id);
 
   const formatNaira = (amount: number) => {
     return `₦${amount.toLocaleString()}`;
@@ -219,7 +214,7 @@ export default async function VehicleDetailPage({
                         Inspected by {inspection.technicianName} ({inspection.technicianTier})
                       </div>
                       <p className="text-emerald-800 leading-relaxed line-clamp-2">
-                        "{inspection.technicianSummary}"
+                        &ldquo;{inspection.technicianSummary}&rdquo;
                       </p>
                       <div className="text-[11px] text-emerald-700 font-medium">
                         Completed on {new Date(inspection.completedDate!).toLocaleDateString()}

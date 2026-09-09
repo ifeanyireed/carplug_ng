@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { fetchVehicles, createSwap } from "@/services/api";
 import {
   ArrowLeftRight,
   ShieldCheck,
@@ -15,15 +15,13 @@ import {
   Fuel,
   Settings2,
   CarFront,
-  ArrowUpRight,
-  TrendingUp,
   Percent,
-  Calendar,
-  MapPin,
-  Clock,
   ArrowRight,
-  FileCheck,
 } from "lucide-react";
+
+function generateSwapRef(): string {
+  return String(Date.now()).slice(-6);
+}
 
 export default function CarSwapPage() {
   // Trade-In Car State
@@ -34,14 +32,30 @@ export default function CarSwapPage() {
   const [currentMileage, setCurrentMileage] = useState(74000);
   const [mechanicalHealth, setMechanicalHealth] = useState("Good");
 
-  // Selected Upgrade Target Car from Inventory
+  // Upgrade Target Inventory from Backend
+  const [inventory, setInventory] = useState<Vehicle[]>(MOCK_VEHICLES);
   const [selectedTargetId, setSelectedTargetId] = useState<string>(MOCK_VEHICLES[0].id);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchVehicles().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setInventory(data);
+        setSelectedTargetId(data[0].id);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Scheduling State
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [preferredDate, setPreferredDate] = useState("2026-09-10");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [swapSubmitted, setSwapSubmitted] = useState(false);
+  const [swapRef, setSwapRef] = useState("");
 
   // Dynamic Algorithmic Appraisal Calculation for Current Car
   const estimatedAppraisal = useMemo(() => {
@@ -68,9 +82,9 @@ export default function CarSwapPage() {
     if (mechanicalHealth === "Needs Major Work") base *= 0.82;
 
     return Math.round(base / 100000) * 100000;
-  }, [currentYear, currentMake, currentModel, currentCondition, currentMileage, mechanicalHealth]);
+  }, [currentYear, currentMake, currentCondition, currentMileage, mechanicalHealth]);
 
-  const targetCar = MOCK_VEHICLES.find((v) => v.id === selectedTargetId) || MOCK_VEHICLES[0];
+  const targetCar = inventory.find((v) => v.id === selectedTargetId) || inventory[0] || MOCK_VEHICLES[0];
 
   // 5% Verza Trade-in Discount Incentive
   const platformDiscount = Math.round(targetCar.price * 0.05);
@@ -86,9 +100,34 @@ export default function CarSwapPage() {
     }
   };
 
-  const handleSwapSubmit = (e: React.FormEvent) => {
+  const handleSwapSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSwapSubmitted(true);
+    setIsSubmitting(true);
+    const ref = generateSwapRef();
+    setSwapRef(ref);
+
+    try {
+      await createSwap({
+        id: `swap-${ref}`,
+        customerName: fullName || "Valued Customer",
+        customerPhone: phone || "+234 800 000 0000",
+        currentCar: `${currentYear} ${currentMake} ${currentModel} (${currentCondition})`,
+        currentCarImage: "/images/cars/car13.jpeg",
+        appraisedEquity: estimatedAppraisal,
+        targetCar: targetCar.title,
+        targetCarPrice: targetCar.price,
+        platformDiscount: platformDiscount,
+        netTopUp: netDifference,
+        status: "Pending Audit",
+        scheduledDate: preferredDate,
+        assignedTech: "Auto-Dispatching Nearest Technician...",
+      });
+    } catch (err) {
+      console.warn("Backend swap request failed, continuing offline:", err);
+    } finally {
+      setIsSubmitting(false);
+      setSwapSubmitted(true);
+    }
   };
 
   return (
@@ -277,7 +316,7 @@ export default function CarSwapPage() {
           {/* Vehicle Cards Grid using the exact Explore all vehicles styling */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-7 lg:p-8 shadow-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
-              {MOCK_VEHICLES.map((car) => {
+              {inventory.map((car) => {
                 const isSelected = selectedTargetId === car.id;
                 const badgeText = car.priceRating === "deal" ? "Great Price" : car.trustTier === 5 ? "Platform Verified" : "Inspected";
                 const badgeBg = car.trustTier === 5 ? "bg-blue-600" : "bg-[#16a34a]";
@@ -396,7 +435,7 @@ export default function CarSwapPage() {
                 Thank you, <strong>{fullName || "Valued Customer"}</strong>. Your request to swap your <strong>{currentYear} {currentMake} {currentModel}</strong> for the <strong>{targetCar.title}</strong> has been routed to our verification team and the dealer lot.
               </p>
               <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-600 text-left space-y-1.5 font-mono">
-                <div>Swap Reference: #SWAP-{Math.floor(100000 + Math.random() * 900000)}</div>
+                <div>Swap Reference: #SWAP-{swapRef || "849201"}</div>
                 <div>Your Trade-In Equity: ₦{(estimatedAppraisal / 1000000).toFixed(1)}M</div>
                 <div>Verza Platform Subsidy (5%): -₦{(platformDiscount / 1000000).toFixed(1)}M</div>
                 <div>Discounted Net Top-Up Due: ₦{(netDifference / 1000000).toFixed(1)}M</div>
@@ -515,9 +554,10 @@ export default function CarSwapPage() {
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full py-3 bg-neutral-900 hover:bg-black text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-neutral-900 hover:bg-black text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs disabled:opacity-50"
                     >
-                      <span>Submit Car Swap Request</span>
+                      <span>{isSubmitting ? "Submitting Swap Request..." : "Submit Car Swap Request"}</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>

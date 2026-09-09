@@ -1,21 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { fetchCampaigns, updateCampaignStatus } from "@/services/api";
 import {
   Megaphone,
   CheckCircle2,
   XCircle,
   Play,
-  Pause,
   Eye,
-  MousePointer,
-  BarChart3,
-  TrendingUp,
-  Sliders,
   DollarSign,
-  Calendar,
   AlertCircle,
 } from "lucide-react";
 
@@ -105,26 +100,52 @@ export default function AdminAdvertisingPage() {
   const [campaigns, setCampaigns] = useState<CampaignItem[]>(INITIAL_CAMPAIGNS);
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "active">("all");
 
-  const handleApprove = (id: string) => {
+  useEffect(() => {
+    let isMounted = true;
+    fetchCampaigns().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setCampaigns(data as CampaignItem[]);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleApprove = async (id: string) => {
     setCampaigns((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: "Active" } : c))
     );
+    try {
+      await updateCampaignStatus(id, "Active");
+    } catch (err) {
+      console.warn("Failed to update campaign status on backend:", err);
+    }
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     setCampaigns((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await updateCampaignStatus(id, "Rejected");
+    } catch (err) {
+      console.warn("Failed to reject campaign on backend:", err);
+    }
   };
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
+    let nextStatus: CampaignItem["status"] = "Active";
     setCampaigns((prev) =>
       prev.map((c) => {
         if (c.id !== id) return c;
-        return {
-          ...c,
-          status: c.status === "Active" ? "Paused" : "Active",
-        };
+        nextStatus = c.status === "Active" ? "Paused" : "Active";
+        return { ...c, status: nextStatus };
       })
     );
+    try {
+      await updateCampaignStatus(id, nextStatus);
+    } catch (err) {
+      console.warn("Failed to toggle campaign status on backend:", err);
+    }
   };
 
   const filteredCampaigns = campaigns.filter((c) => {

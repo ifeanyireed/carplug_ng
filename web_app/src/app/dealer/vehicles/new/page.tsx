@@ -2,22 +2,20 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { TrustTierBadge } from "@/components/common/TrustTierBadge";
+import { Vehicle } from "@/data/mockStore";
+import { createVehicle } from "@/services/api";
 import {
-  Car,
-  FileCheck,
   Upload,
   Check,
   ChevronRight,
   ChevronLeft,
   Wrench,
-  ShieldCheck,
-  Info,
 } from "lucide-react";
 
 export default function AddVehicleWizardPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [published, setPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const [formData, setFormData] = useState({
     // Step 1: Basic details
@@ -62,11 +60,58 @@ export default function AddVehicleWizardPage() {
     "Review & Publish",
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < 10) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      setPublished(true);
+      setIsPublishing(true);
+      try {
+        const generatedId = `v-${formData.make.toLowerCase().replace(/\s+/g, "-")}-${formData.model.toLowerCase().replace(/\s+/g, "-")}-${String(Date.now()).slice(-6)}`;
+        await createVehicle({
+          id: generatedId,
+          title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
+          year: Number(formData.year) || 2021,
+          make: formData.make,
+          model: formData.model,
+          trim: formData.trim,
+          bodyType: formData.bodyType,
+          condition: formData.condition as Vehicle["condition"],
+          mileage: Number(formData.mileage) || 30000,
+          transmission: formData.transmission as Vehicle["transmission"],
+          fuelType: formData.fuelType as Vehicle["fuelType"],
+          engineSize: formData.engineSize,
+          vin: formData.vin,
+          price: Number(formData.askingPrice) || 35000000,
+          priceRating: "fair",
+          trustTier: formData.preInspectionOptIn ? 4 : 2,
+          trustTierLabel: formData.preInspectionOptIn
+            ? "Tier 4: Comprehensive Tech Inspected"
+            : "Tier 2: Verification In Progress",
+          images: ["/images/cars/car18.jpeg"],
+          publicLocation: formData.locationZone,
+          exactLocation: formData.exactAddress,
+          sellerId: "dealer-reed-motors",
+          sellerType: "dealer",
+          sellerName: "Reed Motors Lagos",
+          sellerPhone: "+234 803 291 0021",
+          sellerRating: 4.9,
+          customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
+          documentsAvailable: {
+            customsDoc: formData.customsCleared,
+            registrationDoc: formData.originalReceipt,
+            roadworthiness: true,
+            tintPermit: false,
+            policeExtracted: false,
+          },
+          healthScore: formData.preInspectionOptIn ? 92 : 0,
+          featured: false,
+        });
+      } catch (err) {
+        console.warn("Failed to create vehicle on backend API, continuing offline:", err);
+      } finally {
+        setIsPublishing(false);
+        setPublished(true);
+      }
     }
   };
 
@@ -203,7 +248,7 @@ export default function AddVehicleWizardPage() {
                   ].map((c) => (
                     <div
                       key={c.id}
-                      onClick={() => setFormData({ ...formData, condition: c.id as any })}
+                      onClick={() => setFormData({ ...formData, condition: c.id as Vehicle["condition"] })}
                       className={`p-4 rounded-2xl border cursor-pointer transition ${
                         formData.condition === c.id
                           ? "bg-blue-50/70 border-blue-500 shadow-xs"
@@ -432,9 +477,16 @@ export default function AddVehicleWizardPage() {
 
               <button
                 onClick={handleNext}
-                className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                disabled={isPublishing}
+                className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
               >
-                <span>{currentStep === 10 ? "Publish Listing" : "Next Step"}</span>
+                <span>
+                  {currentStep === 10
+                    ? isPublishing
+                      ? "Publishing Listing..."
+                      : "Publish Listing"
+                    : "Next Step"}
+                </span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

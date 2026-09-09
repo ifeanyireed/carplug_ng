@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useTransition, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { fetchVehicles } from "@/services/api";
 import {
   ArrowUpRight,
   Heart,
@@ -16,15 +17,48 @@ import {
   Search,
   SlidersHorizontal,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
+
+type TierFilter = "all" | "3" | "4" | "5";
+type PriceRatingFilter = "all" | "deal" | "fair";
+type SortByOption = "featured" | "trust" | "price_asc" | "price_desc";
 
 export default function BuyerSearchPage() {
   const [activeTab, setActiveTab] = useState<"all" | "tokunbo" | "nigerian_used" | "brand_new">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTier, setSelectedTier] = useState<"all" | "3" | "4" | "5">("all");
-  const [selectedPriceRating, setSelectedPriceRating] = useState<"all" | "deal" | "fair">("all");
-  const [sortBy, setSortBy] = useState<"featured" | "trust" | "price_asc" | "price_desc">("featured");
+  const [selectedTier, setSelectedTier] = useState<TierFilter>("all");
+  const [selectedPriceRating, setSelectedPriceRating] = useState<PriceRatingFilter>("all");
+  const [sortBy, setSortBy] = useState<SortByOption>("featured");
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchVehicles({
+      condition: activeTab,
+      q: searchQuery.trim() || undefined,
+      minTrustTier: selectedTier === "all" ? undefined : selectedTier,
+      priceRating: selectedPriceRating === "all" ? undefined : selectedPriceRating,
+      sortBy,
+    })
+      .then((data) => {
+        if (isMounted) {
+          startTransition(() => {
+            setVehicles(data);
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch vehicles from API:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, searchQuery, selectedTier, selectedPriceRating, sortBy]);
 
   const handleFavoriteClick = (e: React.MouseEvent, carId: string) => {
     e.stopPropagation();
@@ -62,7 +96,7 @@ export default function BuyerSearchPage() {
   };
 
   const filteredVehicles = useMemo(() => {
-    return MOCK_VEHICLES.filter((car) => {
+    return vehicles.filter((car) => {
       // Condition Tab Filter
       if (activeTab === "tokunbo" && car.condition !== "Foreign Used (Tokunbo)") {
         return false;
@@ -103,7 +137,7 @@ export default function BuyerSearchPage() {
       if (sortBy === "price_desc") return b.price - a.price;
       return 0; // featured (mock order)
     });
-  }, [activeTab, searchQuery, selectedTier, selectedPriceRating, sortBy]);
+  }, [vehicles, activeTab, searchQuery, selectedTier, selectedPriceRating, sortBy]);
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
@@ -217,7 +251,7 @@ export default function BuyerSearchPage() {
                 ].map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setSelectedTier(t.id as any)}
+                    onClick={() => setSelectedTier(t.id as TierFilter)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${
                       selectedTier === t.id
                         ? "bg-white text-gray-900 shadow-xs"
@@ -238,7 +272,7 @@ export default function BuyerSearchPage() {
                 ].map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => setSelectedPriceRating(p.id as any)}
+                    onClick={() => setSelectedPriceRating(p.id as PriceRatingFilter)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${
                       selectedPriceRating === p.id
                         ? "bg-white text-gray-900 shadow-xs"
@@ -253,14 +287,15 @@ export default function BuyerSearchPage() {
 
             {/* Sort selection & Results count */}
             <div className="flex items-center gap-3">
-              <span className="text-gray-500 text-xs font-medium">
+              <span className="text-gray-500 text-xs font-medium flex items-center gap-1.5">
+                {isPending && <Loader2 className="w-3 h-3 animate-spin text-blue-600" />}
                 {filteredVehicles.length} vehicles
               </span>
               <div className="inline-flex items-center gap-1.5 bg-[#ECEEF2] px-3 py-1.5 rounded-lg">
                 <SlidersHorizontal className="w-3 h-3 text-gray-500" />
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
+                  onChange={(e) => setSortBy(e.target.value as SortByOption)}
                   className="bg-transparent border-none text-xs font-medium text-gray-900 focus:ring-0 cursor-pointer p-0 pr-4"
                 >
                   <option value="featured">Sort: Featured</option>
@@ -391,7 +426,7 @@ export default function BuyerSearchPage() {
                   No vehicles found
                 </h3>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
-                  We couldn't find any vehicles matching your current criteria. Try resetting your filters.
+                  We couldn&apos;t find any vehicles matching your current criteria. Try resetting your filters.
                 </p>
                 <button
                   onClick={() => {

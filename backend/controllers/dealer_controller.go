@@ -21,7 +21,10 @@ func GetDealers(c *gin.Context) {
 }
 
 func GetDealerBySlugOrID(c *gin.Context) {
-	identifier := c.Param("slugOrId")
+	identifier := c.Param("id")
+	if identifier == "" {
+		identifier = c.Param("slugOrId")
+	}
 	db := config.GetDB()
 
 	var dealer models.DealerShop
@@ -34,11 +37,18 @@ func GetDealerBySlugOrID(c *gin.Context) {
 }
 
 func GetDealerInventory(c *gin.Context) {
-	dealerID := c.Param("id")
+	identifier := c.Param("id")
 	db := config.GetDB()
 
+	// Try resolving dealer ID if identifier is a slug
+	sellerID := identifier
+	var dealer models.DealerShop
+	if err := db.Select("id").Where("slug = ? OR id = ?", identifier, identifier).First(&dealer).Error; err == nil {
+		sellerID = dealer.ID
+	}
+
 	var vehicles []models.Vehicle
-	if err := db.Where("seller_id = ?", dealerID).Order("created_at desc").Find(&vehicles).Error; err != nil {
+	if err := db.Where("seller_id = ?", sellerID).Order("created_at desc").Find(&vehicles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch dealer inventory: " + err.Error()})
 		return
 	}

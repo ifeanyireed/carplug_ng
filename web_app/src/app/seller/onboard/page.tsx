@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ShieldCheck, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { ShieldCheck, Upload, CheckCircle2 } from "lucide-react";
 
 export default function SellerKYCOnboardPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -51,15 +51,15 @@ export default function SellerKYCOnboardPage() {
                 className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none"
               >
                 <option>National Identity Card (NIN Slip)</option>
-                <option>Voter's Card (INEC PVC)</option>
+                <option>Voter&apos;s Card (INEC PVC)</option>
                 <option>Nigerian International Passport</option>
-                <option>FRSC Driver's License</option>
+                <option>FRSC Driver&apos;s License</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Identification Number (NIN / Driver's Lic)
+                Identification Number (NIN / Driver&apos;s Lic)
               </label>
               <input
                 type="text"

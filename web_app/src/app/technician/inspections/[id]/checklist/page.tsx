@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Check, AlertTriangle, X, Wrench, Camera, ArrowRight, Save } from "lucide-react";
+import { Check, AlertTriangle, X, ArrowRight } from "lucide-react";
 
 export default function TechnicianChecklistPage() {
   const [checklist, setChecklist] = useState([
@@ -68,7 +68,7 @@ export default function TechnicianChecklistPage() {
                 </span>
                 <div className="font-bold text-xs text-neutral-900">{item.item}</div>
                 {item.note && (
-                  <p className="text-[11px] text-gray-500 italic">"{item.note}"</p>
+                  <p className="text-[11px] text-gray-500 italic">&ldquo;{item.note}&rdquo;</p>
                 )}
               </div>
 

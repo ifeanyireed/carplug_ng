@@ -43,14 +43,27 @@ func LoadConfig() *Config {
 		Port:           getEnv("PORT", "8080"),
 		GinMode:        getEnv("GIN_MODE", "debug"),
 		AllowedOrigins: origins,
-		DBHost:         getEnv("DB_HOST", "srv2113.hstgr.io"),
+		DBHost:         getEnv("DB_HOST", ""),
 		DBPort:         getEnv("DB_PORT", "3306"),
-		DBUser:         getEnv("DB_USER", "u721451974_carplug_ng"),
-		DBPassword:     getEnv("DB_PASSWORD", "*REDACTED"),
-		DBName:         getEnv("DB_NAME", "u721451974_carplug_ng_db"),
+		DBUser:         getEnv("DB_USER", ""),
+		DBPassword:     getEnv("DB_PASSWORD", ""),
+		DBName:         getEnv("DB_NAME", ""),
 		DBCharset:      getEnv("DB_CHARSET", "utf8mb4"),
 		AutoMigrate:    getEnv("AUTO_MIGRATE", "true") == "true",
 		AutoSeed:       getEnv("AUTO_SEED", "true") == "true",
+	}
+
+	if AppConfig.DBPassword == "" {
+		log.Fatal("[Config] DB_PASSWORD environment variable is required and was not set")
+	}
+	if AppConfig.DBHost == "" {
+		log.Fatal("[Config] DB_HOST environment variable is required and was not set")
+	}
+	if AppConfig.DBUser == "" {
+		log.Fatal("[Config] DB_USER environment variable is required and was not set")
+	}
+	if AppConfig.DBName == "" {
+		log.Fatal("[Config] DB_NAME environment variable is required and was not set")
 	}
 
 	return AppConfig

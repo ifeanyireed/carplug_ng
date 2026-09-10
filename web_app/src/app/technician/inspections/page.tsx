@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import { MOCK_INSPECTIONS } from "@/data/mockStore";
-import { Wrench, CheckCircle2, MapPin, ArrowRight } from "lucide-react";
 
 export default function TechnicianInspectionsListPage() {
   return (

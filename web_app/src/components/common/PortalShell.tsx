@@ -7,12 +7,8 @@ import { RojoLogo } from "@/components/common/RojoLogo";
 import {
   Menu,
   X,
-  ChevronRight,
-  ShieldCheck,
-  User,
   ArrowUpRight,
   LogOut,
-  Bell,
 } from "lucide-react";
 
 export interface NavItem {

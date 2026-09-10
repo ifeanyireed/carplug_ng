@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import { MOCK_LEADS } from "@/data/mockStore";
-import { MessageSquare, Send, ShieldCheck, User, Lock } from "lucide-react";
+import { Send, Lock } from "lucide-react";
 
 export default function DealerMessagesPage() {
   const [messages, setMessages] = useState([

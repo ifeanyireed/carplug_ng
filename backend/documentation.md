@@ -47,21 +47,21 @@ The backend is built as a high-concurrency, lightweight RESTful API service in *
 
 ## 2. Configuration & Environment Variables
 
-Configuration is loaded in `backend/config/config.go` with safe fallbacks.
+Configuration is loaded in `backend/config/config.go` with strict environment variable enforcement.
 
 | Variable | Type | Default Value | Description |
 | :--- | :--- | :--- | :--- |
 | `PORT` | string | `8080` | Port for the HTTP API server |
 | `GIN_MODE` | string | `debug` | Gin runtime mode (`debug` or `release`) |
 | `ALLOWED_ORIGINS` | string | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated CORS origins |
-| `DB_HOST` | string | `srv2113.hstgr.io` | Cloud MySQL host address |
+| `DB_HOST` | string | *(Required env var)* | Cloud MySQL host address |
 | `DB_PORT` | string | `3306` | Cloud MySQL port |
-| `DB_USER` | string | `u721451974_carplug_ng` | Cloud MySQL user |
-| `DB_PASSWORD` | string | `*REDACTED` | Cloud MySQL password |
-| `DB_NAME` | string | `u721451974_carplug_ng_db` | Cloud MySQL database schema name |
+| `DB_USER` | string | *(Required env var)* | Cloud MySQL user |
+| `DB_PASSWORD` | string | `*** (redacted)` | Cloud MySQL password (required, no fallback) |
+| `DB_NAME` | string | *(Required env var)* | Cloud MySQL database schema name |
 | `DB_CHARSET` | string | `utf8mb4` | Character encoding |
-| `AUTO_MIGRATE` | bool | `true` | Runs GORM AutoMigrate on startup when `true` |
-| `AUTO_SEED` | bool | `true` | Populates mock catalog if tables are empty |
+| `AUTO_MIGRATE` | bool | `false` | Runs GORM AutoMigrate on startup when `true` |
+| `AUTO_SEED` | bool | `false` | Populates mock catalog if tables are empty |
 
 ### Connection Pooling for Remote Latency
 Because the database is hosted remotely on Hostinger (`srv2113.hstgr.io`), connection pooling is configured in `backend/config/database.go` to prevent socket exhaustion and latency spikes:
@@ -155,13 +155,13 @@ Represents verified vehicle listings with Nigerian automotive market attributes:
 All routes are grouped under `/api`.
 
 ### 4.1 System & Health
-- `GET /api/health` — Returns status, database connection state, uptime, and host.
+- `GET /api/health` — Returns status, database connection state, and uptime. Internal infrastructure details (`dbHost`, `dbName`, raw error traces) are concealed unless `DEBUG_HEALTH=true` is set.
 
 ### 4.2 Vehicles
-- `GET /api/vehicles` — Query params: `make`, `model`, `bodyType`, `condition`, `minTrustTier`, `trustTier`, `priceRating`, `sellerId`, `featured`, `minPrice`, `maxPrice`, `q`, `sortBy` (`trust`, `price_asc`, `price_desc`, `featured`).
-- `GET /api/vehicles/:id` — Retrieve a single vehicle by ID.
+- `GET /api/vehicles` — Query params: `make`, `model`, `bodyType`, `condition`, `minTrustTier`, `trustTier`, `priceRating`, `sellerId`, `featured`, `minPrice`, `maxPrice`, `q`, `sortBy` (`trust`, `price_asc`, `price_desc`, `featured`), `page` (default: 1), `pageSize` (default: 24). Returns `{ data, total, page, pageSize }` envelope with masked seller phone numbers.
+- `GET /api/vehicles/:id` — Retrieve a single vehicle by ID (with masked seller phone number).
 - `POST /api/vehicles` — Create a new vehicle listing (JSON body).
-- `PUT /api/vehicles/:id` — Update vehicle listing.
+- `PUT /api/vehicles/:id` — Update vehicle listing (supports zero-value booleans and numerical fields).
 - `DELETE /api/vehicles/:id` — Delete vehicle listing.
 
 ### 4.3 Dealers
@@ -181,7 +181,7 @@ All routes are grouped under `/api`.
 - `PATCH /api/inspections/:id/status` — Update inspection status (`{"status": "..."}`).
 
 ### 4.6 Leads & Inquiries
-- `GET /api/leads` — List leads (filter `sellerId`, `status`, `type`).
+- `GET /api/leads` — List leads (filter `sellerId`, `status`, `type`), with `page` (default: 1) and `pageSize` (default: 50). Returns `{ data, total, page, pageSize }`.
 - `POST /api/leads` — Submit lead/inquiry.
 - `PATCH /api/leads/:id/status` — Update lead status (`{"status": "..."}`).
 
@@ -226,3 +226,9 @@ go build -o bin/server.exe cmd/server/main.go
 | **06** | Documentation | Done | Created `backend/documentation.md` containing full architecture, schema, endpoint reference, and step tracker. |
 | **07** | Live Verification | Done | Server running on port 8080, health endpoint verified healthy with active MySQL connection. |
 | **08** | Client Service Integration | Done | Verified end-to-end compatibility with Next.js frontend API service layer (`api.ts`), testing Vehicles, Dealers, Technicians, Swaps, Campaigns, and Leads. |
+| **09** | Priority 0 Credential Sanitization | Done | Removed hardcoded credential fallbacks from `config.go`, enforced strict startup validation, sanitized `.env.example` with safe templates, and redacted `documentation.md`. |
+| **10** | Priority 2 CORS Allowlist | Done | Replaced reflection CORS policy in `routes.go` with strict origin allowlist validation matching `cfg.AllowedOrigins`. |
+| **11** | Priority 5 Dependency Hygiene | Done | Executed `go mod tidy`, explicitly declared direct vs indirect dependencies, and configured `go 1.22.0` in `go.mod`. |
+| **12** | Priority 6 Health Endpoint Hardening | Done | Hardened `/api/health` in `health_controller.go` to hide internal host/DB/SQL error traces unless `DEBUG_HEALTH=true`. |
+| **13** | Priority 4 GORM Zero-Value Fix | Done | Modified `UpdateVehicle` in `vehicle_controller.go` to bind `map[string]interface{}`, ensuring `featured: false`, `price: 0`, and cleared booleans persist properly. |
+| **14** | Priority 3 & 7 Privacy & Pagination | Done | Added `MaskPhone` masking helper for public seller phone numbers, and added `page`, `pageSize`, and `total` pagination to `/api/vehicles` and `/api/leads`. |

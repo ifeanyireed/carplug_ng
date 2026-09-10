@@ -6,15 +6,10 @@ import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { MOCK_VEHICLES } from "@/data/mockStore";
 import {
-  Car,
   Plus,
   Search,
-  SlidersHorizontal,
-  MoreVertical,
-  Wrench,
   Eye,
   Edit,
-  Trash2,
 } from "lucide-react";
 
 export default function DealerVehiclesPage() {

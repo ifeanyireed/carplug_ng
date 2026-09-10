@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
-import { CreditCard, CheckCircle2, ArrowDownRight, RefreshCw, ShieldCheck } from "lucide-react";
+import React from "react";
 
 export default function PaymentsConsolePage() {
   const transactions = [

@@ -8,15 +8,8 @@ import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
 import {
-  ArrowLeft,
   X,
   Plus,
-  CheckCircle2,
-  Wrench,
-  Fuel,
-  Gauge,
-  Calendar,
-  ShieldCheck,
   ChevronRight,
 } from "lucide-react";
 
@@ -33,12 +26,6 @@ export default function ComparePage() {
 
   const handleRemove = (id: string) => {
     setComparedIds((prev) => prev.filter((item) => item !== id));
-  };
-
-  const handleAdd = (id: string) => {
-    if (!comparedIds.includes(id) && comparedIds.length < 3) {
-      setComparedIds((prev) => [...prev, id]);
-    }
   };
 
   const formatNaira = (amount: number) => {

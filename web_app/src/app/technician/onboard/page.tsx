@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Award, ShieldCheck, Upload, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export default function TechnicianOnboardingPage() {
   const [submitted, setSubmitted] = useState(false);

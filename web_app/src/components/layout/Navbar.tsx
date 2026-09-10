@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { RojoLogo } from "@/components/common/RojoLogo";
 import {
-  User,
   ShoppingBag,
   ChevronDown,
   Menu,
@@ -25,7 +24,6 @@ interface NavbarProps {
 export const Navbar = ({
   onOpenAuth,
   savedCount = 2,
-  onOpenSaved,
 }: NavbarProps) => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

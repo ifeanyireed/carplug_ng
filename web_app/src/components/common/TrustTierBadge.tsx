@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldCheck, FileText, CheckCircle2, Wrench, Award } from "lucide-react";
+import { FileText, CheckCircle2, Wrench, Award } from "lucide-react";
 
 interface TrustTierBadgeProps {
   tier: 1 | 2 | 3 | 4 | 5;

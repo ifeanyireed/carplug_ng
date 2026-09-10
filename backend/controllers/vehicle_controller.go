@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -80,16 +81,53 @@ func GetVehicles(c *gin.Context) {
 		orderClause = "featured desc, created_at desc"
 	}
 
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "24"))
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 24
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count vehicles: " + err.Error()})
+		return
+	}
+
 	var vehicles []models.Vehicle
-	if err := query.Order(orderClause).Find(&vehicles).Error; err != nil {
+	if err := query.Order(orderClause).Offset((page - 1) * pageSize).Limit(pageSize).Find(&vehicles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch vehicles: " + err.Error()})
 		return
 	}
 
+	for i := range vehicles {
+		vehicles[i].SellerPhone = MaskPhone(vehicles[i].SellerPhone)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"count": len(vehicles),
-		"data":  vehicles,
+		"count":    len(vehicles),
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+		"data":     vehicles,
 	})
+}
+
+// MaskPhone obscures middle digits for public unauthenticated views (e.g. +234 803 *** **21)
+func MaskPhone(phone string) string {
+	cleaned := strings.TrimSpace(phone)
+	if len(cleaned) < 7 {
+		return "+234 80* *** **"
+	}
+	if strings.HasPrefix(cleaned, "+234") && len(cleaned) >= 13 {
+		return cleaned[:8] + " *** **" + cleaned[len(cleaned)-2:]
+	}
+	if len(cleaned) >= 10 {
+		return cleaned[:4] + " *** **" + cleaned[len(cleaned)-2:]
+	}
+	return cleaned[:3] + " *** " + cleaned[len(cleaned)-2:]
 }
 
 func GetVehicleByID(c *gin.Context) {
@@ -102,6 +140,7 @@ func GetVehicleByID(c *gin.Context) {
 		return
 	}
 
+	vehicle.SellerPhone = MaskPhone(vehicle.SellerPhone)
 	c.JSON(http.StatusOK, vehicle)
 }
 
@@ -135,18 +174,23 @@ func UpdateVehicle(c *gin.Context) {
 		return
 	}
 
-	var updates models.Vehicle
+	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	updates.ID = id
-	if err := db.Model(&existing).Updates(&updates).Error; err != nil {
+	// Never allow primary key to be modified via update payload
+	delete(updates, "id")
+	delete(updates, "ID")
+
+	if err := db.Model(&existing).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vehicle: " + err.Error()})
 		return
 	}
 
+	db.First(&existing, "id = ?", id)
+	existing.SellerPhone = MaskPhone(existing.SellerPhone)
 	c.JSON(http.StatusOK, existing)
 }
 

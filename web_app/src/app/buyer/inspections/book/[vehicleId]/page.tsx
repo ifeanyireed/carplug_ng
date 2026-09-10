@@ -5,12 +5,9 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_VEHICLES } from "@/data/mockStore";
 import {
-  Wrench,
   Check,
   ShieldCheck,
-  Award,
   Clock,
-  Car,
   ChevronRight,
   ArrowRight,
 } from "lucide-react";

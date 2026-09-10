@@ -24,13 +24,34 @@ func GetLeads(c *gin.Context) {
 		query = query.Where("type = ?", leadType)
 	}
 
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "25"))
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 25
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count leads: " + err.Error()})
+		return
+	}
+
 	var leads []models.Lead
-	if err := query.Order("created_at desc").Find(&leads).Error; err != nil {
+	if err := query.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&leads).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch leads: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"count": len(leads), "data": leads})
+	c.JSON(http.StatusOK, gin.H{
+		"count":    len(leads),
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+		"data":     leads,
+	})
 }
 
 func CreateLead(c *gin.Context) {

@@ -155,7 +155,7 @@ export default function HomePage() {
     if (!activeFilters) return "";
 
     const activeOptions = Object.entries(activeFilters.options)
-      .filter(([_, active]) => active)
+      .filter(([, active]) => active)
       .map(([key]) => {
         switch (key) {
           case "hotDeals":

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Camera, Mic, Upload, CheckCircle2, ArrowRight, Save } from "lucide-react";
+import { Camera, CheckCircle2, ArrowRight } from "lucide-react";
 
 export default function ReportComposerPage() {
   const [submitted, setSubmitted] = useState(false);

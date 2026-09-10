@@ -53,6 +53,10 @@ func GetDealerInventory(c *gin.Context) {
 		return
 	}
 
+	for i := range vehicles {
+		vehicles[i].SellerPhone = MaskPhone(vehicles[i].SellerPhone)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"count": len(vehicles), "data": vehicles})
 }
 

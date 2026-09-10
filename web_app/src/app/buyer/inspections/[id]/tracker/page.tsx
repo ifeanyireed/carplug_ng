@@ -1,18 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_INSPECTIONS } from "@/data/mockStore";
 import {
-  Wrench,
   CheckCircle2,
-  Clock,
-  MapPin,
-  Phone,
-  FileCheck,
   ChevronRight,
-  ShieldCheck,
   ArrowRight,
 } from "lucide-react";
 

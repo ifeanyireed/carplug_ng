@@ -1,14 +1,8 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Users,
-  Car,
-  Wrench,
   ShieldCheck,
-  TrendingUp,
   FileCheck,
-  AlertTriangle,
-  ArrowRight,
 } from "lucide-react";
 
 export default function AdminDashboardPage() {

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { MOCK_SHOPS } from "@/data/mockStore";
-import { Store, ShieldCheck, MapPin, Phone, Mail, Clock, Save, ArrowUpRight } from "lucide-react";
+import { ShieldCheck, Save, ArrowUpRight } from "lucide-react";
 
 export default function DealerShopSettingsPage() {
   const shop = MOCK_SHOPS[0];

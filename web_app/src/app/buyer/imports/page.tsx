@@ -6,12 +6,9 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import {
   Globe,
-  Ship,
   Calculator,
-  ShieldCheck,
   ChevronRight,
   ArrowRight,
-  Plane,
 } from "lucide-react";
 
 export default function ImportedCarsPage() {

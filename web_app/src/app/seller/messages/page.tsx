@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, Send, Lock, ShieldCheck } from "lucide-react";
+import { Send, Lock } from "lucide-react";
 
 export default function SellerMessagesPage() {
   const [messages, setMessages] = useState([

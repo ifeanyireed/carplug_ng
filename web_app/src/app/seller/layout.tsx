@@ -8,7 +8,6 @@ import {
   FileCheck,
   DollarSign,
   MessageSquare,
-  ShieldCheck,
 } from "lucide-react";
 
 export default function SellerLayout({

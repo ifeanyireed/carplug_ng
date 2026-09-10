@@ -5,11 +5,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_VEHICLES, MOCK_TECHNICIANS } from "@/data/mockStore";
 import {
-  Wrench,
   Star,
   MapPin,
-  Clock,
-  ShieldCheck,
   ChevronRight,
   ArrowRight,
   CheckCircle,

@@ -1,17 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
-  CreditCard,
   Check,
-  Clock,
   ShieldCheck,
-  AlertCircle,
-  TrendingUp,
 } from "lucide-react";
 
 export default function DealerSubscriptionPage() {
-  const [activePlan, setActivePlan] = useState<string>("pro");
 
   const plans = [
     {

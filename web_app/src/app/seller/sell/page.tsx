@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { DollarSign, Check, ArrowRight, TrendingUp, ShieldCheck } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 export default function SellMyCarPage() {
   const [make, setMake] = useState("Toyota");

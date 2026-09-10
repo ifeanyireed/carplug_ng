@@ -1,15 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import { MOCK_TECHNICIANS, MOCK_INSPECTIONS } from "@/data/mockStore";
+import { MOCK_TECHNICIANS } from "@/data/mockStore";
 import {
   Wrench,
   Star,
-  CheckCircle,
-  Clock,
-  Wallet,
   MapPin,
   ArrowRight,
-  ShieldCheck,
 } from "lucide-react";
 
 export default function TechnicianDashboardPage() {

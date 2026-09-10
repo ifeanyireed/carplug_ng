@@ -3,13 +3,8 @@ import Link from "next/link";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { MOCK_VEHICLES } from "@/data/mockStore";
 import {
-  Car,
-  Eye,
-  Heart,
-  Users,
   ShieldCheck,
   Plus,
-  ArrowUpRight,
 } from "lucide-react";
 
 export default function SellerDashboardPage() {

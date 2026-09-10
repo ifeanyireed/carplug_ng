@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Wallet, ArrowDownRight, CheckCircle2, DollarSign } from "lucide-react";
 
 export default function TechnicianEarningsPage() {
   const payouts = [

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { ShieldAlert, AlertTriangle, Check, X, Eye } from "lucide-react";
 
 export default function ListingsModerationPage() {
   const [flagged, setFlagged] = useState([

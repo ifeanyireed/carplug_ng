@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,11 +34,17 @@ func CheckHealth(c *gin.Context) {
 		"database":    dbStatus,
 		"uptime":      time.Since(startTime).String(),
 		"currentTime": time.Now().Format(time.RFC3339),
-		"dbHost":      config.AppConfig.DBHost,
-		"dbName":      config.AppConfig.DBName,
 	}
-	if dbErr != "" {
-		resp["dbError"] = dbErr
+
+	// Only expose internal infrastructure details if DEBUG_HEALTH=true is explicitly enabled
+	if os.Getenv("DEBUG_HEALTH") == "true" {
+		if config.AppConfig != nil {
+			resp["dbHost"] = config.AppConfig.DBHost
+			resp["dbName"] = config.AppConfig.DBName
+		}
+		if dbErr != "" {
+			resp["dbError"] = dbErr
+		}
 	}
 
 	c.JSON(http.StatusOK, resp)

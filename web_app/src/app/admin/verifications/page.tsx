@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileCheck, Check, X, Eye, ExternalLink, ShieldCheck } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 export default function VerificationQueuePage() {
   const [queue, setQueue] = useState([
@@ -34,7 +34,7 @@ export default function VerificationQueuePage() {
     },
   ]);
 
-  const handleAction = (id: string, action: "approved" | "rejected") => {
+  const handleAction = (id: string) => {
     setQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -74,14 +74,14 @@ export default function VerificationQueuePage() {
                   <td className="py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => handleAction(item.id, "approved")}
+                        onClick={() => handleAction(item.id)}
                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 transition shadow-xs"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>Approve &amp; Upgrade</span>
                       </button>
                       <button
-                        onClick={() => handleAction(item.id, "rejected")}
+                        onClick={() => handleAction(item.id)}
                         className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-lg font-bold text-[11px] flex items-center gap-1 transition"
                       >
                         <X className="w-3.5 h-3.5" />

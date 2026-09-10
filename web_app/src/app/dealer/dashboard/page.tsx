@@ -6,13 +6,9 @@ import {
   Car,
   Users,
   Wrench,
-  TrendingUp,
   Star,
   Plus,
   ArrowUpRight,
-  ShieldCheck,
-  CreditCard,
-  AlertCircle,
 } from "lucide-react";
 
 export default function DealerDashboardPage() {

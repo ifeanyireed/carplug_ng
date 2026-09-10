@@ -9,11 +9,6 @@ import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
 import {
   MapPin,
-  Shield,
-  Layers,
-  ChevronRight,
-  Eye,
-  SlidersHorizontal,
   X,
   Lock,
 } from "lucide-react";
@@ -100,7 +95,7 @@ export default function MapDiscoveryPage() {
 
               {/* Hotspot Pins Simulation */}
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                {districtVehicles.map((car, i) => (
+                {districtVehicles.map((car) => (
                   <button
                     key={car.id}
                     onClick={() => setSelectedCar(car)}

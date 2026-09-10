@@ -7,14 +7,10 @@ import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { MOCK_VEHICLES } from "@/data/mockStore";
 import {
-  MessageSquare,
   ShieldCheck,
   Send,
-  Phone,
-  Calendar,
   Lock,
   ChevronRight,
-  ArrowRight,
 } from "lucide-react";
 
 export default function BuyerMessagesPage() {

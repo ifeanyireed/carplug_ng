@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
   LogOut,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export interface NavItem {
   label: string;
@@ -33,6 +34,7 @@ export const PortalShell = ({
   children,
   userEmail = "user@carplug.ng",
 }: PortalShellProps) => {
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -134,8 +136,23 @@ export const PortalShell = ({
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
 
-          <div className="w-8 h-8 rounded-full bg-neutral-800 text-white flex items-center justify-center text-xs font-semibold">
-            {roleTitle.charAt(0)}
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs font-semibold shadow-xs"
+              title={user?.email || userEmail}
+            >
+              {user?.name?.charAt(0).toUpperCase() || roleTitle.charAt(0)}
+            </div>
+            {user && (
+              <button
+                onClick={logout}
+                title="Log Out"
+                className="hidden sm:flex p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                aria-label="Log out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -244,12 +261,23 @@ export const PortalShell = ({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
+                {user && (
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      logout();
+                    }}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log Out</span>
+                  </button>
+                )}
                 <Link
                   href="/"
                   className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200"
                 >
-                  <LogOut className="w-4 h-4" />
                   <span>Return to Home</span>
                 </Link>
               </div>

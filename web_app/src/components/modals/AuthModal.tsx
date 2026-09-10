@@ -1,53 +1,129 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Mail, Lock, User, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
+  Building2,
+  Car,
+  Wrench,
+} from "lucide-react";
 import { RojoLogo } from "@/components/common/RojoLogo";
+import { useAuth } from "@/context/AuthContext";
 
 interface AuthModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   initialMode?: "login" | "signup";
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export const AuthModal = ({
-  isOpen,
-  initialMode = "signup",
-  onClose,
+  isOpen: propsIsOpen,
+  initialMode,
+  onClose: propsOnClose,
 }: AuthModalProps) => {
-  const [mode, setMode] = useState<"login" | "signup">(initialMode);
+  const {
+    login,
+    register,
+    isAuthModalOpen,
+    authModalMode,
+    closeAuthModal,
+  } = useAuth();
+
+  // Support controlled or context-driven state
+  const isOpen = propsIsOpen !== undefined ? propsIsOpen : isAuthModalOpen;
+  const baseMode = initialMode || authModalMode || "signup";
+  const [overrideMode, setOverrideMode] = useState<"login" | "signup" | null>(null);
+  const mode = overrideMode ?? baseMode;
+
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
+    phone: "",
+    role: "buyer",
   });
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSuccess(true);
-    setTimeout(() => {
-      setIsSuccess(false);
-      onClose();
-    }, 1200);
+  const handleClose = () => {
+    setError(null);
+    setOverrideMode(null);
+    if (propsOnClose) {
+      propsOnClose();
+    } else {
+      closeAuthModal();
+    }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      if (mode === "login") {
+        await login({
+          email: formData.email.trim(),
+          password: formData.password,
+        });
+      } else {
+        await register({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          phone: formData.phone.trim() || undefined,
+          role: formData.role,
+        });
+      }
+
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        handleClose();
+      }, 900);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Authentication failed";
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const roleOptions = [
+    { id: "buyer", label: "Buyer", icon: ShieldCheck, desc: "Buy verified cars" },
+    { id: "seller", label: "Seller", icon: Car, desc: "Sell personal car" },
+    { id: "dealer", label: "Dealer", icon: Building2, desc: "Showroom inventory" },
+    { id: "technician", label: "Tech", icon: Wrench, desc: "150-pt inspections" },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white rounded-xl p-6 sm:p-8 shadow-2xl border border-gray-100 overflow-hidden">
+      <div className="relative w-full max-w-md bg-white rounded-2xl p-6 sm:p-8 shadow-2xl border border-gray-100 overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-5 right-5 w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition"
+          aria-label="Close auth dialog"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="p-2.5 bg-neutral-900 rounded-lg text-white mb-3">
+          <div className="p-2.5 bg-neutral-900 rounded-lg text-white mb-3 shadow-md">
             <RojoLogo className="h-5 w-auto" />
           </div>
           <h2 className="text-xl font-bold text-gray-900">
@@ -55,44 +131,108 @@ export const AuthModal = ({
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             {mode === "login"
-              ? "Access saved cars, live bids, and alerts"
-              : "Create an account to buy, sell, or auction vehicles"}
+              ? "Access your saved vehicles, leads, and dashboards"
+              : "Create an account to buy, sell, inspect, or manage inventory"}
           </p>
         </div>
 
+        {/* Error Alert Banner */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in duration-150">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <div className="flex-1 font-medium">{error}</div>
+          </div>
+        )}
+
         {isSuccess ? (
           <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-            <div className="w-12 h-12 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-gray-900">
-              {mode === "login" ? "Signed in successfully!" : "Account created!"}
+              {mode === "login" ? "Signed in successfully!" : "Account created successfully!"}
             </h3>
-            <p className="text-xs text-gray-500">Redirecting to your dashboard...</p>
+            <p className="text-xs text-gray-500">Preparing your verified dashboard...</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === "signup" && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Jane Doe"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 focus:bg-white transition"
-                  />
+              <>
+                {/* Role Selector */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Select Account Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {roleOptions.map((opt) => {
+                      const Icon = opt.icon;
+                      const isSelected = formData.role === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, role: opt.id })}
+                          className={`p-2.5 rounded-xl border text-left flex items-start gap-2 transition ${
+                            isSelected
+                              ? "border-black bg-neutral-900 text-white shadow-xs"
+                              : "border-gray-200 hover:border-gray-300 bg-gray-50/50 text-gray-700"
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-white" : "text-gray-500"}`} />
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold leading-tight">{opt.label}</div>
+                            <div className={`text-[10px] truncate ${isSelected ? "text-gray-300" : "text-gray-400"}`}>
+                              {opt.desc}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+
+                {/* Full Name */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ibrahim Adeyemi"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone (Optional) */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Phone Number <span className="text-gray-400 font-normal">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      placeholder="0803 123 4567"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
+            {/* Email Address */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Email Address
@@ -102,7 +242,7 @@ export const AuthModal = ({
                 <input
                   type="email"
                   required
-                  placeholder="jane@example.com"
+                  placeholder="ibrahim@example.com"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
@@ -112,15 +252,17 @@ export const AuthModal = ({
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Password
+                Password {mode === "signup" && <span className="text-gray-400 font-normal">(min 6 characters)</span>}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
+                  minLength={6}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) =>
@@ -131,22 +273,37 @@ export const AuthModal = ({
               </div>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-2.5 rounded-lg flex items-center justify-center gap-2 transition active:scale-95 shadow-md mt-2"
+              disabled={isSubmitting}
+              className="w-full bg-black hover:bg-neutral-800 disabled:bg-neutral-600 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-md mt-3 cursor-pointer disabled:cursor-not-allowed"
             >
-              <span>{mode === "login" ? "Sign In" : "Create Account"}</span>
-              <ArrowRight className="w-4 h-4" />
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{mode === "login" ? "Verifying credentials..." : "Creating account..."}</span>
+                </>
+              ) : (
+                <>
+                  <span>{mode === "login" ? "Sign In" : "Create Account"}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
 
-            <div className="pt-3 text-center text-xs text-gray-500">
+            {/* Switch Mode Toggle */}
+            <div className="pt-2 text-center text-xs text-gray-500">
               {mode === "login" ? (
                 <>
                   Don&apos;t have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setMode("signup")}
-                    className="font-semibold text-black hover:underline"
+                    onClick={() => {
+                      setError(null);
+                      setOverrideMode("signup");
+                    }}
+                    className="font-semibold text-black hover:underline cursor-pointer"
                   >
                     Sign Up
                   </button>
@@ -156,8 +313,11 @@ export const AuthModal = ({
                   Already have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setMode("login")}
-                    className="font-semibold text-black hover:underline"
+                    onClick={() => {
+                      setError(null);
+                      setOverrideMode("login");
+                    }}
+                    className="font-semibold text-black hover:underline cursor-pointer"
                   >
                     Log In
                   </button>

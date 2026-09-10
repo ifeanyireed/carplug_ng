@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PortalShell, NavItem } from "@/components/common/PortalShell";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   LayoutDashboard,
   Car,
@@ -28,13 +29,15 @@ export default function DealerLayout({
   ];
 
   return (
-    <PortalShell
-      roleTitle="Dealer Pro Hub"
-      roleType="dealer"
-      navItems={dealerNavItems}
-      userEmail="dealer@reedmotors.ng"
-    >
-      {children}
-    </PortalShell>
+    <RoleGuard allowedRoles={["dealer", "admin"]} portalName="Dealer Pro Hub">
+      <PortalShell
+        roleTitle="Dealer Pro Hub"
+        roleType="dealer"
+        navItems={dealerNavItems}
+        userEmail="dealer@reedmotors.ng"
+      >
+        {children}
+      </PortalShell>
+    </RoleGuard>
   );
 }

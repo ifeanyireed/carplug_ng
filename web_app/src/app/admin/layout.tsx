@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PortalShell, NavItem } from "@/components/common/PortalShell";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   LayoutDashboard,
   FileCheck,
@@ -28,13 +29,15 @@ export default function AdminLayout({
   ];
 
   return (
-    <PortalShell
-      roleTitle="Super Admin"
-      roleType="admin"
-      navItems={adminNavItems}
-      userEmail="admin@carplug.ng"
-    >
-      {children}
-    </PortalShell>
+    <RoleGuard allowedRoles={["admin"]} portalName="Super Admin Console">
+      <PortalShell
+        roleTitle="Super Admin"
+        roleType="admin"
+        navItems={adminNavItems}
+        userEmail="admin@carplug.ng"
+      >
+        {children}
+      </PortalShell>
+    </RoleGuard>
   );
 }

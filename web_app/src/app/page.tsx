@@ -14,12 +14,11 @@ import { BestSellingMakesSection } from "@/components/makes/BestSellingMakesSect
 import { WhatTheySaidSection } from "@/components/stories/WhatTheySaidSection";
 import { NewsAndArticlesSection } from "@/components/news/NewsAndArticlesSection";
 import { Footer } from "@/components/layout/Footer";
-import { AuthModal } from "@/components/modals/AuthModal";
 import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const { openAuthModal } = useAuth();
   const [savedBagCount, setSavedBagCount] = useState(2);
   const [activeFilters, setActiveFilters] = useState<SearchFilterState | null>(
     null
@@ -29,8 +28,7 @@ export default function HomePage() {
   const [searchResults, setSearchResults] = useState<CarListing[] | null>(null);
 
   const handleOpenAuth = (mode: "login" | "signup") => {
-    setAuthMode(mode);
-    setAuthModalOpen(true);
+    openAuthModal(mode);
   };
 
   const handleToggleFavorite = () => {
@@ -233,13 +231,6 @@ export default function HomePage() {
 
       {/* Footer Section from UI11.webp */}
       <Footer onSelectModel={handleSelectFooterModel} />
-
-      {/* Authentication Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        initialMode={authMode}
-        onClose={() => setAuthModalOpen(false)}
-      />
     </main>
   );
 }

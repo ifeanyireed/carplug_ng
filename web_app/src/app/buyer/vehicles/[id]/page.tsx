@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
+import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
 import { MOCK_INSPECTIONS } from "@/data/mockStore";
 import { fetchVehicleById, fetchInspectionById } from "@/services/api";
 import {
@@ -60,6 +61,14 @@ export default async function VehicleDetailPage({
           </div>
 
           <div className="flex items-center gap-3">
+            <SaveVehicleButton
+              vehicle={vehicle}
+              className="flex items-center gap-1.5 hover:text-neutral-900 transition font-medium"
+              iconClassName="w-3.5 h-3.5 text-neutral-500"
+              showText={true}
+              text="Save"
+              savedText="Saved"
+            />
             <button className="flex items-center gap-1 hover:text-neutral-900">
               <Share2 className="w-3.5 h-3.5" />
               <span>Share</span>
@@ -377,6 +386,15 @@ export default async function VehicleDetailPage({
                   <PhoneCall className="w-4 h-4" />
                   <span>Contact Seller (Masked)</span>
                 </Link>
+
+                <SaveVehicleButton
+                  vehicle={vehicle}
+                  className="w-full py-3.5 bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-neutral-800 font-bold rounded-2xl text-center flex items-center justify-center gap-2 transition active:scale-[0.99]"
+                  iconClassName="w-4 h-4 text-neutral-700"
+                  showText={true}
+                  text="Save to Garage"
+                  savedText="Saved in Garage"
+                />
               </div>
 
               {/* Seller Profile Mini Card */}

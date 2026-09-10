@@ -5,13 +5,13 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_SHOPS } from "@/data/mockStore";
 import { fetchDealerBySlugOrId, fetchDealerInventory } from "@/services/api";
+import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
 import {
   ShieldCheck,
   Star,
   MapPin,
   Clock,
   ArrowUpRight,
-  Heart,
   Zap,
   Fuel,
   Settings2,
@@ -151,13 +151,7 @@ export default async function PublicShopStorefrontPage({
                       </div>
 
                       {/* Favorite Heart Button */}
-                      <button
-                        type="button"
-                        aria-label="Add to favorites"
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
-                      >
-                        <Heart className="w-4 h-4 text-white" />
-                      </button>
+                      <SaveVehicleButton vehicle={car} />
 
                       {/* Carousel Pagination Dots */}
                       <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">

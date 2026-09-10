@@ -145,7 +145,7 @@ export const PortalShell = ({
             </div>
             {user && (
               <button
-                onClick={logout}
+                onClick={() => logout()}
                 title="Log Out"
                 className="hidden sm:flex p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                 aria-label="Log out"

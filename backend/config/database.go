@@ -15,7 +15,7 @@ var DB *gorm.DB
 
 func InitDB(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local",
+		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local&timeout=10s&readTimeout=30s&writeTimeout=30s",
 		cfg.DBUser,
 		cfg.DBPassword,
 		cfg.DBHost,
@@ -28,6 +28,8 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	if cfg.GinMode == "release" {
 		logLevel = logger.Warn
 	}
+
+	log.Printf("[Database] Connecting to MySQL at %s:%s (database: %s)...\n", cfg.DBHost, cfg.DBPort, cfg.DBName)
 
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
@@ -42,11 +44,11 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get generic database object: %w", err)
 	}
 
-	// Connection pooling optimized for remote cloud MySQL
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetMaxOpenConns(20)
-	sqlDB.SetConnMaxIdleTime(1 * time.Minute)
-	sqlDB.SetConnMaxLifetime(3 * time.Minute)
+	// Connection pooling optimized for remote cloud MySQL over VPN (short idle timeouts prevent dead TCP sockets)
+	sqlDB.SetMaxIdleConns(2)
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetConnMaxIdleTime(15 * time.Second)
+	sqlDB.SetConnMaxLifetime(1 * time.Minute)
 
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping MySQL database: %w", err)
@@ -66,6 +68,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			&models.Lead{},
 			&models.SwapRequest{},
 			&models.Campaign{},
+			&models.SavedVehicle{},
 		)
 		if err != nil {
 			return nil, fmt.Errorf("auto-migration failed: %w", err)

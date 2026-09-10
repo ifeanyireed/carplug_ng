@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_VEHICLES, MOCK_TECHNICIANS } from "@/data/mockStore";
+import { fetchVehicleById, fetchTechnicians } from "@/services/api";
 import {
   Star,
   MapPin,
@@ -23,8 +24,12 @@ export default async function ChooseTechnicianPage({
   const sParams = await searchParams;
   const tier = (sParams.tier as string) || "premium";
 
-  const vehicle = MOCK_VEHICLES.find((v) => v.id === vehicleId);
+  const fetchedVehicle = await fetchVehicleById(vehicleId);
+  const vehicle = fetchedVehicle || MOCK_VEHICLES.find((v) => v.id === vehicleId);
   if (!vehicle) notFound();
+
+  const fetchedTechs = await fetchTechnicians();
+  const technicians = fetchedTechs && fetchedTechs.length > 0 ? fetchedTechs : MOCK_TECHNICIANS;
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
@@ -63,7 +68,7 @@ export default async function ChooseTechnicianPage({
 
         {/* Technicians List */}
         <div className="space-y-4">
-          {MOCK_TECHNICIANS.map((tech) => (
+          {technicians.map((tech) => (
             <div
               key={tech.id}
               className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs hover:shadow-md transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
@@ -97,7 +102,11 @@ export default async function ChooseTechnicianPage({
 
                   <div className="text-xs text-gray-600 pt-1">
                     <span className="text-gray-400 font-medium">Specialties: </span>
-                    <span>{tech.specialties.join(" • ")}</span>
+                    <span>
+                      {Array.isArray(tech.specialties)
+                        ? tech.specialties.join(" • ")
+                        : String(tech.specialties)}
+                    </span>
                   </div>
                 </div>
               </div>

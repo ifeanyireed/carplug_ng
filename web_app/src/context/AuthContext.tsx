@@ -1,10 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import {
   AuthUser,
   getAuthToken,
   clearAuthToken,
+  getStoredUser,
+  setStoredUser,
+  clearStoredUser,
   loginUser,
   registerUser,
   fetchMe,
@@ -25,7 +28,7 @@ interface AuthContextType {
     phone?: string;
     role?: string;
   }) => Promise<void>;
-  logout: () => void;
+  logout: (redirectUrl?: string) => void;
   openAuthModal: (mode?: "login" | "signup") => void;
   closeAuthModal: () => void;
 }
@@ -33,32 +36,42 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setTokenState] = useState<string | null>(() => getAuthToken());
-  const [isLoading, setIsLoading] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return !!getAuthToken();
-  });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
 
-  // Restore authenticated session on initial mount
+  // Revalidate authenticated session in background on mount
   useEffect(() => {
     const storedToken = getAuthToken();
-    if (!storedToken) return;
+    const storedUser = getStoredUser();
+
+    if (!storedToken) {
+      setIsLoading(false);
+      return;
+    }
+
+    setTokenState(storedToken);
+    if (storedUser) {
+      setUser(storedUser);
+      setIsLoading(false);
+    }
 
     fetchMe()
       .then((currentUser) => {
         if (currentUser) {
           setUser(currentUser);
+          setStoredUser(currentUser);
         } else {
           clearAuthToken();
+          clearStoredUser();
           setTokenState(null);
+          setUser(null);
         }
       })
       .catch(() => {
-        clearAuthToken();
-        setTokenState(null);
+        // preserve cached user on network error
       })
       .finally(() => {
         setIsLoading(false);
@@ -71,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await loginUser(payload);
       setTokenState(res.token);
       setUser(res.user);
-      setIsAuthModalOpen(false);
+      setStoredUser(res.user);
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const res = await registerUser(payload);
         setTokenState(res.token);
         setUser(res.user);
-        setIsAuthModalOpen(false);
+        setStoredUser(res.user);
       } finally {
         setIsLoading(false);
       }
@@ -98,10 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback((redirectUrl?: string) => {
     clearAuthToken();
+    clearStoredUser();
     setTokenState(null);
     setUser(null);
+    if (typeof window !== "undefined") {
+      const target = typeof redirectUrl === "string" ? redirectUrl : "/";
+      window.location.href = target;
+    }
   }, []);
 
   const openAuthModal = useCallback((mode: "login" | "signup" = "login") => {
@@ -113,22 +131,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthModalOpen(false);
   }, []);
 
+  // Memoize the context value to prevent unnecessary re-renders of consuming components
+  const contextValue = useMemo<AuthContextType>(
+    () => ({
+      user,
+      token,
+      isLoading,
+      isAuthenticated: !!user,
+      isAuthModalOpen,
+      authModalMode,
+      login,
+      register,
+      logout,
+      openAuthModal,
+      closeAuthModal,
+    }),
+    [
+      user,
+      token,
+      isLoading,
+      isAuthModalOpen,
+      authModalMode,
+      login,
+      register,
+      logout,
+      openAuthModal,
+      closeAuthModal,
+    ]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isLoading,
-        isAuthenticated: !!user,
-        isAuthModalOpen,
-        authModalMode,
-        login,
-        register,
-        logout,
-        openAuthModal,
-        closeAuthModal,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CarListing } from "@/data/mockCars";
+import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
 import {
-  Heart,
   ArrowUpRight,
   Zap,
   Fuel,
@@ -27,13 +27,6 @@ export const SearchResultsDisplay = ({
   filterSummary,
   onClearFilters,
 }: SearchResultsDisplayProps) => {
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-
-  const handleFavoriteClick = (e: React.MouseEvent, carId: string) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setFavorites((prev) => ({ ...prev, [carId]: !prev[carId] }));
-  };
 
   const getFuelIcon = (type: string) => {
     switch (type) {
@@ -104,8 +97,6 @@ export const SearchResultsDisplay = ({
         {/* Vehicles Grid with Tighter Padding/Gap */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
           {results.map((car) => {
-            const isFav = !!favorites[car.id];
-
             return (
               <div
                 key={car.id}
@@ -130,18 +121,7 @@ export const SearchResultsDisplay = ({
                   )}
 
                   {/* Favorite Heart Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => handleFavoriteClick(e, car.id)}
-                    aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                    className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
-                  >
-                    <Heart
-                      className={`w-4 h-4 transition ${
-                        isFav ? "fill-rose-500 text-rose-500" : "text-white"
-                      }`}
-                    />
-                  </button>
+                  <SaveVehicleButton vehicle={car} />
 
                   {/* Carousel Pagination Dots */}
                   <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
@@ -180,21 +160,21 @@ export const SearchResultsDisplay = ({
                     </div>
                   </div>
 
-                  {/* Pricing & CTA Divider */}
+                  {/* Pricing & CTA Divider (Nigerian Naira) */}
                   <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between">
                     <div className="flex items-baseline gap-2">
                       {car.originalPrice && (
-                        <span className="text-sm sm:text-base text-rose-500 line-through font-medium">
-                          ${car.originalPrice.toLocaleString()}
+                        <span className="text-xs sm:text-sm text-gray-400 line-through font-medium">
+                          ₦{car.originalPrice.toLocaleString("en-US")}
                         </span>
                       )}
-                      <span className="text-sm sm:text-base font-medium text-gray-900 tracking-tight">
-                        ${car.price.toLocaleString()}
+                      <span className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">
+                        ₦{car.price.toLocaleString("en-US")}
                       </span>
                     </div>
 
                     <Link
-                      href="/buyer/vehicles/v-lexus-rx350-2021"
+                      href={`/buyer/vehicles/${car.id}`}
                       className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black transition"
                     >
                       <span>See Details</span>

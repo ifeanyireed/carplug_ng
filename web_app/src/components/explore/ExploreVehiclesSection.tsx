@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSavedVehicles } from "@/context/SavedVehiclesContext";
+import { fetchVehicles } from "@/services/api";
 import {
   ArrowUpRight,
   Heart,
@@ -20,87 +22,78 @@ export interface ExploreCar {
   price: number;
   originalPrice?: number;
   badge?: "Great Price" | "Good Deal" | "Hot Deal" | null;
-  fuelType: "Electric" | "Gasoline" | "Hybrid" | "Diesel";
+  fuelType: "Electric" | "Gasoline" | "Hybrid" | "Diesel" | "Petrol";
   transmission: "Automatic" | "Manual";
-  condition: "New" | "Used";
-  bodyType: "Sedan" | "Coupe" | "SUV" | "Hatchback";
+  condition: string;
+  bodyType: "Sedan" | "Coupe" | "SUV" | "Hatchback" | "Pickup";
 }
 
-const VEHICLES: ExploreCar[] = [
+// Fallback catalog matching real records in the MySQL database
+const INITIAL_VEHICLES: ExploreCar[] = [
   {
-    id: "bmw-520d",
-    name: "BMW 520d",
-    year: 2014,
+    id: "v-toyota-camry-2020",
+    name: "Toyota Camry XSE V6",
+    year: 2020,
     image: "/images/cars/car18.jpeg",
-    price: 49000,
-    originalPrice: 59000,
+    price: 26500000,
+    originalPrice: 28000000,
     badge: "Great Price",
-    fuelType: "Electric",
-    transmission: "Manual",
-    condition: "New",
+    fuelType: "Petrol",
+    transmission: "Automatic",
+    condition: "Foreign Used (Tokunbo)",
     bodyType: "Sedan",
   },
   {
-    id: "audi-a4",
-    name: "Audi A4",
-    year: 2015,
-    image: "/images/cars/car16.jpeg",
-    price: 45000,
-    originalPrice: 49000,
-    badge: "Good Deal",
-    fuelType: "Gasoline",
-    transmission: "Automatic",
-    condition: "Used",
-    bodyType: "Coupe",
-  },
-  {
-    id: "merc-cclass",
-    name: "Mercedes-Benz C-Class",
-    year: 2016,
+    id: "v-mercedes-gle450-2022",
+    name: "Mercedes-Benz GLE 450 4MATIC",
+    year: 2022,
     image: "/images/cars/car17.jpeg",
-    price: 76000,
-    badge: null,
-    fuelType: "Gasoline",
-    transmission: "Automatic",
-    condition: "Used",
-    bodyType: "Sedan",
-  },
-  {
-    id: "lexus-is250",
-    name: "Lexus IS 250",
-    year: 2013,
-    image: "/images/cars/car15.jpeg",
-    price: 38500,
-    originalPrice: 42000,
-    badge: null,
+    price: 68000000,
+    originalPrice: 71000000,
+    badge: "Good Deal",
     fuelType: "Hybrid",
     transmission: "Automatic",
-    condition: "New",
+    condition: "Foreign Used (Tokunbo)",
     bodyType: "SUV",
   },
   {
-    id: "volvo-s60",
-    name: "Volvo S60",
-    year: 2017,
-    image: "/images/cars/car14.jpeg",
-    price: 52000,
-    badge: null,
-    fuelType: "Electric",
+    id: "v-lexus-rx350-2021",
+    name: "Lexus RX 350 F-Sport AWD",
+    year: 2021,
+    image: "/images/cars/car16.jpeg",
+    price: 42000000,
+    originalPrice: 45000000,
+    badge: "Hot Deal",
+    fuelType: "Petrol",
     transmission: "Automatic",
-    condition: "New",
+    condition: "Foreign Used (Tokunbo)",
     bodyType: "SUV",
   },
   {
-    id: "toyota-camry",
-    name: "Toyota Camry",
+    id: "v-honda-accord-2019",
+    name: "Honda Accord Touring 2.0T",
+    year: 2019,
+    image: "/images/cars/car15.jpeg",
+    price: 19500000,
+    originalPrice: 21000000,
+    badge: "Good Deal",
+    fuelType: "Petrol",
+    transmission: "Automatic",
+    condition: "Nigerian Used",
+    bodyType: "Sedan",
+  },
+  {
+    id: "v-toyota-corolla-2018",
+    name: "Toyota Corolla LE (First Body)",
     year: 2018,
-    image: "/images/cars/car13.jpeg",
-    price: 64000,
-    badge: null,
-    fuelType: "Gasoline",
+    image: "/images/cars/car1.jpeg",
+    price: 13500000,
+    originalPrice: 14000000,
+    badge: "Great Price",
+    fuelType: "Petrol",
     transmission: "Automatic",
-    condition: "New",
-    bodyType: "SUV",
+    condition: "Nigerian Used",
+    bodyType: "Sedan",
   },
 ];
 
@@ -113,18 +106,95 @@ export const ExploreVehiclesSection = ({
   onSelectCar,
   onToggleFavorite,
 }: ExploreVehiclesSectionProps) => {
+  const { isSaved, toggleSave } = useSavedVehicles();
   const [activeTab, setActiveTab] = useState<"all" | "new" | "used">("all");
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [vehicles, setVehicles] = useState<ExploreCar[]>(INITIAL_VEHICLES);
 
-  const handleFavoriteClick = (e: React.MouseEvent, carId: string) => {
+  // Fetch live inventory from backend API
+  useEffect(() => {
+    let isMounted = true;
+    fetchVehicles()
+      .then((list) => {
+        if (isMounted && Array.isArray(list) && list.length > 0) {
+          const mapped: ExploreCar[] = list.map((v) => {
+            const rawImg =
+              Array.isArray(v.images) && v.images.length > 0
+                ? v.images[0]
+                : "/images/cars/hero-car.webp";
+            const badge =
+              v.priceRating === "deal"
+                ? "Great Price"
+                : v.priceRating === "fair"
+                ? "Good Deal"
+                : v.featured
+                ? "Hot Deal"
+                : null;
+
+            return {
+              id: v.id,
+              name: v.title || `${v.year} ${v.make} ${v.model}`,
+              year: v.year,
+              image: rawImg,
+              price: v.price,
+              originalPrice:
+                v.marketPriceRange && v.marketPriceRange[1] > v.price
+                  ? v.marketPriceRange[1]
+                  : undefined,
+              badge,
+              fuelType: (v.fuelType as any) || "Petrol",
+              transmission: (v.transmission as any) || "Automatic",
+              condition: v.condition,
+              bodyType: (v.bodyType as any) || "Sedan",
+            };
+          });
+          setVehicles(mapped);
+        }
+      })
+      .catch((err) => {
+        console.warn("Using fallback explore vehicles catalog:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleFavoriteClick = async (e: React.MouseEvent, car: ExploreCar) => {
     e.stopPropagation();
-    setFavorites((prev) => ({ ...prev, [carId]: !prev[carId] }));
-    onToggleFavorite?.(carId);
+    try {
+      await toggleSave({
+        id: car.id,
+        title: car.name,
+        make: car.name.split(" ")[0],
+        model: car.name.split(" ").slice(1).join(" "),
+        year: car.year,
+        price: car.price,
+        image: car.image,
+        images: [car.image],
+        fuelType: car.fuelType as any,
+        transmission: car.transmission as any,
+        condition: car.condition as any,
+        bodyType: car.bodyType as any,
+      });
+      onToggleFavorite?.(car.id);
+    } catch (err) {
+      console.warn("Failed to toggle favorite:", err);
+    }
   };
 
-  const filteredVehicles = VEHICLES.filter((car) => {
-    if (activeTab === "new") return car.condition === "New";
-    if (activeTab === "used") return car.condition === "Used";
+  const filteredVehicles = vehicles.filter((car) => {
+    if (activeTab === "new") {
+      return (
+        car.condition.toLowerCase().includes("brand new") ||
+        car.condition.toLowerCase() === "new"
+      );
+    }
+    if (activeTab === "used") {
+      return (
+        car.condition.toLowerCase().includes("used") ||
+        car.condition.toLowerCase().includes("tokunbo")
+      );
+    }
     return true;
   });
 
@@ -146,13 +216,13 @@ export const ExploreVehiclesSection = ({
           Explore all vehicles
         </h2>
 
-        <button
-          type="button"
+        <Link
+          href="/buyer/search"
           className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-black transition tracking-tight group"
         >
           <span>View All</span>
           <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </button>
+        </Link>
       </div>
 
       {/* Outer White Card Enclosing Toggle & Cars Grid */}
@@ -180,7 +250,7 @@ export const ExploreVehiclesSection = ({
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              New Cars
+              Brand New
             </button>
             <button
               type="button"
@@ -191,7 +261,7 @@ export const ExploreVehiclesSection = ({
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Used Cars
+              Tokunbo & Used
             </button>
           </div>
         </div>
@@ -199,7 +269,7 @@ export const ExploreVehiclesSection = ({
         {/* Vehicles Grid with Tighter Padding/Gap */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
           {filteredVehicles.map((car) => {
-            const isFav = !!favorites[car.id];
+            const isFav = isSaved(car.id);
             return (
               <div
                 key={car.id}
@@ -227,7 +297,7 @@ export const ExploreVehiclesSection = ({
                   {/* Favorite Heart Button */}
                   <button
                     type="button"
-                    onClick={(e) => handleFavoriteClick(e, car.id)}
+                    onClick={(e) => handleFavoriteClick(e, car)}
                     aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
                     className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
                   >
@@ -250,7 +320,7 @@ export const ExploreVehiclesSection = ({
                 <div className="p-4 sm:p-4.5 flex-1 flex flex-col justify-between">
                   <div>
                     {/* Car Title & Year */}
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-[-0.04em] group-hover:text-black">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-[-0.04em] group-hover:text-black line-clamp-1">
                       {car.name} ({car.year})
                     </h3>
 
@@ -268,28 +338,28 @@ export const ExploreVehiclesSection = ({
                       <span className="text-gray-300 font-normal">•</span>
                       <div className="flex items-center gap-1 text-black">
                         <CarFront className="w-3.5 h-3.5 text-black stroke-[2]" />
-                        <span className="text-black">{car.condition}</span>
+                        <span className="text-black truncate max-w-[110px]">{car.condition}</span>
                       </div>
                       <span className="text-gray-300 font-normal">•</span>
                       <span className="text-black">{car.bodyType}</span>
                     </div>
                   </div>
 
-                  {/* Pricing & CTA Divider (Same font size & medium weight for prices, larger See Details icon) */}
+                  {/* Pricing & CTA Divider (Nigerian Naira) */}
                   <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between">
                     <div className="flex items-baseline gap-2">
                       {car.originalPrice && (
-                        <span className="text-sm sm:text-base text-rose-500 line-through font-medium">
-                          ${car.originalPrice.toLocaleString()}
+                        <span className="text-xs sm:text-sm text-gray-400 line-through font-medium">
+                          ₦{car.originalPrice.toLocaleString("en-US")}
                         </span>
                       )}
-                      <span className="text-sm sm:text-base font-medium text-gray-900 tracking-tight">
-                        ${car.price.toLocaleString()}
+                      <span className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">
+                        ₦{car.price.toLocaleString("en-US")}
                       </span>
                     </div>
 
                     <Link
-                      href="/buyer/vehicles/v-lexus-rx350-2021"
+                      href={`/buyer/vehicles/${car.id}`}
                       className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black transition"
                     >
                       <span>See Details</span>

@@ -1,21 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Vehicle } from "@/data/mockStore";
-import { createVehicle } from "@/services/api";
+import { createVehicle, uploadVehicleImages } from "@/services/api";
 import {
   Upload,
   Check,
   ChevronRight,
   ChevronLeft,
   Wrench,
+  X,
+  Loader2,
+  ImageIcon,
+  AlertCircle,
 } from "lucide-react";
 
 export default function AddVehicleWizardPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [published, setPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     // Step 1: Basic details
@@ -38,14 +46,43 @@ export default function AddVehicleWizardPage() {
     vin: "WDC2539841F901823",
     customsCleared: true,
     originalReceipt: true,
-    // Step 6: Pricing
+    // Step 6: Photos & Cloudinary Images
+    images: [] as string[],
+    // Step 7: Pricing
     askingPrice: "42000000",
     negotiable: true,
-    // Step 7: Faults disclosure
+    // Step 8: Faults disclosure
     disclosedFaults: "Minor front bumper stone chips. Interior pristine.",
-    // Step 8: Pre-inspection opt-in
+    // Step 9: Pre-inspection opt-in
     preInspectionOptIn: true,
   });
+
+  const handleImageFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingImages(true);
+    setUploadError(null);
+    try {
+      const urls = await uploadVehicleImages(Array.from(files), "carplug/vehicles");
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...urls],
+      }));
+    } catch (err: any) {
+      console.error("Cloudinary upload error:", err);
+      setUploadError(err.message || "Failed to upload photo(s) to Cloudinary");
+    } finally {
+      setIsUploadingImages(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
 
   const steps = [
     "Vehicle Identity",
@@ -87,7 +124,7 @@ export default function AddVehicleWizardPage() {
           trustTierLabel: formData.preInspectionOptIn
             ? "Tier 4: Comprehensive Tech Inspected"
             : "Tier 2: Verification In Progress",
-          images: ["/images/cars/car18.jpeg"],
+          images: formData.images.length > 0 ? formData.images : ["/images/cars/car18.jpeg"],
           publicLocation: formData.locationZone,
           exactLocation: formData.exactAddress,
           sellerId: "dealer-reed-motors",
@@ -343,18 +380,93 @@ export default function AddVehicleWizardPage() {
 
             {currentStep === 6 && (
               <div className="space-y-4">
-                <h3 className="font-bold text-base text-neutral-900">
-                  Step 6: High-Res Photos & Walkaround Video
-                </h3>
-                <div className="p-6 bg-gray-50 border border-dashed border-gray-300 rounded-2xl text-center space-y-2">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                  <div className="text-xs font-bold text-neutral-900">
-                    Drag & Drop at least 8 high-resolution photos
-                  </div>
-                  <p className="text-[11px] text-gray-500">
-                    Front, rear, sides, interior dashboard, odometer, engine bay, and undercarriage
-                  </p>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-neutral-900">
+                    Step 6: High-Res Photos & Walkaround Video
+                  </h3>
+                  {formData.images.length > 0 && (
+                    <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full">
+                      {formData.images.length} photo{formData.images.length === 1 ? "" : "s"} uploaded
+                    </span>
+                  )}
                 </div>
+
+                {uploadError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-medium">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
+                {/* Upload Trigger Area */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-6 bg-gray-50 hover:bg-gray-100/80 border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-2xl text-center space-y-2 cursor-pointer transition"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/jpg"
+                    onChange={handleImageFilesSelected}
+                    className="hidden"
+                  />
+                  {isUploadingImages ? (
+                    <div className="py-3 flex flex-col items-center justify-center gap-2 text-neutral-800">
+                      <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+                      <div className="text-xs font-bold">Uploading photos to Cloudinary...</div>
+                      <p className="text-[11px] text-gray-500">Auto-compressing and generating WebP variants</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                      <div className="text-xs font-bold text-neutral-900">
+                        Click to Choose Photos or Drag & Drop Here
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        Supports JPG, PNG, WEBP, HEIC up to 50MB total.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* Uploaded Photos Grid */}
+                {formData.images.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-gray-600">Uploaded Gallery Previews:</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {formData.images.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group shadow-xs"
+                        >
+                          <Image
+                            src={imgUrl}
+                            alt={`Car photo ${idx + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                          {idx === 0 && (
+                            <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-neutral-900/80 backdrop-blur-xs text-white text-[10px] font-bold rounded-md shadow-xs">
+                              Cover Photo
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(idx);
+                            }}
+                            className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition"
+                            title="Remove photo"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

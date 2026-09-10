@@ -12,6 +12,7 @@ import (
 
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/routes"
+	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
 
 func main() {
@@ -26,6 +27,13 @@ func main() {
 	_, err := config.InitDB(cfg)
 	if err != nil {
 		log.Fatalf("[Server] Database initialization failed: %v", err)
+	}
+
+	// 2.5. Initialize Cloudinary Uploader
+	if err := utils.InitCloudinary(); err != nil {
+		log.Printf("[Cloudinary] Warning: %v (Image uploads will be disabled)\n", err)
+	} else {
+		log.Printf("[Cloudinary] Initialized successfully for cloud: %s\n", cfg.CloudinaryCloudName)
 	}
 
 	// 3. Setup Routes

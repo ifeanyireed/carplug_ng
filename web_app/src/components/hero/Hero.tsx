@@ -10,13 +10,11 @@ import { Play } from "lucide-react";
 interface HeroProps {
   onSearch?: (filters: SearchFilterState) => void;
   onOpenAuth?: (mode: "login" | "signup") => void;
-  savedCount?: number;
 }
 
 export const Hero = ({
   onSearch,
   onOpenAuth,
-  savedCount = 2,
 }: HeroProps) => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
@@ -45,7 +43,6 @@ export const Hero = ({
         <div className="relative z-20 w-full">
           <Navbar
             onOpenAuth={onOpenAuth}
-            savedCount={savedCount}
             onOpenSaved={() => {}}
           />
         </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { fetchVehicles } from "@/services/api";
 import {
   X,
   Plus,
@@ -19,10 +20,25 @@ export default function ComparePage() {
     "v-lexus-rx350-2021",
     "v-toyota-camry-2020",
   ]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
 
-  const comparedCars = comparedIds
-    .map((id) => MOCK_VEHICLES.find((v) => v.id === id))
-    .filter(Boolean) as Vehicle[];
+  useEffect(() => {
+    let isMounted = true;
+    fetchVehicles().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setVehicles(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const comparedCars = useMemo(() => {
+    return comparedIds
+      .map((id) => vehicles.find((v) => v.id === id))
+      .filter(Boolean) as Vehicle[];
+  }, [comparedIds, vehicles]);
 
   const handleRemove = (id: string) => {
     setComparedIds((prev) => prev.filter((item) => item !== id));

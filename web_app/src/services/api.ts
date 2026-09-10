@@ -43,9 +43,36 @@ export function setAuthToken(token: string): void {
   }
 }
 
+export function getStoredUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("verza_auth_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user: AuthUser): void {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("verza_auth_user", JSON.stringify(user));
+    } catch {
+      // ignore storage quota errors
+    }
+  }
+}
+
+export function clearStoredUser(): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("verza_auth_user");
+  }
+}
+
 export function clearAuthToken(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem("verza_auth_token");
+    localStorage.removeItem("verza_auth_user");
   }
 }
 
@@ -247,6 +274,62 @@ export function adaptInspectionReport(raw: RawInspectionReport): InspectionRepor
   };
 }
 
+interface RawTechnician {
+  id: string;
+  name: string;
+  badge?: Technician["badge"];
+  avatar?: string;
+  rating?: number;
+  completedJobs?: number;
+  serviceAreas?: string | string[];
+  workshopAddress?: string;
+  specialties?: string | string[];
+  distanceKm?: number;
+  availability?: Technician["availability"];
+  hourlyRate?: number;
+}
+
+export function adaptTechnician(raw: RawTechnician): Technician {
+  let serviceAreas: string[] = [];
+  if (typeof raw.serviceAreas === "string") {
+    try {
+      const parsed = JSON.parse(raw.serviceAreas);
+      serviceAreas = Array.isArray(parsed) ? parsed : [raw.serviceAreas];
+    } catch {
+      serviceAreas = [raw.serviceAreas];
+    }
+  } else if (Array.isArray(raw.serviceAreas)) {
+    serviceAreas = raw.serviceAreas;
+  }
+
+  let specialties: string[] = [];
+  if (typeof raw.specialties === "string") {
+    try {
+      const parsed = JSON.parse(raw.specialties);
+      specialties = Array.isArray(parsed) ? parsed : [raw.specialties];
+    } catch {
+      specialties = [raw.specialties];
+    }
+  } else if (Array.isArray(raw.specialties)) {
+    specialties = raw.specialties;
+  }
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    badge: raw.badge || "Platform Certified",
+    avatar: raw.avatar || "/images/tech-musa.jpg",
+    rating: raw.rating ?? 4.8,
+    completedJobs: raw.completedJobs ?? 0,
+    serviceAreas: serviceAreas.length > 0 ? serviceAreas : ["Lagos"],
+    workshopAddress: raw.workshopAddress || "Lagos, Nigeria",
+    specialties: specialties.length > 0 ? specialties : ["General Diagnostics"],
+    distanceKm: raw.distanceKm,
+    availability: raw.availability || "Available Today",
+    hourlyRate: raw.hourlyRate || 15000,
+  };
+}
+
 export interface VehicleSearchParams {
   make?: string;
   model?: string;
@@ -387,7 +470,8 @@ export async function fetchTechnicians(): Promise<Technician[]> {
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
-    return json.data || [];
+    const list: RawTechnician[] = json.data || [];
+    return list.map(adaptTechnician);
   } catch {
     return MOCK_TECHNICIANS;
   }
@@ -539,7 +623,8 @@ export async function fetchTechnicianById(id: string): Promise<Technician | unde
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    return await res.json();
+    const raw: RawTechnician = await res.json();
+    return adaptTechnician(raw);
   } catch {
     return MOCK_TECHNICIANS.find((t) => t.id === id);
   }
@@ -788,6 +873,9 @@ export async function registerUser(payload: {
   if (data.token) {
     setAuthToken(data.token);
   }
+  if (data.user) {
+    setStoredUser(data.user);
+  }
   return data;
 }
 
@@ -810,6 +898,9 @@ export async function loginUser(payload: {
   const data: AuthResponse = await res.json();
   if (data.token) {
     setAuthToken(data.token);
+  }
+  if (data.user) {
+    setStoredUser(data.user);
   }
   return data;
 }
@@ -834,5 +925,135 @@ export async function fetchMe(): Promise<AuthUser | null> {
     return null;
   }
 }
+
+/**
+ * Fetches all saved vehicles for the authenticated user.
+ */
+export async function fetchSavedVehicles(): Promise<Vehicle[]> {
+  const token = getAuthToken();
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/saved-vehicles`, {
+      headers: { ...getAuthHeaders() },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const json = await res.json();
+    const list: RawVehicle[] = json.data || [];
+    return list.map(adaptVehicle);
+  } catch (err) {
+    console.warn("Failed to fetch saved vehicles:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetches an array of vehicle IDs saved by the authenticated user.
+ */
+export async function fetchSavedVehicleIds(): Promise<string[]> {
+  const token = getAuthToken();
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/saved-vehicles/ids`, {
+      headers: { ...getAuthHeaders() },
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const json = await res.json();
+    return json.ids || [];
+  } catch (err) {
+    console.warn("Failed to fetch saved vehicle IDs:", err);
+    return [];
+  }
+}
+
+/**
+ * Saves a vehicle for the authenticated user.
+ */
+export async function saveVehicle(vehicleId: string): Promise<{ status: string; isSaved: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/saved-vehicles/${vehicleId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to save vehicle");
+  }
+  return await res.json();
+}
+
+/**
+ * Removes a saved vehicle for the authenticated user.
+ */
+export async function removeSavedVehicle(vehicleId: string): Promise<{ status: string; isSaved: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/saved-vehicles/${vehicleId}`, {
+    method: "DELETE",
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to remove saved vehicle");
+  }
+  return await res.json();
+}
+
+/**
+ * Toggles saved status for a vehicle.
+ */
+export async function toggleSavedVehicle(vehicleId: string): Promise<{ status: string; isSaved: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/saved-vehicles/toggle/${vehicleId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to toggle saved vehicle");
+  }
+  return await res.json();
+}
+
+/**
+ * Uploads one or more vehicle images to Cloudinary via backend.
+ */
+export interface UploadResponse {
+  message: string;
+  urls: string[];
+  count: number;
+}
+
+export async function uploadVehicleImages(
+  files: File[],
+  folder: string = "carplug/vehicles"
+): Promise<string[]> {
+  const token = getAuthToken();
+  const formData = new FormData();
+  formData.append("folder", folder);
+
+  for (const file of files) {
+    formData.append("images", file);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/upload/images`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Image upload failed with status ${res.status}`);
+  }
+
+  const data: UploadResponse = await res.json();
+  return data.urls;
+}
+
+
 
 

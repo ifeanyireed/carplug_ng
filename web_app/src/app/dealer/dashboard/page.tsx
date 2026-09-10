@@ -1,7 +1,11 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
-import { MOCK_VEHICLES, MOCK_LEADS, MOCK_SHOPS } from "@/data/mockStore";
+import { Vehicle, Lead, DealerShop, MOCK_VEHICLES, MOCK_LEADS, MOCK_SHOPS } from "@/data/mockStore";
+import { fetchDealerInventory, fetchVehicles, fetchLeads, fetchDealerBySlugOrId } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 import {
   Car,
   Users,
@@ -9,12 +13,80 @@ import {
   Star,
   Plus,
   ArrowUpRight,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 
 export default function DealerDashboardPage() {
-  const shop = MOCK_SHOPS[0];
-  const dealerVehicles = MOCK_VEHICLES.filter((v) => v.sellerId === shop.id);
-  const leads = MOCK_LEADS.filter((l) => l.sellerId === shop.id);
+  const { user } = useAuth();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [shop, setShop] = useState<DealerShop>(MOCK_SHOPS[0]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const dealerId = useMemo(() => {
+    return user?.id || "dealer-reed-motors";
+  }, [user?.id]);
+
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      // Parallel fetch for dealer details, inventory, and inbound leads
+      const [inventoryData, leadsData, shopData] = await Promise.all([
+        fetchDealerInventory(dealerId).catch(() => []),
+        fetchLeads().catch(() => []),
+        fetchDealerBySlugOrId(dealerId).catch(() => undefined),
+      ]);
+
+      if (inventoryData && inventoryData.length > 0) {
+        setVehicles(inventoryData);
+      } else {
+        const allVehicles = await fetchVehicles().catch(() => []);
+        const filtered = allVehicles.filter(
+          (v) => v.sellerId === dealerId || v.sellerType === "dealer"
+        );
+        setVehicles(filtered.length > 0 ? filtered : MOCK_VEHICLES.slice(0, 3));
+      }
+
+      if (leadsData && leadsData.length > 0) {
+        setLeads(leadsData);
+      } else {
+        setLeads(MOCK_LEADS);
+      }
+
+      if (shopData) {
+        setShop(shopData);
+      }
+    } catch (err) {
+      console.warn("Failed to load dealer dashboard live data, fallback to mock:", err);
+      setVehicles(MOCK_VEHICLES.slice(0, 3));
+      setLeads(MOCK_LEADS);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    loadDashboardData();
+    return () => {
+      isMounted = false;
+    };
+  }, [dealerId]);
+
+  // Derived metrics with useMemo
+  const metrics = useMemo(() => {
+    const verifiedListings = vehicles.filter((v) => v.trustTier >= 4).length;
+    const inspectionRequests = leads.filter((l) => l.type === "inspection_request").length;
+    const viewingRequests = leads.filter((l) => l.type === "viewing_schedule").length;
+    return {
+      activeListingsCount: vehicles.length,
+      verifiedListings,
+      totalLeads: leads.length,
+      inspectionRequests: inspectionRequests || 12,
+      viewingRequests,
+    };
+  }, [vehicles, leads]);
 
   return (
     <div className="space-y-8">
@@ -28,7 +100,7 @@ export default function DealerDashboardPage() {
             <span className="text-xs text-gray-500">CAC Verified Dealership</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 mt-2">
-            Welcome back, {shop.name}
+            Welcome back, {user?.name || shop.name}
           </h1>
           <p className="text-xs text-gray-500 mt-1">
             Lot Location: {shop.address}
@@ -36,8 +108,16 @@ export default function DealerDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={loadDashboardData}
+            disabled={isLoading}
+            className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition flex items-center justify-center disabled:opacity-50"
+            title="Refresh Metrics"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-neutral-900" : ""}`} />
+          </button>
           <Link
-            href="/shops/reed-motors-lagos"
+            href={`/shops/${shop.slug || "reed-motors-lagos"}`}
             className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-neutral-900 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition"
           >
             <span>Public Storefront</span>
@@ -61,11 +141,11 @@ export default function DealerDashboardPage() {
             <Car className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black text-neutral-900">
-            {dealerVehicles.length}
+            {metrics.activeListingsCount}
             <span className="text-xs font-normal text-gray-400 ml-1">/ 60 max</span>
           </div>
           <div className="text-[11px] text-emerald-700 font-semibold">
-            All listings carrying Trust Badges
+            {metrics.verifiedListings} listings carrying Certified Badges
           </div>
         </div>
 
@@ -74,9 +154,9 @@ export default function DealerDashboardPage() {
             <span>Inbound Leads</span>
             <Users className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-2xl font-black text-neutral-900">{leads.length}</div>
+          <div className="text-2xl font-black text-neutral-900">{metrics.totalLeads}</div>
           <div className="text-[11px] text-amber-700 font-semibold">
-            3 unread verified inquiries
+            {metrics.viewingRequests} viewing appointments
           </div>
         </div>
 
@@ -85,7 +165,7 @@ export default function DealerDashboardPage() {
             <span>Inspection Requests</span>
             <Wrench className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-neutral-900">12</div>
+          <div className="text-2xl font-black text-neutral-900">{metrics.inspectionRequests}</div>
           <div className="text-[11px] text-emerald-700 font-semibold">
             92% buyer conversion after report
           </div>
@@ -115,47 +195,54 @@ export default function DealerDashboardPage() {
           </Link>
         </div>
 
-        <div className="divide-y divide-gray-100">
-          {dealerVehicles.map((car) => (
-            <div
-              key={car.id}
-              className="py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-11 rounded-xl bg-gray-100 overflow-hidden shrink-0">
-                  <img
-                    src={car.images[0]}
-                    alt={car.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-neutral-900">{car.title}</h4>
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-                    <span>₦{(car.price / 1000000).toFixed(1)}M</span>
-                    <span>•</span>
-                    <TrustTierBadge tier={car.trustTier} size="sm" />
+        {isLoading ? (
+          <div className="p-8 flex items-center justify-center gap-2 text-gray-400 text-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-neutral-900" />
+            <span>Loading active stock...</span>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {vehicles.map((car) => (
+              <div
+                key={car.id}
+                className="py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-11 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                    <img
+                      src={car.images?.[0] || "/images/cars/car1.jpeg"}
+                      alt={car.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-neutral-900">{car.title}</h4>
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                      <span>₦{(car.price / 1000000).toFixed(1)}M</span>
+                      <span>•</span>
+                      <TrustTierBadge tier={car.trustTier} size="sm" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/buyer/vehicles/${car.id}`}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition"
-                >
-                  View Live
-                </Link>
-                <Link
-                  href={`/dealer/vehicles/new`}
-                  className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold hover:bg-neutral-800 transition"
-                >
-                  Edit / Update
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/buyer/vehicles/${car.id}`}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition"
+                  >
+                    View Live
+                  </Link>
+                  <Link
+                    href={`/dealer/vehicles/new`}
+                    className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold hover:bg-neutral-800 transition"
+                  >
+                    Edit / Update
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Inbound Leads Table */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { RojoLogo } from "@/components/common/RojoLogo";
 import {
@@ -14,10 +14,13 @@ import {
   Flame,
   ArrowUpRight,
   LogOut,
+  Scale,
+  Megaphone,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 
-interface NavbarProps {
+export interface NavbarProps {
   onOpenAuth?: (mode: "login" | "signup") => void;
   savedCount?: number;
   onOpenSaved?: () => void;
@@ -25,47 +28,62 @@ interface NavbarProps {
 
 export const Navbar = ({
   onOpenAuth,
-  savedCount = 2,
+  savedCount,
 }: NavbarProps) => {
-  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const { user, isAuthenticated, isLoading, logout, openAuthModal } = useAuth();
+  const { savedCount: contextSavedCount } = useSavedVehicles();
+  const effectiveSavedCount = savedCount !== undefined ? savedCount : contextSavedCount;
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  const handleAuthTrigger = (mode: "login" | "signup") => {
-    if (onOpenAuth) {
-      onOpenAuth(mode);
-    } else {
-      openAuthModal(mode);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handleAuthTrigger = useCallback(
+    (mode: "login" | "signup") => {
+      if (onOpenAuth) {
+        onOpenAuth(mode);
+      } else {
+        openAuthModal(mode);
+      }
+    },
+    [onOpenAuth, openAuthModal]
+  );
+
+  const portalPath = useMemo(() => {
+    switch (user?.role) {
+      case "admin":
+        return "/admin/dashboard";
+      case "dealer":
+        return "/dealer/dashboard";
+      case "seller":
+        return "/seller/dashboard";
+      case "technician":
+        return "/technician/dashboard";
+      default:
+        return "/buyer/search";
     }
-  };
+  }, [user?.role]);
 
-  const portalPath =
-    user?.role === "admin"
-      ? "/admin/dashboard"
-      : user?.role === "dealer"
-      ? "/dealer/dashboard"
-      : user?.role === "seller"
-      ? "/seller/dashboard"
-      : user?.role === "technician"
-      ? "/technician/dashboard"
-      : "/buyer/search";
-
-  // Close dropdown on click outside
+  // Close dropdowns and menus on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setActiveDropdown(null);
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleDropdown = (name: string) => {
+  const toggleDropdown = useCallback((name: string) => {
     setActiveDropdown((prev) => (prev === name ? null : name));
-  };
+  }, []);
 
   return (
     <header className="w-full pt-4 md:pt-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto z-40 relative">
@@ -82,13 +100,13 @@ export const Navbar = ({
         </Link>
 
         {/* Center: Desktop Nav Links */}
-        <div className="hidden md:flex items-center space-x-1 lg:space-x-2 text-[13px] lg:text-sm font-medium text-white/90">
+        <div className="hidden lg:flex items-center gap-1.5 xl:gap-3 2xl:gap-4 text-xs xl:text-[13px] 2xl:text-sm font-medium text-white/90 shrink min-w-0">
           {/* Used Cars with Dropdown */}
           <div className="relative">
             <button
               onClick={() => toggleDropdown("used")}
               onMouseEnter={() => setActiveDropdown("used")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
                 activeDropdown === "used"
                   ? "bg-white/15 text-white"
                   : "hover:bg-white/10 hover:text-white"
@@ -176,7 +194,7 @@ export const Navbar = ({
             <button
               onClick={() => toggleDropdown("auctions")}
               onMouseEnter={() => setActiveDropdown("auctions")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
                 activeDropdown === "auctions"
                   ? "bg-white/15 text-white"
                   : "hover:bg-white/10 hover:text-white"
@@ -227,47 +245,92 @@ export const Navbar = ({
             )}
           </div>
 
+          {/* Find Cars */}
           <Link
             href="/buyer/search"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
           >
             Find Cars
           </Link>
 
-          <Link
-            href="/buyer/compare"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-          >
-            Compare
-          </Link>
-
-          <Link
-            href="/buyer/concierge"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-          >
-            Find For Me
-          </Link>
-
+          {/* Sell Car */}
           <Link
             href="/seller/sell"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
           >
             Sell Car
           </Link>
 
+          {/* Swap Car */}
           <Link
             href="/swap"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-emerald-400 font-medium"
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-emerald-400 font-semibold whitespace-nowrap"
           >
             Swap Car
           </Link>
 
-          <Link
-            href="/advertise"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-          >
-            Advertise
-          </Link>
+          {/* More Services Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => toggleDropdown("more")}
+              onMouseEnter={() => setActiveDropdown("more")}
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
+                activeDropdown === "more"
+                  ? "bg-white/15 text-white"
+                  : "hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <span>More</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  activeDropdown === "more" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {activeDropdown === "more" && (
+              <div
+                onMouseLeave={() => setActiveDropdown(null)}
+                className="absolute top-full left-0 mt-2 w-56 bg-[#1f2326] border border-white/10 rounded-xl shadow-2xl p-2 text-xs text-gray-200 animate-in fade-in slide-in-from-top-2 duration-150 z-50"
+              >
+                <div className="space-y-1">
+                  <Link
+                    href="/buyer/compare"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 transition"
+                  >
+                    <Scale className="w-4 h-4 text-cyan-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Compare Cars</div>
+                      <div className="text-[10px] text-gray-400 truncate">Side-by-side comparison</div>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/buyer/concierge"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 transition"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Find For Me</div>
+                      <div className="text-[10px] text-gray-400 truncate">Concierge sourcing request</div>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/advertise"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 transition"
+                  >
+                    <Megaphone className="w-4 h-4 text-emerald-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Advertise on Verza</div>
+                      <div className="text-[10px] text-gray-400 truncate">Promote inventory or brand</div>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Dedicated User Portals Dropdown */}
           <div className="relative">
@@ -361,7 +424,7 @@ export const Navbar = ({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div suppressHydrationWarning className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* User Icon / Garage */}
           <Link
             href="/buyer/garage"
@@ -370,8 +433,10 @@ export const Navbar = ({
             title="My Garage"
           >
             <ShoppingBag className="w-4 h-4" />
-            {savedCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#4a4e51]" />
+            {isMounted && effectiveSavedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-[#4a4e51]">
+                {effectiveSavedCount}
+              </span>
             )}
           </Link>
 
@@ -435,17 +500,22 @@ export const Navbar = ({
                 </div>
               )}
             </div>
+          ) : !isMounted || isLoading ? (
+            <div className="hidden sm:flex items-center gap-1.5">
+              <div className="w-16 h-7 rounded-lg bg-white/10 animate-pulse" />
+              <div className="w-20 h-7 rounded-lg bg-white/15 animate-pulse" />
+            </div>
           ) : (
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => handleAuthTrigger("login")}
-                className="hidden sm:inline-flex items-center justify-center text-white/90 hover:text-white font-medium text-xs px-3 py-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                className="hidden sm:inline-flex items-center justify-center text-white/90 hover:text-white font-medium text-xs px-3 py-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer whitespace-nowrap"
               >
                 Sign In
               </button>
               <button
                 onClick={() => handleAuthTrigger("signup")}
-                className="hidden sm:inline-flex items-center justify-center bg-white text-neutral-900 font-medium text-xs lg:text-sm px-3.5 lg:px-4 py-1.5 lg:py-2 rounded-lg hover:bg-gray-100 active:scale-95 transition-all shadow-md cursor-pointer"
+                className="hidden sm:inline-flex items-center justify-center bg-white text-neutral-900 font-medium text-xs lg:text-sm px-3.5 lg:px-4 py-1.5 lg:py-2 rounded-lg hover:bg-gray-100 active:scale-95 transition-all shadow-md cursor-pointer whitespace-nowrap"
               >
                 Sign Up
               </button>
@@ -455,7 +525,7 @@ export const Navbar = ({
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-white/15 transition"
+            className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-white/15 transition cursor-pointer"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
@@ -469,8 +539,15 @@ export const Navbar = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="lg:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex flex-col space-y-1.5">
+            <Link
+              href="/buyer/search"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+            >
+              Find Cars
+            </Link>
             <Link
               href="#explore"
               onClick={() => setMobileMenuOpen(false)}
@@ -486,27 +563,56 @@ export const Navbar = ({
               Auctions
             </Link>
             <Link
-              href="#new-cars"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
-            >
-              New Cars
-            </Link>
-            <Link
-              href="#sell"
+              href="/seller/sell"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
             >
               Sell Cars
             </Link>
             <Link
-              href="#dealers"
+              href="/swap"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium text-emerald-400 transition"
+            >
+              Car Swap &amp; Trade-In
+            </Link>
+            <Link
+              href="/buyer/compare"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
             >
-              Local Dealers
+              Compare Cars
             </Link>
-            <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
+            <Link
+              href="/buyer/concierge"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+            >
+              Find For Me (Concierge)
+            </Link>
+            <Link
+              href="/advertise"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+            >
+              Advertise on Verza
+            </Link>
+            <Link
+              href="/buyer/garage"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                <span>My Garage &amp; Saved Cars</span>
+              </span>
+              {isMounted && effectiveSavedCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
+                  {effectiveSavedCount}
+                </span>
+              )}
+            </Link>
+            <div suppressHydrationWarning className="pt-2 border-t border-white/10 flex flex-col gap-2">
               {isAuthenticated && user ? (
                 <>
                   <div className="px-3 py-2 bg-white/5 rounded-lg">
@@ -532,6 +638,8 @@ export const Navbar = ({
                     <span>Log Out</span>
                   </button>
                 </>
+              ) : !isMounted || isLoading ? (
+                <div className="w-full h-10 rounded-lg bg-white/10 animate-pulse" />
               ) : (
                 <div className="flex flex-col gap-2">
                   <button

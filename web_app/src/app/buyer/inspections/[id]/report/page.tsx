@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_INSPECTIONS } from "@/data/mockStore";
+import { fetchInspectionById } from "@/services/api";
 import { Share2, ArrowLeft } from "lucide-react";
 
 export default async function VehicleHealthReportPage({
@@ -11,7 +12,8 @@ export default async function VehicleHealthReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const report = MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0];
+  const fetchedReport = await fetchInspectionById(id);
+  const report = fetchedReport || MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0];
 
   const formatNaira = (amount: number) => {
     return `₦${amount.toLocaleString()}`;
@@ -118,7 +120,7 @@ export default async function VehicleHealthReportPage({
             </h3>
 
             <div className="space-y-4">
-              {report.categories.map((cat, idx) => (
+              {(report.categories || []).map((cat, idx) => (
                 <div
                   key={idx}
                   className="p-5 bg-white border border-gray-200 rounded-2xl shadow-xs space-y-3"

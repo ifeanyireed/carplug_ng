@@ -20,17 +20,19 @@ import {
   Loader2,
 } from "lucide-react";
 
+import { useSavedVehicles } from "@/context/SavedVehiclesContext";
+
 type TierFilter = "all" | "3" | "4" | "5";
 type PriceRatingFilter = "all" | "deal" | "fair";
 type SortByOption = "featured" | "trust" | "price_asc" | "price_desc";
 
 export default function BuyerSearchPage() {
+  const { isSaved, toggleSave } = useSavedVehicles();
   const [activeTab, setActiveTab] = useState<"all" | "tokunbo" | "nigerian_used" | "brand_new">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTier, setSelectedTier] = useState<TierFilter>("all");
   const [selectedPriceRating, setSelectedPriceRating] = useState<PriceRatingFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("featured");
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
   const [isPending, startTransition] = useTransition();
 
@@ -60,10 +62,10 @@ export default function BuyerSearchPage() {
     };
   }, [activeTab, searchQuery, selectedTier, selectedPriceRating, sortBy]);
 
-  const handleFavoriteClick = (e: React.MouseEvent, carId: string) => {
+  const handleFavoriteClick = async (e: React.MouseEvent, car: Vehicle) => {
     e.stopPropagation();
     e.preventDefault();
-    setFavorites((prev) => ({ ...prev, [carId]: !prev[carId] }));
+    await toggleSave(car);
   };
 
   const getFuelIcon = (type: string) => {
@@ -310,7 +312,7 @@ export default function BuyerSearchPage() {
           {/* Vehicles Grid with Tighter Padding/Gap (Exact matching ExploreVehiclesSection) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
             {filteredVehicles.map((car) => {
-              const isFav = !!favorites[car.id];
+              const isFav = isSaved(car.id);
               const badge = getCarBadge(car);
 
               return (
@@ -341,7 +343,7 @@ export default function BuyerSearchPage() {
                     {/* Favorite Heart Button */}
                     <button
                       type="button"
-                      onClick={(e) => handleFavoriteClick(e, car.id)}
+                      onClick={(e) => handleFavoriteClick(e, car)}
                       aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
                       className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
                     >

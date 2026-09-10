@@ -23,13 +23,26 @@ type Config struct {
 	AutoSeed           bool
 	JWTSecret          string
 	JWTExpirationHours int
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
 }
 
 var AppConfig *Config
 
 func LoadConfig() *Config {
-	// Try loading from .env file; continue gracefully if absent (e.g. in containerized env)
-	if err := godotenv.Load(); err != nil {
+	// Try loading from .env file; check candidate locations in order
+	loaded := false
+	for _, envPath := range []string{".env", "backend/.env", "../.env"} {
+		if _, err := os.Stat(envPath); err == nil {
+			if err := godotenv.Load(envPath); err == nil {
+				log.Printf("[Config] Successfully loaded environment from: %s\n", envPath)
+				loaded = true
+				break
+			}
+		}
+	}
+	if !loaded {
 		log.Println("[Config] No .env file found, using system environment or defaults")
 	}
 
@@ -63,6 +76,9 @@ func LoadConfig() *Config {
 		AutoSeed:           getEnv("AUTO_SEED", "true") == "true",
 		JWTSecret:          jwtSecret,
 		JWTExpirationHours: jwtExpHours,
+		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
+		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
 	}
 
 	if AppConfig.DBPassword == "" {
@@ -76,6 +92,11 @@ func LoadConfig() *Config {
 	}
 	if AppConfig.DBName == "" {
 		log.Fatal("[Config] DB_NAME environment variable is required and was not set")
+	}
+
+	// Flag missing or default JWT_SECRET in production
+	if AppConfig.GinMode == "release" && (os.Getenv("JWT_SECRET") == "" || AppConfig.JWTSecret == "verza_carplug_dev_jwt_secret_2026_super_secure_key") {
+		log.Println("[Config] WARNING: Running in production mode (GIN_MODE=release) without a custom JWT_SECRET! Please set a strong JWT_SECRET in production.")
 	}
 
 	return AppConfig

@@ -19,7 +19,6 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
   const { openAuthModal } = useAuth();
-  const [savedBagCount, setSavedBagCount] = useState(2);
   const [activeFilters, setActiveFilters] = useState<SearchFilterState | null>(
     null
   );
@@ -29,10 +28,6 @@ export default function HomePage() {
 
   const handleOpenAuth = (mode: "login" | "signup") => {
     openAuthModal(mode);
-  };
-
-  const handleToggleFavorite = () => {
-    setSavedBagCount((prev) => prev + 1);
   };
 
   const handleSearch = (filters: SearchFilterState) => {
@@ -188,7 +183,6 @@ export default function HomePage() {
         <Hero
           onSearch={handleSearch}
           onOpenAuth={handleOpenAuth}
-          savedCount={savedBagCount}
         />
 
         {/* Brand Logos Row from public/images/brands */}
@@ -206,7 +200,6 @@ export default function HomePage() {
         {/* Explore All Vehicles Section from UI7.webp */}
         <ExploreVehiclesSection
           onSelectCar={handleSelectExploreCar}
-          onToggleFavorite={handleToggleFavorite}
         />
 
         {/* Exploring Best Selling Cars Makes Section from UI8.webp */}

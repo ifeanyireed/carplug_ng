@@ -155,7 +155,7 @@ export const BrowseByType = ({
                   {item.name}
                 </div>
                 <div className="text-xs text-gray-500 font-normal mt-0.5">
-                  {item.units.toLocaleString()} units
+                  {item.units.toLocaleString("en-US")} units
                 </div>
               </div>
             </button>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_VEHICLES } from "@/data/mockStore";
+import { fetchVehicleById } from "@/services/api";
 import {
   Check,
   ShieldCheck,
@@ -18,7 +19,8 @@ export default async function ChooseInspectionTierPage({
   params: Promise<{ vehicleId: string }>;
 }) {
   const { vehicleId } = await params;
-  const vehicle = MOCK_VEHICLES.find((v) => v.id === vehicleId);
+  const fetchedVehicle = await fetchVehicleById(vehicleId);
+  const vehicle = fetchedVehicle || MOCK_VEHICLES.find((v) => v.id === vehicleId);
 
   if (!vehicle) {
     notFound();

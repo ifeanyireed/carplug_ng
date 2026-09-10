@@ -137,6 +137,24 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			campaigns.POST("", authMiddleware, controllers.CreateCampaign)
 			campaigns.PATCH("/:id/status", authMiddleware, controllers.UpdateCampaignStatus)
 		}
+
+		// Saved / Favorited Vehicles (All strictly protected)
+		saved := api.Group("/saved-vehicles")
+		saved.Use(authMiddleware)
+		{
+			saved.GET("", controllers.GetSavedVehicles)
+			saved.GET("/ids", controllers.GetSavedVehicleIDs)
+			saved.POST("/:vehicleId", controllers.SaveVehicle)
+			saved.DELETE("/:vehicleId", controllers.RemoveSavedVehicle)
+			saved.POST("/toggle/:vehicleId", controllers.ToggleSavedVehicle)
+		}
+
+		// Image Uploads (Cloudinary - Protected)
+		upload := api.Group("/upload")
+		upload.Use(authMiddleware)
+		{
+			upload.POST("/images", controllers.UploadImages)
+		}
 	}
 
 	return r

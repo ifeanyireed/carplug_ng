@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
+import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 import {
   X,
   Play,
@@ -23,7 +24,8 @@ export const FeaturedVehicleModal = ({
   isOpen,
   onClose,
 }: FeaturedVehicleModalProps) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const { isSaved, toggleSave } = useSavedVehicles();
+  const isLiked = isSaved("bmw-m3-e46");
 
   if (!isOpen) return null;
 
@@ -143,7 +145,20 @@ export const FeaturedVehicleModal = ({
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={async () => {
+                await toggleSave({
+                  id: "bmw-m3-e46",
+                  make: "BMW",
+                  model: "M3 / 3-Series Coupe",
+                  year: 2004,
+                  price: 38500,
+                  images: ["/images/cars/car1.jpeg"],
+                  transmission: "Manual",
+                  fuelType: "Petrol",
+                  condition: "Foreign Used (Tokunbo)",
+                });
+              }}
+              aria-label={isLiked ? "Remove from saved cars" : "Save car"}
               className={`p-2.5 rounded-lg border transition ${
                 isLiked
                   ? "bg-red-500/20 border-red-500/40 text-red-400"

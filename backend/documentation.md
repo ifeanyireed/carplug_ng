@@ -64,6 +64,9 @@ Configuration is loaded in `backend/config/config.go` with strict environment va
 | `AUTO_SEED` | bool | `false` | Populates mock catalog if tables are empty |
 | `JWT_SECRET` | string | *(Required env var)* | Secret key for signing and validating JWT tokens (HS256) |
 | `JWT_EXPIRATION_HOURS` | int | `72` | Lifespan of issued JWT tokens in hours |
+| `CLOUDINARY_CLOUD_NAME` | string | *(Required env var)* | Cloudinary account cloud name (e.g. `wlasi06s`) |
+| `CLOUDINARY_API_KEY` | string | *(Required env var)* | Cloudinary REST API access key |
+| `CLOUDINARY_API_SECRET` | string | *(Required env var)* | Cloudinary API secret for authenticated signing |
 
 ### Connection Pooling for Remote Latency
 Because the database is hosted remotely on Hostinger (`srv2113.hstgr.io`), connection pooling is configured in `backend/config/database.go` to prevent socket exhaustion and latency spikes:
@@ -160,6 +163,12 @@ Represents verified vehicle listings with Nigerian automotive market attributes:
 - `isVerified` (BOOLEAN): Email / account verification status
 - `createdAt` / `updatedAt` (DATETIME): Automatic GORM lifecycle timestamps
 
+### 3.9 Saved Vehicles (`models.SavedVehicle` -> table `saved_vehicles`)
+- `id` (VARCHAR 64, PK): Unique bookmark record identifier
+- `userId` (VARCHAR 64, INDEX): Foreign key reference to `users.id`
+- `vehicleId` (VARCHAR 64, INDEX): Foreign key reference to `vehicles.id`
+- `createdAt` (DATETIME): Timestamp when vehicle was added to user's garage bookmark list
+
 ---
 
 ## 4. API Endpoints Reference
@@ -212,6 +221,25 @@ All routes are grouped under `/api`.
 - `POST /api/campaigns` — **Protected** (`admin`). Create advertising campaign.
 - `PATCH /api/campaigns/:id/status` — **Protected** (`admin`). Update campaign status.
 
+### 4.10 Saved Vehicles (Garage)
+- `GET /api/saved-vehicles` — **Protected** (Authenticated user). Retrieve user's full saved vehicle list.
+- `GET /api/saved-vehicles/ids` — **Protected** (Authenticated user). Retrieve array of bookmarked vehicle ID strings for instant client badge hydration.
+- `POST /api/saved-vehicles/:vehicleId` — **Protected** (Authenticated user). Save vehicle to user's garage.
+- `DELETE /api/saved-vehicles/:vehicleId` — **Protected** (Authenticated user). Remove vehicle from saved list.
+- `POST /api/saved-vehicles/toggle/:vehicleId` — **Protected** (Authenticated user). Atomically toggle saved state returning `{ saved: boolean }`.
+
+### 4.11 Cloudinary Image Uploads
+- `POST /api/upload/images` — **Protected** (Authenticated user). Accepts multipart form data (`multipart/form-data`) with field name `images` (single or multiple files up to 50MB total). Validates allowed extensions (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`). Automatically generates unique collision-free filenames with timestamps and cryptographic random suffixes. Organizes into dedicated cloud folders (`carplug/vehicles/`). Uploads directly to Cloudinary and returns:
+  ```json
+  {
+    "count": 1,
+    "message": "Images uploaded successfully",
+    "urls": [
+      "https://res.cloudinary.com/wlasi06s/image/upload/v1789078090/carplug/vehicles/car1_1789078081_5d88d899.jpg"
+    ]
+  }
+  ```
+
 ---
 
 ## 5. Development & Execution Guide
@@ -250,3 +278,7 @@ go build -o bin/server.exe cmd/server/main.go
 | **13** | Priority 4 GORM Zero-Value Fix | Done | Modified `UpdateVehicle` in `vehicle_controller.go` to bind `map[string]interface{}`, ensuring `featured: false`, `price: 0`, and cleared booleans persist properly. |
 | **14** | Priority 3 & 7 Privacy & Pagination | Done | Added `MaskPhone` masking helper for public seller phone numbers, and added `page`, `pageSize`, and `total` pagination to `/api/vehicles` and `/api/leads`. |
 | **15** | User Auth & RBAC | Done | Implemented User model (`models.User`), bcrypt password hashing, JWT generation/validation (HS256 with configurable TTL), AuthController (`/api/auth/register`, `/api/auth/login`, `/api/auth/me`), AuthMiddleware, and RequireRoles RBAC protecting vehicle mutations, dealer creation, inspection status, swap status, campaign admin, and lead management while preserving public marketplace discovery. |
+| **16** | Saved Vehicles (Garage API) | Done | Created `models.SavedVehicle`, registered migration in `main.go`, built `saved_vehicle_controller.go` (`GetSavedVehicles`, `GetSavedVehicleIDs`, `SaveVehicle`, `RemoveSavedVehicle`, `ToggleSavedVehicle`), and wired protected `/api/saved-vehicles` routes with JWT auth. |
+| **17** | Hostinger MySQL Remote Connectivity & Seeding | Done | Connected to remote Hostinger Cloud MySQL (`srv2113.hstgr.io`) via VPN tunnel. Executed complete table migrations across all 9 tables, seeded 5 real Nigerian automotive inventory vehicles and verified live `GET /api/vehicles` and `GET /api/dealers`. Tuned server startup latency by switching `AUTO_MIGRATE=false` in `.env` to eliminate 90s schema re-inspection overhead. |
+| **18** | Cloudinary Image Storage Service | Done | Integrated official Cloudinary Go SDK v2 (`github.com/cloudinary/cloudinary-go/v2`). Built upload utility (`backend/utils/cloudinary.go`) with automated collision-free file naming, folder compartmentalization (`carplug/vehicles/`), and secure URL extraction. Implemented `POST /api/upload/images` controller with 50MB file size limit, extension validation, and Bearer auth. Verified live image upload to cloud `wlasi06s` returning verified HTTPS URLs. |
+| **19** | Remote MySQL Connection Pool Hardening | Done | Hardened GORM connection pool in `database.go` for remote cloud MySQL over VPN. Added `timeout=10s&readTimeout=30s&writeTimeout=30s` to DSN. Reduced idle timeout to 15s (`SetConnMaxIdleTime(15s)`), connection max lifetime to 1m (`SetConnMaxLifetime(1m)`), and capped idle connections (`SetMaxIdleConns(2)`), eliminating dropped TCP socket errors (`unexpected EOF` / `invalid connection`). |

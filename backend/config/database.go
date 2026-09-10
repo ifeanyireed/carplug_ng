@@ -58,6 +58,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	if cfg.AutoMigrate {
 		log.Println("[Database] Running schema migrations with GORM AutoMigrate...")
 		err = DB.AutoMigrate(
+			&models.User{},
 			&models.Vehicle{},
 			&models.DealerShop{},
 			&models.Technician{},

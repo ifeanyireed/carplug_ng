@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/controllers"
+	"github.com/ifeanyireed/carplug_ng/backend/middleware"
 )
 
 func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
@@ -45,31 +46,47 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	r.Use(gin.Recovery())
 	r.Use(CORSMiddleware(cfg.AllowedOrigins))
 
+	authMiddleware := middleware.AuthMiddleware(cfg.JWTSecret)
+
 	api := r.Group("/api")
 	{
-		// Health check
+		// Health check (Public)
 		api.GET("/health", controllers.CheckHealth)
+
+		// Authentication (Public & Protected)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", controllers.Register)
+			auth.POST("/login", controllers.Login)
+			auth.GET("/me", authMiddleware, controllers.GetMe)
+		}
 
 		// Vehicles
 		vehicles := api.Group("/vehicles")
 		{
+			// Public discovery
 			vehicles.GET("", controllers.GetVehicles)
 			vehicles.GET("/:id", controllers.GetVehicleByID)
-			vehicles.POST("", controllers.CreateVehicle)
-			vehicles.PUT("/:id", controllers.UpdateVehicle)
-			vehicles.DELETE("/:id", controllers.DeleteVehicle)
+
+			// Protected mutations
+			vehicles.POST("", authMiddleware, controllers.CreateVehicle)
+			vehicles.PUT("/:id", authMiddleware, controllers.UpdateVehicle)
+			vehicles.DELETE("/:id", authMiddleware, controllers.DeleteVehicle)
 		}
 
 		// Dealer Shops
 		dealers := api.Group("/dealers")
 		{
+			// Public discovery
 			dealers.GET("", controllers.GetDealers)
 			dealers.GET("/:id", controllers.GetDealerBySlugOrID)
 			dealers.GET("/:id/inventory", controllers.GetDealerInventory)
-			dealers.POST("", controllers.CreateDealer)
+
+			// Protected registration
+			dealers.POST("", authMiddleware, controllers.CreateDealer)
 		}
 
-		// Technicians
+		// Technicians (Public discovery)
 		technicians := api.Group("/technicians")
 		{
 			technicians.GET("", controllers.GetTechnicians)
@@ -79,36 +96,49 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		// Inspections
 		inspections := api.Group("/inspections")
 		{
+			// Public lookup
 			inspections.GET("", controllers.GetInspections)
 			inspections.GET("/:id", controllers.GetInspectionByID)
-			inspections.POST("", controllers.CreateInspection)
-			inspections.PATCH("/:id/status", controllers.UpdateInspectionStatus)
+
+			// Protected order & status update
+			inspections.POST("", authMiddleware, controllers.CreateInspection)
+			inspections.PATCH("/:id/status", authMiddleware, controllers.UpdateInspectionStatus)
 		}
 
 		// Leads & Inquiries
 		leads := api.Group("/leads")
 		{
-			leads.GET("", controllers.GetLeads)
+			// Public lead submission
 			leads.POST("", controllers.CreateLead)
-			leads.PATCH("/:id/status", controllers.UpdateLeadStatus)
+
+			// Protected CRM lead viewing & status routing
+			leads.GET("", authMiddleware, controllers.GetLeads)
+			leads.PATCH("/:id/status", authMiddleware, controllers.UpdateLeadStatus)
 		}
 
 		// Swaps & Trade-ins
 		swaps := api.Group("/swaps")
 		{
+			// Public read
 			swaps.GET("", controllers.GetSwaps)
-			swaps.POST("", controllers.CreateSwap)
-			swaps.PATCH("/:id/status", controllers.UpdateSwapStatus)
+
+			// Protected submission & status update
+			swaps.POST("", authMiddleware, controllers.CreateSwap)
+			swaps.PATCH("/:id/status", authMiddleware, controllers.UpdateSwapStatus)
 		}
 
 		// Advertising Campaigns
 		campaigns := api.Group("/campaigns")
 		{
+			// Public read
 			campaigns.GET("", controllers.GetCampaigns)
-			campaigns.POST("", controllers.CreateCampaign)
-			campaigns.PATCH("/:id/status", controllers.UpdateCampaignStatus)
+
+			// Protected campaign creation & moderation
+			campaigns.POST("", authMiddleware, controllers.CreateCampaign)
+			campaigns.PATCH("/:id/status", authMiddleware, controllers.UpdateCampaignStatus)
 		}
 	}
 
 	return r
 }
+

@@ -116,6 +116,16 @@ The service layer provides typed client functions that interface with the Go bac
   - `adaptVehicle(RawVehicle)`: Normalizes JSON string fields (e.g. `images`, `documentsAvailable`), parses dates, and formats numbers to match the frontend `Vehicle` type.
   - `adaptInspectionReport(RawInspectionReport)`: Normalizes JSON `categories` and `media`.
 - **Resilience & Fallbacks**: If the backend is temporarily unreachable or times out (5s abort signal), queries automatically log a warning and fall back to `src/data/mockStore.ts`.
+- **Authentication & Token Management**:
+  - `setAuthToken(token: string)`: Persists JWT in client-side storage (`localStorage` key: `carplug_auth_token`).
+  - `getAuthToken()`: Safely retrieves the stored JWT token with SSR/window checks.
+  - `clearAuthToken()`: Clears the stored JWT on logout.
+  - `getAuthHeaders()`: Injects `{ Authorization: "Bearer <token>" }` into fetch request options when an active session exists.
+  - `registerUser(payload)`: Submits new registration to `POST /api/auth/register`, caches returned token, and returns user profile.
+  - `loginUser(payload)`: Authenticates user credentials via `POST /api/auth/login`, caches token, and returns user profile.
+  - `fetchMe()`: Queries `GET /api/auth/me` with Bearer auth to restore the active user session.
+- **Protected Request Headers**:
+  - Mutating operations (`createVehicle`, `updateVehicle`, `deleteVehicle`, `createDealer`, `createInspection`, `updateInspectionStatus`, `updateLeadStatus`, `fetchLeads`, `createSwap`, `updateSwapStatus`, `createCampaign`, `updateCampaignStatus`) automatically include `...getAuthHeaders()` to satisfy backend RBAC requirements.
 
 ---
 
@@ -134,3 +144,4 @@ The service layer provides typed client functions that interface with the Go bac
 | **09** | 2026-09-09 | CRM & Listing Wizards | Done | Wired `/admin/leads/page.tsx` & `/dealer/leads/page.tsx` to `fetchLeads()` & `updateLeadStatus()`, `/admin/swaps/page.tsx` to `fetchSwaps()` & `updateSwapStatus()`, `/admin/advertising/page.tsx` to `fetchCampaigns()` & `updateCampaignStatus()`, and `/dealer/vehicles/new/page.tsx` to `createVehicle()`. |
 | **10** | 2026-09-09 | Production Build Verification | Done | Compiled clean build with `npx next build` (Next.js 16 + Turbopack). All 43 routes static and dynamic builds verified with 0 TypeScript/ESLint errors. |
 | **11** | 2026-09-10 | Priority 8 Frontend Cleanup | Done | Cleaned over 120 unused imports and variables across 20+ routes while preserving intentional stubs (`scrollIndex` in `BrowseByType.tsx`/`WhatTheySaidSection.tsx`, `userEmail` in `PortalShell.tsx`). Verified `npx eslint .` and `npx next build` pass with exit code 0. |
+| **12** | 2026-09-10 | Auth Client & Bearer Headers | Done | Implemented client-side JWT token management (storage, retrieval, clear, auth headers generator) and added auth methods (registerUser, loginUser, fetchMe). Injected Bearer token authorization headers across all mutating API calls (vehicles, dealers, leads, inspections, swaps, campaigns). Verified 0 ESLint errors and clean TypeScript type-check. |

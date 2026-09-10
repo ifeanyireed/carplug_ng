@@ -14,6 +14,49 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: "buyer" | "seller" | "dealer" | "technician" | "admin";
+  avatar?: string;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthResponse {
+  status: string;
+  token: string;
+  user: AuthUser;
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("verza_auth_token");
+}
+
+export function setAuthToken(token: string): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("verza_auth_token", token);
+  }
+}
+
+export function clearAuthToken(): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("verza_auth_token");
+  }
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
 // Helper for raw Go models adapter
 interface RawVehicle {
   id: string;
@@ -398,6 +441,7 @@ export async function fetchLeads(params?: {
       if (params.type) url.searchParams.set("type", params.type);
     }
     const res = await fetch(url.toString(), {
+      headers: { ...getAuthHeaders() },
       next: { revalidate: 30 },
       signal: AbortSignal.timeout(5000),
     });
@@ -415,7 +459,7 @@ export async function fetchLeads(params?: {
 export async function updateLeadStatus(id: string, status: string): Promise<Lead> {
   const res = await fetch(`${API_BASE_URL}/leads/${id}/status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error(`Failed to update lead status: ${res.statusText}`);
@@ -432,7 +476,7 @@ export async function createVehicle(vehicle: Partial<Vehicle>): Promise<Vehicle>
   };
   const res = await fetch(`${API_BASE_URL}/vehicles`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Failed to create vehicle: ${res.statusText}`);
@@ -453,7 +497,7 @@ export async function updateVehicle(
   };
   const res = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Failed to update vehicle: ${res.statusText}`);
@@ -467,6 +511,7 @@ export async function updateVehicle(
 export async function deleteVehicle(id: string): Promise<boolean> {
   const res = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
     method: "DELETE",
+    headers: { ...getAuthHeaders() },
   });
   return res.ok;
 }
@@ -477,7 +522,7 @@ export async function deleteVehicle(id: string): Promise<boolean> {
 export async function createDealer(dealer: Partial<DealerShop>): Promise<DealerShop> {
   const res = await fetch(`${API_BASE_URL}/dealers`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(dealer),
   });
   if (!res.ok) throw new Error(`Failed to register dealer: ${res.statusText}`);
@@ -545,7 +590,7 @@ export async function createInspection(
   };
   const res = await fetch(`${API_BASE_URL}/inspections`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Failed to create inspection: ${res.statusText}`);
@@ -562,7 +607,7 @@ export async function updateInspectionStatus(
 ): Promise<InspectionReport> {
   const res = await fetch(`${API_BASE_URL}/inspections/${id}/status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error(`Failed to update inspection status: ${res.statusText}`);
@@ -614,7 +659,7 @@ export async function createSwap(
 ): Promise<SwapRequest> {
   const res = await fetch(`${API_BASE_URL}/swaps`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(swap),
   });
   if (!res.ok) throw new Error(`Failed to submit swap request: ${res.statusText}`);
@@ -630,7 +675,7 @@ export async function updateSwapStatus(
 ): Promise<SwapRequest> {
   const res = await fetch(`${API_BASE_URL}/swaps/${id}/status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error(`Failed to update swap status: ${res.statusText}`);
@@ -679,7 +724,7 @@ export async function createCampaign(
 ): Promise<Campaign> {
   const res = await fetch(`${API_BASE_URL}/campaigns`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(campaign),
   });
   if (!res.ok) throw new Error(`Failed to submit campaign: ${res.statusText}`);
@@ -695,7 +740,7 @@ export async function updateCampaignStatus(
 ): Promise<Campaign> {
   const res = await fetch(`${API_BASE_URL}/campaigns/${id}/status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error(`Failed to update campaign status: ${res.statusText}`);
@@ -719,4 +764,75 @@ export async function fetchHealth(): Promise<{
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return await res.json();
 }
+
+/**
+ * Registers a new user account.
+ */
+export async function registerUser(payload: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  role?: string;
+}): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Registration failed: ${res.statusText}`);
+  }
+  const data: AuthResponse = await res.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  return data;
+}
+
+/**
+ * Logs in with email and password.
+ */
+export async function loginUser(payload: {
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Login failed: ${res.statusText}`);
+  }
+  const data: AuthResponse = await res.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  return data;
+}
+
+/**
+ * Fetches the authenticated user profile.
+ */
+export async function fetchMe(): Promise<AuthUser | null> {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.user;
+  } catch {
+    return null;
+  }
+}
+
 

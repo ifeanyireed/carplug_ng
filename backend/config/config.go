@@ -3,23 +3,26 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port           string
-	GinMode        string
-	AllowedOrigins []string
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	DBCharset      string
-	AutoMigrate    bool
-	AutoSeed       bool
+	Port               string
+	GinMode            string
+	AllowedOrigins     []string
+	DBHost             string
+	DBPort             string
+	DBUser             string
+	DBPassword         string
+	DBName             string
+	DBCharset          string
+	AutoMigrate        bool
+	AutoSeed           bool
+	JWTSecret          string
+	JWTExpirationHours int
 }
 
 var AppConfig *Config
@@ -39,18 +42,27 @@ func LoadConfig() *Config {
 		}
 	}
 
+	jwtExpHours, err := strconv.Atoi(getEnv("JWT_EXPIRATION_HOURS", "72"))
+	if err != nil || jwtExpHours <= 0 {
+		jwtExpHours = 72
+	}
+
+	jwtSecret := getEnv("JWT_SECRET", "verza_carplug_dev_jwt_secret_2026_super_secure_key")
+
 	AppConfig = &Config{
-		Port:           getEnv("PORT", "8080"),
-		GinMode:        getEnv("GIN_MODE", "debug"),
-		AllowedOrigins: origins,
-		DBHost:         getEnv("DB_HOST", ""),
-		DBPort:         getEnv("DB_PORT", "3306"),
-		DBUser:         getEnv("DB_USER", ""),
-		DBPassword:     getEnv("DB_PASSWORD", ""),
-		DBName:         getEnv("DB_NAME", ""),
-		DBCharset:      getEnv("DB_CHARSET", "utf8mb4"),
-		AutoMigrate:    getEnv("AUTO_MIGRATE", "true") == "true",
-		AutoSeed:       getEnv("AUTO_SEED", "true") == "true",
+		Port:               getEnv("PORT", "8080"),
+		GinMode:            getEnv("GIN_MODE", "debug"),
+		AllowedOrigins:     origins,
+		DBHost:             getEnv("DB_HOST", ""),
+		DBPort:             getEnv("DB_PORT", "3306"),
+		DBUser:             getEnv("DB_USER", ""),
+		DBPassword:         getEnv("DB_PASSWORD", ""),
+		DBName:             getEnv("DB_NAME", ""),
+		DBCharset:          getEnv("DB_CHARSET", "utf8mb4"),
+		AutoMigrate:        getEnv("AUTO_MIGRATE", "true") == "true",
+		AutoSeed:           getEnv("AUTO_SEED", "true") == "true",
+		JWTSecret:          jwtSecret,
+		JWTExpirationHours: jwtExpHours,
 	}
 
 	if AppConfig.DBPassword == "" {

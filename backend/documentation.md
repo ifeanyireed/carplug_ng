@@ -62,6 +62,8 @@ Configuration is loaded in `backend/config/config.go` with strict environment va
 | `DB_CHARSET` | string | `utf8mb4` | Character encoding |
 | `AUTO_MIGRATE` | bool | `false` | Runs GORM AutoMigrate on startup when `true` |
 | `AUTO_SEED` | bool | `false` | Populates mock catalog if tables are empty |
+| `JWT_SECRET` | string | *(Required env var)* | Secret key for signing and validating JWT tokens (HS256) |
+| `JWT_EXPIRATION_HOURS` | int | `72` | Lifespan of issued JWT tokens in hours |
 
 ### Connection Pooling for Remote Latency
 Because the database is hosted remotely on Hostinger (`srv2113.hstgr.io`), connection pooling is configured in `backend/config/database.go` to prevent socket exhaustion and latency spikes:
@@ -148,52 +150,67 @@ Represents verified vehicle listings with Nigerian automotive market attributes:
 - `budget`, `dates`, `impressionsDelivered`, `impressionGoal`, `clicks`
 - `status` (`Active`, `Draft`, `Paused`, `Completed`), `targetCity`
 
+### 3.8 Users (`models.User` -> table `users`)
+- `id` (VARCHAR 64, PK): Unique prefixed identifier (`usr_` + UUIDv4)
+- `name` (VARCHAR 150): Full user name
+- `email` (VARCHAR 191, UNIQUE, INDEX): Normalized lowercase email address
+- `phone` (VARCHAR 50): Contact telephone number
+- `passwordHash` (VARCHAR 255): Bcrypt-hashed password (cost 12), excluded from JSON serialization (`json:"-"`)
+- `role` (VARCHAR 50, INDEX): User authorization role (`buyer`, `seller`, `dealer`, `technician`, `admin`)
+- `isVerified` (BOOLEAN): Email / account verification status
+- `createdAt` / `updatedAt` (DATETIME): Automatic GORM lifecycle timestamps
+
 ---
 
 ## 4. API Endpoints Reference
 
 All routes are grouped under `/api`.
 
-### 4.1 System & Health
-- `GET /api/health` — Returns status, database connection state, and uptime. Internal infrastructure details (`dbHost`, `dbName`, raw error traces) are concealed unless `DEBUG_HEALTH=true` is set.
+### 4.1 Authentication & Authorization
+- `POST /api/auth/register` — Public registration. Validates email format, enforces $\ge 6$ character password, checks for duplicate email (409 Conflict), hashes password using bcrypt, validates requested role (defaults to `buyer`, blocks self-assigning `admin`), and returns signed JWT token + sanitized user profile.
+- `POST /api/auth/login` — Public login. Performs case-insensitive email lookup, verifies bcrypt password hash, generates signed HS256 JWT token (default 72h expiration), and returns token + sanitized user profile.
+- `GET /api/auth/me` — Protected endpoint (`Authorization: Bearer <token>`). Validates token and returns authenticated user profile.
 
-### 4.2 Vehicles
-- `GET /api/vehicles` — Query params: `make`, `model`, `bodyType`, `condition`, `minTrustTier`, `trustTier`, `priceRating`, `sellerId`, `featured`, `minPrice`, `maxPrice`, `q`, `sortBy` (`trust`, `price_asc`, `price_desc`, `featured`), `page` (default: 1), `pageSize` (default: 24). Returns `{ data, total, page, pageSize }` envelope with masked seller phone numbers.
-- `GET /api/vehicles/:id` — Retrieve a single vehicle by ID (with masked seller phone number).
-- `POST /api/vehicles` — Create a new vehicle listing (JSON body).
-- `PUT /api/vehicles/:id` — Update vehicle listing (supports zero-value booleans and numerical fields).
-- `DELETE /api/vehicles/:id` — Delete vehicle listing.
+### 4.2 System & Health
+- `GET /api/health` — **Public**. Returns status, database connection state, and uptime. Internal infrastructure details (`dbHost`, `dbName`, raw error traces) are concealed unless `DEBUG_HEALTH=true` is set.
 
-### 4.3 Dealers
-- `GET /api/dealers` — List all registered dealer shops.
-- `GET /api/dealers/:id` — Get dealer profile by either slug or ID.
-- `GET /api/dealers/:id/inventory` — Get all vehicles for a dealer.
-- `POST /api/dealers` — Register a new dealer shop.
+### 4.3 Vehicles
+- `GET /api/vehicles` — **Public**. Query params: `make`, `model`, `bodyType`, `condition`, `minTrustTier`, `trustTier`, `priceRating`, `sellerId`, `featured`, `minPrice`, `maxPrice`, `q`, `sortBy` (`trust`, `price_asc`, `price_desc`, `featured`), `page` (default: 1), `pageSize` (default: 24). Returns `{ data, total, page, pageSize }` envelope with masked seller phone numbers.
+- `GET /api/vehicles/:id` — **Public**. Retrieve a single vehicle by ID (with masked seller phone number).
+- `POST /api/vehicles` — **Protected** (`seller`, `dealer`, `admin`). Create a new vehicle listing (JSON body).
+- `PUT /api/vehicles/:id` — **Protected** (`seller`, `dealer`, `admin`). Update vehicle listing (supports zero-value booleans and numerical fields).
+- `DELETE /api/vehicles/:id` — **Protected** (`seller`, `dealer`, `admin`). Delete vehicle listing.
 
-### 4.4 Technicians
-- `GET /api/technicians` — List all certified technicians (filter `area`).
-- `GET /api/technicians/:id` — Get technician by ID.
+### 4.4 Dealers
+- `GET /api/dealers` — **Public**. List all registered dealer shops.
+- `GET /api/dealers/:id` — **Public**. Get dealer profile by either slug or ID.
+- `GET /api/dealers/:id/inventory` — **Public**. Get all vehicles for a dealer.
+- `POST /api/dealers` — **Protected** (`dealer`, `admin`). Register a new dealer shop.
 
-### 4.5 Inspections
-- `GET /api/inspections` — List inspections (filter `status`, `buyerId`, `vehicleId`).
-- `GET /api/inspections/:id` — Full inspection report with checklist categories.
-- `POST /api/inspections` — Book an inspection request.
-- `PATCH /api/inspections/:id/status` — Update inspection status (`{"status": "..."}`).
+### 4.5 Technicians
+- `GET /api/technicians` — **Public**. List all certified technicians (filter `area`).
+- `GET /api/technicians/:id` — **Public**. Get technician by ID.
 
-### 4.6 Leads & Inquiries
-- `GET /api/leads` — List leads (filter `sellerId`, `status`, `type`), with `page` (default: 1) and `pageSize` (default: 50). Returns `{ data, total, page, pageSize }`.
-- `POST /api/leads` — Submit lead/inquiry.
-- `PATCH /api/leads/:id/status` — Update lead status (`{"status": "..."}`).
+### 4.6 Inspections
+- `GET /api/inspections` — **Public**. List inspections (filter `status`, `buyerId`, `vehicleId`).
+- `GET /api/inspections/:id` — **Public**. Full inspection report with checklist categories.
+- `POST /api/inspections` — **Protected** (Authenticated user). Book an inspection request.
+- `PATCH /api/inspections/:id/status` — **Protected** (`technician`, `admin`). Update inspection status (`{"status": "..."}`).
 
-### 4.7 Swaps & Trade-Ins
-- `GET /api/swaps` — List swap requests (filter `status`).
-- `POST /api/swaps` — Submit car swap trade-in application.
-- `PATCH /api/swaps/:id/status` — Update swap status (`{"status": "..."}`).
+### 4.7 Leads & Inquiries
+- `GET /api/leads` — **Protected** (`seller`, `dealer`, `admin`). List leads (filter `sellerId`, `status`, `type`), with `page` (default: 1) and `pageSize` (default: 50). Returns `{ data, total, page, pageSize }`.
+- `POST /api/leads` — **Public**. Submit lead/inquiry.
+- `PATCH /api/leads/:id/status` — **Protected** (`seller`, `dealer`, `admin`). Update lead status (`{"status": "..."}`).
 
-### 4.8 Campaigns
-- `GET /api/campaigns` — List advertising campaigns.
-- `POST /api/campaigns` — Create advertising campaign.
-- `PATCH /api/campaigns/:id/status` — Update campaign status.
+### 4.8 Swaps & Trade-Ins
+- `GET /api/swaps` — **Public**. List swap requests (filter `status`).
+- `POST /api/swaps` — **Protected** (Authenticated user). Submit car swap trade-in application.
+- `PATCH /api/swaps/:id/status` — **Protected** (`admin`). Update swap status (`{"status": "..."}`).
+
+### 4.9 Campaigns
+- `GET /api/campaigns` — **Public**. List advertising campaigns.
+- `POST /api/campaigns` — **Protected** (`admin`). Create advertising campaign.
+- `PATCH /api/campaigns/:id/status` — **Protected** (`admin`). Update campaign status.
 
 ---
 
@@ -232,3 +249,4 @@ go build -o bin/server.exe cmd/server/main.go
 | **12** | Priority 6 Health Endpoint Hardening | Done | Hardened `/api/health` in `health_controller.go` to hide internal host/DB/SQL error traces unless `DEBUG_HEALTH=true`. |
 | **13** | Priority 4 GORM Zero-Value Fix | Done | Modified `UpdateVehicle` in `vehicle_controller.go` to bind `map[string]interface{}`, ensuring `featured: false`, `price: 0`, and cleared booleans persist properly. |
 | **14** | Priority 3 & 7 Privacy & Pagination | Done | Added `MaskPhone` masking helper for public seller phone numbers, and added `page`, `pageSize`, and `total` pagination to `/api/vehicles` and `/api/leads`. |
+| **15** | User Auth & RBAC | Done | Implemented User model (`models.User`), bcrypt password hashing, JWT generation/validation (HS256 with configurable TTL), AuthController (`/api/auth/register`, `/api/auth/login`, `/api/auth/me`), AuthMiddleware, and RequireRoles RBAC protecting vehicle mutations, dealer creation, inspection status, swap status, campaign admin, and lead management while preserving public marketplace discovery. |

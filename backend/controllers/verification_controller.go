@@ -93,7 +93,11 @@ func GetVerifications(c *gin.Context) {
 	db := config.GetDB()
 	query := db.Model(&models.Verification{})
 
-	// Non-admin callers can only see their own submitted documents
+	// SECURITY CRITICAL (PII PROTECTION):
+	// Non-admin callers MUST strictly be restricted to user_id = userID.
+	// This filter block is the only line of defense preventing unauthorized users from accessing
+	// other parties' sensitive KYC compliance documentation (customs declarations, NINs, CAC records).
+	// DO NOT REMOVE OR MODIFY WITHOUT SPLITTING INTO DEDICATED ADMIN/USER ROUTES.
 	if userRole != "admin" {
 		query = query.Where("user_id = ?", userID)
 	} else if filterUser := c.Query("userId"); filterUser != "" {
@@ -215,6 +219,22 @@ func UpdateVerificationStatus(c *gin.Context) {
 			if err := db.Where("id = ?", verification.EntityID).First(&tech).Error; err == nil {
 				tech.Badge = "Master Technician • State Certified"
 				_ = db.Save(&tech).Error
+			}
+
+		case "dealer_cac":
+			// Upgrade dealer showroom to CAC Verified (Priority 1)
+			var shop models.DealerShop
+			if err := db.Where("id = ? OR user_id = ?", verification.EntityID, verification.UserID).First(&shop).Error; err == nil {
+				shop.VerifiedCAC = true
+				_ = db.Save(&shop).Error
+			}
+
+		case "seller_nin":
+			// Upgrade private seller account to National Identity Verified (Priority 1)
+			var user models.User
+			if err := db.Where("id = ?", verification.UserID).First(&user).Error; err == nil {
+				user.IsVerified = true
+				_ = db.Save(&user).Error
 			}
 		}
 	}

@@ -94,10 +94,17 @@ export default function DealerShopSettingsPage() {
       <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>CAC Verified Dealership</span>
-            </span>
+            {shop.verifiedCAC ? (
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>CAC Verified Dealership</span>
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                <span>CAC Verification Pending</span>
+              </span>
+            )}
           </div>
           <h1 className="text-2xl font-black text-neutral-900">Dealer Shop Storefront</h1>
           <p className="text-xs text-gray-500 mt-1">

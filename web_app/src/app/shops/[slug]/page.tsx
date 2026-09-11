@@ -60,10 +60,12 @@ export default async function PublicShopStorefrontPage({
                   <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">
                     {shop.name}
                   </h1>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>CAC Certified</span>
-                  </span>
+                  {shop.verifiedCAC && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>CAC Certified</span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 font-normal">{shop.tagline}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">

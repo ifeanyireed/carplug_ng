@@ -1,9 +1,13 @@
 package controllers
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha512"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -100,34 +104,45 @@ func GetTransactions(c *gin.Context) {
 	})
 }
 
-// GetWallet returns current user/technician wallet balance and settlement records
+// GetWallet returns current user/technician wallet balance and settlement records using DB aggregates
 func GetWallet(c *gin.Context) {
 	userIDVal, _ := c.Get("userID")
 	userID, _ := userIDVal.(string)
 
 	db := config.GetDB()
 
+	// 1. Total settled earnings (inflows)
+	var totalEarned int64
+	db.Model(&models.Transaction{}).
+		Where("user_id = ? AND type != ? AND status = ?", userID, "tech_payout", "settled").
+		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalEarned)
+
+	// 2. Prior payouts (settled or pending)
+	var totalPayouts int64
+	db.Model(&models.Transaction{}).
+		Where("user_id = ? AND type = ? AND status IN ?", userID, "tech_payout", []string{"settled", "pending"}).
+		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalPayouts)
+
+	availableBalance := totalEarned - totalPayouts
+	if availableBalance < 0 {
+		availableBalance = 0
+	}
+
+	// 3. Pending escrow
+	var pendingEscrow int64
+	db.Model(&models.Transaction{}).
+		Where("user_id = ? AND type = ? AND status = ?", userID, "inspection_escrow", "held_in_escrow").
+		Select("COALESCE(SUM(amount), 0)").Row().Scan(&pendingEscrow)
+
+	// Fetch recent 50 transactions for display list
 	var txns []models.Transaction
 	if err := db.Where("user_id = ?", userID).Order("created_at desc").Limit(50).Find(&txns).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query wallet: " + err.Error()})
 		return
 	}
 
-	var balance int64
-	var pendingEscrow int64
-	var totalEarned int64
-
-	for _, t := range txns {
-		if t.Type == "tech_payout" && t.Status == "settled" {
-			balance += t.Amount
-			totalEarned += t.Amount
-		} else if t.Type == "inspection_escrow" && t.Status == "held_in_escrow" {
-			pendingEscrow += t.Amount
-		}
-	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"balance":       balance,
+		"balance":       availableBalance,
 		"pendingEscrow": pendingEscrow,
 		"totalEarned":   totalEarned,
 		"currency":      "NGN",
@@ -152,6 +167,58 @@ func InitializePayment(c *gin.Context) {
 	var req InitializePaymentInput
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Server-side pricing enforcement (Priority 0.3)
+	switch req.Type {
+	case "dealer_subscription":
+		valid := false
+		for _, price := range []int64{25000, 65000, 75000, 150000} {
+			if req.Amount == price {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid subscription amount: must match server price tier (₦25,000 Basic, ₦65,000/₦75,000 Pro, or ₦150,000 Premium)",
+			})
+			return
+		}
+
+	case "inspection_escrow":
+		valid := false
+		for _, price := range []int64{25000, 45000, 75000} {
+			if req.Amount == price {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid inspection fee: must match server price tier (₦25,000 Standard, ₦45,000 Premium Diagnostic, or ₦75,000 Comprehensive Master Audit)",
+			})
+			return
+		}
+
+	case "ad_campaign":
+		valid := false
+		for _, price := range []int64{75000, 120000, 250000} {
+			if req.Amount == price {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid ad campaign amount: must match server price package (₦75,000 Sponsored, ₦120,000 Banner, or ₦250,000 Hero Spotlight)",
+			})
+			return
+		}
+
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported payment transaction type: " + req.Type})
 		return
 	}
 
@@ -276,6 +343,33 @@ func RequestPayout(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+
+	// 1. Compute technician's actual available balance server-side using DB aggregate (Priority 0.1)
+	var totalEarned int64
+	db.Model(&models.Transaction{}).
+		Where("user_id = ? AND type != ? AND status = ?", userID, "tech_payout", "settled").
+		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalEarned)
+
+	var priorPayouts int64
+	db.Model(&models.Transaction{}).
+		Where("user_id = ? AND type = ? AND status IN ?", userID, "tech_payout", []string{"settled", "pending"}).
+		Select("COALESCE(SUM(amount), 0)").Row().Scan(&priorPayouts)
+
+	availableBalance := totalEarned - priorPayouts
+	if availableBalance < 0 {
+		availableBalance = 0
+	}
+
+	// 2. Reject the payout with 400 if req.Amount exceeds that computed balance
+	if req.Amount > availableBalance {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":            fmt.Sprintf("insufficient funds: requested payout of ₦%d exceeds available balance of ₦%d", req.Amount, availableBalance),
+			"requestedAmount":  req.Amount,
+			"availableBalance": availableBalance,
+		})
+		return
+	}
+
 	var user models.User
 	userName := "Certified Technician"
 	userEmail := ""
@@ -287,6 +381,7 @@ func RequestPayout(c *gin.Context) {
 	}
 
 	reference := generateTxnRef("CP-PAYOUT")
+	// 3. Create transaction with Status: "pending", not "settled" (Priority 0.1)
 	payoutTxn := models.Transaction{
 		ID:        "txn-" + strconv.FormatInt(time.Now().UnixNano(), 36),
 		Reference: reference,
@@ -299,8 +394,8 @@ func RequestPayout(c *gin.Context) {
 		Amount:    req.Amount,
 		Currency:  "NGN",
 		Gateway:   "bank_transfer",
-		Status:    "settled",
-		Notes:     fmt.Sprintf("Disbursed to %s • %s • %s", req.AccountName, req.AccountNumber, req.BankName),
+		Status:    "pending",
+		Notes:     fmt.Sprintf("Pending bank transfer to %s • %s • %s", req.AccountName, req.AccountNumber, req.BankName),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -310,16 +405,88 @@ func RequestPayout(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":     "Payout settlement processed successfully",
-		"transaction": payoutTxn,
+	c.JSON(http.StatusCreated, gin.H{
+		"message":          "Payout request submitted successfully and queued for admin settlement",
+		"transaction":      payoutTxn,
+		"availableBalance": availableBalance - req.Amount,
 	})
 }
 
-// HandleWebhook receives payment notifications from gateway
+type UpdatePayoutStatusInput struct {
+	Status string `json:"status" binding:"required"` // settled, failed, refunded, pending
+	Notes  string `json:"notes"`
+}
+
+// UpdatePayoutStatus allows administrators to confirm/settle or reject a pending technician payout (Priority 0.1)
+func UpdatePayoutStatus(c *gin.Context) {
+	id := c.Param("id")
+	var req UpdatePayoutStatusInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	newStatus := strings.ToLower(strings.TrimSpace(req.Status))
+	if newStatus != "settled" && newStatus != "failed" && newStatus != "refunded" && newStatus != "pending" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payout status: must be 'settled', 'failed', 'refunded', or 'pending'"})
+		return
+	}
+
+	db := config.GetDB()
+	var txn models.Transaction
+	if err := db.Where("id = ? OR reference = ?", id, id).First(&txn).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "payout transaction not found"})
+		return
+	}
+
+	if txn.Type != "tech_payout" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction is not a technician payout"})
+		return
+	}
+
+	txn.Status = newStatus
+	if req.Notes != "" {
+		txn.Notes = req.Notes
+	}
+	txn.UpdatedAt = time.Now()
+
+	if err := db.Save(&txn).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update payout status: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":     fmt.Sprintf("Payout status updated to '%s' successfully", newStatus),
+		"transaction": txn,
+	})
+}
+
+// HandleWebhook receives payment notifications from gateway (Priority 0.2)
 func HandleWebhook(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to read payload"})
+		return
+	}
+
+	signature := c.GetHeader("x-paystack-signature")
+	secretKey := config.AppConfig.PaystackSecretKey
+
+	if secretKey != "" {
+		mac := hmac.New(sha512.New, []byte(secretKey))
+		mac.Write(body)
+		expected := hex.EncodeToString(mac.Sum(nil))
+		if !hmac.Equal([]byte(signature), []byte(expected)) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid webhook signature"})
+			return
+		}
+	} else if config.AppConfig.GinMode == "release" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "PAYSTACK_SECRET_KEY not configured in production mode"})
+		return
+	}
+
 	var payload map[string]interface{}
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid webhook payload"})
 		return
 	}

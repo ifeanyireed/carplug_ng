@@ -20,7 +20,8 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		isAllowed := allowed[origin] || allowed[strings.TrimRight(origin, "/")]
 
-		// Always permit localhost / loopback development ports
+		// Always permit localhost / loopback development ports regardless of GIN_MODE
+		// so local CLI tooling, mobile testing emulators, and local Next.js frontends can communicate safely.
 		if !isAllowed && origin != "" {
 			if strings.HasPrefix(origin, "http://localhost:") ||
 				strings.HasPrefix(origin, "http://127.0.0.1:") ||
@@ -215,6 +216,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			payments.GET("/wallet", controllers.GetWallet)
 			payments.POST("/initialize", controllers.InitializePayment)
 			payments.POST("/payout", middleware.RequireRoles("technician", "admin"), controllers.RequestPayout)
+			payments.PATCH("/payouts/:id/status", middleware.RequireRoles("admin"), controllers.UpdatePayoutStatus)
 		}
 
 		// Admin Governance & Moderation (Protected - Admin only)

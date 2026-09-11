@@ -29,6 +29,7 @@ type Config struct {
 	BrevoAPIKey        string
 	BrevoSenderName    string
 	BrevoSenderEmail   string
+	PaystackSecretKey  string
 }
 
 var AppConfig *Config
@@ -85,6 +86,7 @@ func LoadConfig() *Config {
 		BrevoAPIKey:        getEnv("BREVO_API_KEY", ""),
 		BrevoSenderName:    getEnv("BREVO_SENDER_NAME", "CarPlug Nigeria"),
 		BrevoSenderEmail:   getEnv("BREVO_SENDER_EMAIL", "verify@carplug.ng"),
+		PaystackSecretKey:  getEnv("PAYSTACK_SECRET_KEY", ""),
 	}
 
 	if AppConfig.DBPassword == "" {

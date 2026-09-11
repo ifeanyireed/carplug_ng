@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { Vehicle, Lead, DealerShop, MOCK_VEHICLES, MOCK_LEADS, MOCK_SHOPS } from "@/data/mockStore";
 import { fetchDealerInventory, fetchVehicles, fetchLeads, fetchDealerBySlugOrId } from "@/services/api";
@@ -222,11 +223,14 @@ export default function DealerDashboardPage() {
                 className="py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-11 rounded-xl bg-gray-100 overflow-hidden shrink-0">
-                    <img
+                  <div className="w-14 h-11 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">
+                    <Image
                       src={car.images?.[0] || "/images/cars/car1.jpeg"}
                       alt={car.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized
+                      sizes="56px"
+                      className="object-cover"
                     />
                   </div>
                   <div>

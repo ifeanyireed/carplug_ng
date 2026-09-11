@@ -19,6 +19,14 @@ var allowedExtensions = map[string]bool{
 	".heic": true,
 }
 
+var allowedFolders = map[string]bool{
+	"carplug/vehicles":    true,
+	"carplug/avatars":     true,
+	"carplug/inspections": true,
+	"carplug/documents":   true,
+	"carplug/campaigns":   true,
+}
+
 // UploadImages handles multipart/form-data upload for one or multiple images
 // POST /api/upload/images
 func UploadImages(c *gin.Context) {
@@ -38,7 +46,10 @@ func UploadImages(c *gin.Context) {
 		return
 	}
 
-	folder := c.DefaultPostForm("folder", "carplug/vehicles")
+	folder := strings.TrimSpace(c.DefaultPostForm("folder", "carplug/vehicles"))
+	if !allowedFolders[folder] {
+		folder = "carplug/vehicles"
+	}
 
 	// Collect files from "images" or "image" fields
 	files := form.File["images"]

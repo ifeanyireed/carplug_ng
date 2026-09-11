@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -62,6 +63,7 @@ export default function BuyerMessagesPage() {
     let isMounted = true;
 
     async function loadAllConversations() {
+      setIsLoadingConvs(true);
       try {
         let list = await fetchConversations();
         if (!isMounted) return;
@@ -93,6 +95,8 @@ export default function BuyerMessagesPage() {
         }
       } catch (err) {
         console.warn("Failed to load conversations:", err);
+      } finally {
+        if (isMounted) setIsLoadingConvs(false);
       }
     }
 
@@ -111,12 +115,15 @@ export default function BuyerMessagesPage() {
     let isMounted = true;
 
     async function loadThreadMessages() {
+      setIsLoadingMsgs(true);
       try {
         const msgs = await fetchMessages(currentId);
         if (!isMounted) return;
         setMessages(msgs);
       } catch (err) {
         console.warn("Failed to fetch messages for conversation:", err);
+      } finally {
+        if (isMounted) setIsLoadingMsgs(false);
       }
     }
 
@@ -281,10 +288,13 @@ export default function BuyerMessagesPage() {
                       >
                         <div className="w-12 h-12 rounded-xl bg-gray-200 overflow-hidden shrink-0 relative border border-gray-200">
                           {conv.vehicleImage ? (
-                            <img
+                            <Image
                               src={conv.vehicleImage}
                               alt={conv.vehicleTitle}
-                              className="w-full h-full object-cover"
+                              fill
+                              unoptimized
+                              sizes="48px"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -342,12 +352,15 @@ export default function BuyerMessagesPage() {
                         <ArrowLeft className="w-4 h-4" />
                       </button>
 
-                      <div className="w-11 h-11 rounded-xl bg-gray-200 overflow-hidden shrink-0 border border-gray-200">
+                      <div className="w-11 h-11 rounded-xl bg-gray-200 overflow-hidden shrink-0 border border-gray-200 relative">
                         {activeConv.vehicleImage ? (
-                          <img
+                          <Image
                             src={activeConv.vehicleImage}
                             alt={activeConv.vehicleTitle}
-                            className="w-full h-full object-cover"
+                            fill
+                            unoptimized
+                            sizes="44px"
+                            className="object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400">

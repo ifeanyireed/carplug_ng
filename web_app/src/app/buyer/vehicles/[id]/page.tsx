@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -126,10 +127,13 @@ export default async function VehicleDetailPage({
             {/* Gallery Card */}
             <div className="bg-white border border-gray-200 rounded-3xl p-3 shadow-xs overflow-hidden">
               <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
-                <img
+                <Image
                   src={vehicle.images[0] || "/images/cars/car18.jpeg"}
                   alt={vehicle.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  priority
+                  unoptimized
+                  className="object-cover"
                 />
                 <div className="absolute bottom-4 left-4 flex gap-2">
                   <span className="px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md text-white text-xs font-medium">
@@ -145,7 +149,13 @@ export default async function VehicleDetailPage({
                     key={idx}
                     className="relative aspect-[16/10] rounded-xl overflow-hidden bg-gray-100 border-2 border-transparent hover:border-blue-600 transition cursor-pointer"
                   >
-                    <img src={img} alt="Thumb" className="w-full h-full object-cover" />
+                    <Image
+                      src={img}
+                      alt={`${vehicle.title} thumbnail ${idx + 1}`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
                   </div>
                 ))}
               </div>

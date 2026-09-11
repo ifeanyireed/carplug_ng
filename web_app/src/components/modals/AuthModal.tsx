@@ -358,8 +358,8 @@ export const AuthModal = ({
       setError("Please enter the 6-digit recovery code.");
       return;
     }
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -579,7 +579,7 @@ export const AuthModal = ({
                     <label className="block text-xs font-semibold text-gray-700">
                       Password{" "}
                       {mode === "signup" && (
-                        <span className="text-gray-400 font-normal">(min 6 characters)</span>
+                        <span className="text-gray-400 font-normal">(min 8 characters)</span>
                       )}
                     </label>
                     {mode === "login" && (
@@ -602,7 +602,7 @@ export const AuthModal = ({
                     <input
                       type={showPassword ? "text" : "password"}
                       required
-                      minLength={6}
+                      minLength={8}
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) =>
@@ -857,7 +857,7 @@ export const AuthModal = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-gray-700">
-                      New Password <span className="text-gray-400 font-normal">(min 6 characters)</span>
+                      New Password <span className="text-gray-400 font-normal">(min 8 characters)</span>
                     </label>
                     <button
                       type="button"
@@ -882,7 +882,7 @@ export const AuthModal = ({
                     <input
                       type={showNewPassword ? "text" : "password"}
                       required
-                      minLength={6}
+                      minLength={8}
                       placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -893,7 +893,7 @@ export const AuthModal = ({
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || otpDigits.join("").length < 6 || newPassword.length < 6}
+                  disabled={isSubmitting || otpDigits.join("").length < 6 || newPassword.length < 8}
                   className="w-full bg-black hover:bg-neutral-800 disabled:bg-neutral-400 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-md mt-2 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (

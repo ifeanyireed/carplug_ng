@@ -160,8 +160,8 @@ function SecurityForm() {
     e.preventDefault();
     setPasswordMsg(null);
 
-    if (newPassword.length < 6) {
-      setPasswordMsg({ type: "error", text: "New password must be at least 6 characters long." });
+    if (newPassword.length < 8) {
+      setPasswordMsg({ type: "error", text: "New password must be at least 8 characters long." });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -189,7 +189,7 @@ function SecurityForm() {
       <div>
         <h2 className="text-lg font-bold text-neutral-900">Account Security &amp; Password</h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Ensure your account is protected with a secure password of at least 6 characters.
+          Ensure your account is protected with a secure password of at least 8 characters.
         </p>
       </div>
 
@@ -237,12 +237,12 @@ function SecurityForm() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               placeholder="••••••••"
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition"
             />
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">Must be at least 6 characters long.</p>
+          <p className="text-[11px] text-gray-400 mt-1">Must be at least 8 characters long.</p>
         </div>
 
         <div>
@@ -256,7 +256,7 @@ function SecurityForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               placeholder="••••••••"
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:bg-white transition"
             />

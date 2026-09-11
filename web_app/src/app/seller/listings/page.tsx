@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { Vehicle, MOCK_VEHICLES } from "@/data/mockStore";
@@ -114,11 +115,14 @@ export default function MyListingsPage() {
                 className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-12 rounded-xl bg-gray-200 overflow-hidden shrink-0">
-                    <img
+                  <div className="w-16 h-12 rounded-xl bg-gray-200 overflow-hidden shrink-0 relative">
+                    <Image
                       src={listing.images?.[0] || "/images/cars/car1.jpeg"}
                       alt={listing.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized
+                      sizes="64px"
+                      className="object-cover"
                     />
                   </div>
                   <div>

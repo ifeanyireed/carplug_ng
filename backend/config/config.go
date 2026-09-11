@@ -100,9 +100,9 @@ func LoadConfig() *Config {
 		log.Fatal("[Config] DB_NAME environment variable is required and was not set")
 	}
 
-	// Flag missing or default JWT_SECRET in production
+	// Require strong custom JWT_SECRET in production release mode
 	if AppConfig.GinMode == "release" && (os.Getenv("JWT_SECRET") == "" || AppConfig.JWTSecret == "verza_carplug_dev_jwt_secret_2026_super_secure_key") {
-		log.Println("[Config] WARNING: Running in production mode (GIN_MODE=release) without a custom JWT_SECRET! Please set a strong JWT_SECRET in production.")
+		log.Fatal("[Config] CRITICAL SECURITY ERROR: Running in production mode (GIN_MODE=release) without a custom JWT_SECRET! You must set a strong, non-default JWT_SECRET in production.")
 	}
 
 	return AppConfig

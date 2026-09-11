@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
@@ -113,11 +114,13 @@ export default function ComparePage() {
                           >
                             <X className="w-4 h-4" />
                           </button>
-                          <div className="aspect-[16/10] rounded-xl bg-gray-100 overflow-hidden mb-3">
-                            <img
+                          <div className="aspect-[16/10] rounded-xl bg-gray-100 overflow-hidden mb-3 relative">
+                            <Image
                               src={car.images[0] || "/images/cars/car18.jpeg"}
                               alt={car.title}
-                              className="w-full h-full object-cover"
+                              fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                              className="object-cover"
                             />
                           </div>
                           <h3 className="font-bold text-sm text-neutral-900 line-clamp-1">

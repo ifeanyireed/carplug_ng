@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { Vehicle, MOCK_VEHICLES } from "@/data/mockStore";
@@ -235,11 +236,14 @@ export default function DealerVehiclesPage() {
                   <tr key={car.id} className="hover:bg-gray-50/60 transition">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                          <img
+                        <div className="w-14 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0 relative">
+                          <Image
                             src={car.images?.[0] || "/images/cars/car1.jpeg"}
                             alt={car.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            unoptimized
+                            sizes="56px"
+                            className="object-cover"
                           />
                         </div>
                         <div>

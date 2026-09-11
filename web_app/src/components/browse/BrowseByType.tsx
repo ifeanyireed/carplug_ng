@@ -93,6 +93,7 @@ export const BrowseByType = ({
         <div className="flex items-center gap-4">
           <button
             onClick={handlePrev}
+            disabled={scrollIndex === 0}
             aria-label="Previous type"
             className="text-gray-600 hover:text-black transition p-1 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
           >
@@ -100,6 +101,7 @@ export const BrowseByType = ({
           </button>
           <button
             onClick={handleNext}
+            disabled={scrollIndex >= BODY_TYPES.length - 1}
             aria-label="Next type"
             className="text-gray-600 hover:text-black transition p-1 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
           >

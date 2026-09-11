@@ -191,6 +191,7 @@ export const WhatTheySaidSection = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={handlePrev}
+            disabled={scrollIndex === 0}
             aria-label="Previous story"
             className="text-gray-600 hover:text-black transition p-1 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
           >
@@ -198,6 +199,7 @@ export const WhatTheySaidSection = () => {
           </button>
           <button
             onClick={handleNext}
+            disabled={scrollIndex >= STORIES.length - 1}
             aria-label="Next story"
             className="text-gray-600 hover:text-black transition p-1 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
           >

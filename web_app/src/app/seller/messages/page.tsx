@@ -75,12 +75,15 @@ export default function SellerMessagesPage() {
     let isMounted = true;
 
     async function loadThread() {
+      setIsLoadingMsgs(true);
       try {
         const msgs = await fetchMessages(currentId);
         if (!isMounted) return;
         setMessages(msgs);
       } catch (err) {
         console.warn("Failed to load thread:", err);
+      } finally {
+        if (isMounted) setIsLoadingMsgs(false);
       }
     }
 

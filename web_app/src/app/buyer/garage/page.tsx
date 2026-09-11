@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Navbar } from "@/components/layout/Navbar";
@@ -8,7 +8,6 @@ import { Footer } from "@/components/layout/Footer";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 import { useAuth } from "@/context/AuthContext";
 import {
-  ShoppingBag,
   Trash2,
   TrendingDown,
   ArrowUpRight,
@@ -23,7 +22,7 @@ import {
 
 export default function GaragePage() {
   const { user, isAuthenticated, openAuthModal } = useAuth();
-  const { savedVehicles, savedCount, isLoading, removeSaved } = useSavedVehicles();
+  const { savedVehicles, isLoading, removeSaved } = useSavedVehicles();
 
   const handleRemove = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();

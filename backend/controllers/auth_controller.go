@@ -21,7 +21,7 @@ import (
 type RegisterRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Password string `json:"password" binding:"required,min=8"`
 	Phone    string `json:"phone"`
 	Role     string `json:"role"`
 	AdminKey string `json:"adminKey"`
@@ -46,8 +46,8 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if len(req.Password) < 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 6 characters"})
+	if len(req.Password) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters long"})
 		return
 	}
 
@@ -274,7 +274,7 @@ func UpdateProfile(c *gin.Context) {
 // ChangePasswordRequest defines parameters for updating account password.
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"currentPassword" binding:"required"`
-	NewPassword     string `json:"newPassword" binding:"required,min=6"`
+	NewPassword     string `json:"newPassword" binding:"required,min=8"`
 }
 
 // ChangePassword verifies current password and updates with new bcrypt hash.
@@ -292,8 +292,8 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if len(req.NewPassword) < 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be at least 6 characters long"})
+	if len(req.NewPassword) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be at least 8 characters long"})
 		return
 	}
 
@@ -451,7 +451,7 @@ type ForgotPasswordRequest struct {
 type ResetPasswordRequest struct {
 	Email       string `json:"email" binding:"required"`
 	Code        string `json:"code" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"required,min=6"`
+	NewPassword string `json:"newPassword" binding:"required,min=8"`
 }
 
 // VerifyOTP validates a 6-digit numeric OTP code for signup email verification or password reset.
@@ -692,15 +692,15 @@ func ForgotPassword(c *gin.Context) {
 func ResetPassword(c *gin.Context) {
 	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email, recovery code, and new password (min 6 characters) are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email, recovery code, and new password (min 8 characters) are required"})
 		return
 	}
 
 	trimmedEmail := strings.ToLower(strings.TrimSpace(req.Email))
 	trimmedCode := strings.TrimSpace(req.Code)
 
-	if len(req.NewPassword) < 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be at least 6 characters long"})
+	if len(req.NewPassword) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be at least 8 characters long"})
 		return
 	}
 

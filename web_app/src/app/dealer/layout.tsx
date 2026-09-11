@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 import { PortalShell, NavItem } from "@/components/common/PortalShell";
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Car,
@@ -18,6 +20,13 @@ export default function DealerLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const isNewVehiclePage = pathname === "/dealer/vehicles/new";
+  const allowedRoles = isNewVehiclePage
+    ? (["dealer", "seller", "buyer", "admin"] as const)
+    : (["dealer", "admin"] as const);
+
   const dealerNavItems: NavItem[] = [
     { label: "Dashboard", href: "/dealer/dashboard", icon: LayoutDashboard },
     { label: "Active Inventory", href: "/dealer/vehicles", icon: Car, badge: 18 },
@@ -29,15 +38,28 @@ export default function DealerLayout({
   ];
 
   return (
-    <RoleGuard allowedRoles={["dealer", "admin"]} portalName="Dealer Pro Hub">
+    <RoleGuard allowedRoles={[...allowedRoles]} portalName="Dealer Pro Hub">
       <PortalShell
-        roleTitle="Dealer Pro Hub"
-        roleType="dealer"
+        roleTitle={
+          user?.role === "seller"
+            ? "Seller Vehicle Manager"
+            : user?.role === "buyer"
+            ? "Car Listing Wizard"
+            : "Dealer Pro Hub"
+        }
+        roleType={
+          user?.role === "seller"
+            ? "seller"
+            : user?.role === "buyer"
+            ? "buyer"
+            : "dealer"
+        }
         navItems={dealerNavItems}
-        userEmail="dealer@reedmotors.ng"
+        userEmail={user?.email || "dealer@reedmotors.ng"}
       >
         {children}
       </PortalShell>
     </RoleGuard>
   );
 }
+

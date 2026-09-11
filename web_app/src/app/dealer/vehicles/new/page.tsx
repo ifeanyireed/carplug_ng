@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Vehicle } from "@/data/mockStore";
 import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 import {
   Upload,
   Check,
@@ -15,9 +16,11 @@ import {
   X,
   Loader2,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 
 function AddVehicleWizardContent() {
+  const { user, upgradeRole } = useAuth();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit") || searchParams.get("id");
   const isEditMode = Boolean(editId);
@@ -25,6 +28,7 @@ function AddVehicleWizardContent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [published, setPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isLoadingExisting, setIsLoadingExisting] = useState(() => Boolean(editId));
@@ -167,7 +171,22 @@ function AddVehicleWizardContent() {
       setCurrentStep((prev) => prev + 1);
     } else {
       setIsPublishing(true);
+      setPublishError(null);
       try {
+        // Prompts.md requirement 4: If signed in as buyer, seamlessly upgrade to seller first
+        if (user?.role === "buyer") {
+          try {
+            await upgradeRole("seller");
+          } catch (upgradeErr) {
+            console.error("Failed to upgrade role to seller:", upgradeErr);
+            throw new Error(
+              upgradeErr instanceof Error
+                ? upgradeErr.message
+                : "Unable to activate seller account. Please check your network and try again."
+            );
+          }
+        }
+
         if (isEditMode && editId) {
           await updateVehicle(editId, {
             title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
@@ -213,8 +232,8 @@ function AddVehicleWizardContent() {
             images: formData.images.length > 0 ? formData.images : ["/images/cars/car18.jpeg"],
             publicLocation: formData.locationZone,
             exactLocation: formData.exactAddress,
-            sellerType: "dealer",
-            sellerRating: 4.9,
+            sellerType: user?.role === "dealer" ? "dealer" : "private",
+            sellerRating: 5.0,
             customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
             documentsAvailable: {
               customsDoc: formData.customsCleared,
@@ -227,11 +246,16 @@ function AddVehicleWizardContent() {
             featured: false,
           });
         }
+        setPublished(true);
       } catch (err) {
-        console.warn("Failed to persist vehicle on backend API, continuing offline:", err);
+        console.error("Failed to publish vehicle listing:", err);
+        setPublishError(
+          err instanceof Error
+            ? err.message
+            : "Failed to publish vehicle listing. Please try again."
+        );
       } finally {
         setIsPublishing(false);
-        setPublished(true);
       }
     }
   };
@@ -653,6 +677,26 @@ function AddVehicleWizardContent() {
                 <h3 className="font-bold text-base text-neutral-900">
                   Step 10: Final Review & Publish
                 </h3>
+
+                {user?.role === "buyer" && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 text-xs">
+                    <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold">1-Click Free Seller Account Activation</p>
+                      <p className="text-amber-700 leading-relaxed">
+                        You are currently signed in as a <strong>Buyer</strong>. Publishing this vehicle will instantly activate your free <strong>Private Seller</strong> account and publish your listing in one seamless action with zero setup required.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {publishError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{publishError}</span>
+                  </div>
+                )}
+
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Vehicle:</span>
@@ -694,20 +738,25 @@ function AddVehicleWizardContent() {
               <button
                 onClick={handleNext}
                 disabled={isPublishing}
-                className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
+                className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs disabled:opacity-50 cursor-pointer"
               >
+                {isPublishing && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>
                   {currentStep === 10
                     ? isPublishing
                       ? isEditMode
                         ? "Saving Changes..."
+                        : user?.role === "buyer"
+                        ? "Activating Seller & Publishing..."
                         : "Publishing Listing..."
                       : isEditMode
-                        ? "Save Changes"
-                        : "Publish Listing"
+                      ? "Save Changes"
+                      : user?.role === "buyer"
+                      ? "Activate Free Seller Account & Publish"
+                      : "Publish Listing"
                     : "Next Step"}
                 </span>
-                <ChevronRight className="w-4 h-4" />
+                {!isPublishing && <ChevronRight className="w-4 h-4" />}
               </button>
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
   LogOut,
   Scale,
   Megaphone,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
@@ -481,6 +482,19 @@ export const Navbar = ({
                       <span>My Portal Hub</span>
                       <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
                     </Link>
+                    {user.role === "buyer" && (
+                      <Link
+                        href="/settings?tab=workspace"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition text-xs font-bold"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Become a Seller</span>
+                        </span>
+                        <ArrowUpRight className="w-3.5 h-3.5 opacity-80" />
+                      </Link>
+                    )}
                     <Link
                       href="/buyer/garage"
                       onClick={() => setUserMenuOpen(false)}
@@ -488,6 +502,14 @@ export const Navbar = ({
                     >
                       <span>Saved Vehicles</span>
                       <ShoppingBag className="w-3.5 h-3.5 opacity-70" />
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-xs font-medium"
+                    >
+                      <span>Account Settings</span>
+                      <Settings className="w-3.5 h-3.5 opacity-70" />
                     </Link>
                   </div>
                   <div className="pt-1 border-t border-white/10">
@@ -625,6 +647,16 @@ export const Navbar = ({
                     <div className="text-[11px] text-gray-400 truncate">{user.email}</div>
                     <div className="text-[10px] uppercase font-bold text-emerald-400 mt-1">{user.role} Account</div>
                   </div>
+                  {user.role === "buyer" && (
+                    <Link
+                      href="/settings?tab=workspace"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full bg-amber-500/20 text-amber-300 font-semibold text-xs py-2 rounded-lg hover:bg-amber-500/30 transition text-center flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Become a Seller</span>
+                    </Link>
+                  )}
                   <Link
                     href={portalPath}
                     onClick={() => setMobileMenuOpen(false)}

@@ -73,6 +73,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			auth.POST("/register", controllers.Register)
 			auth.POST("/login", controllers.Login)
 			auth.GET("/me", authMiddleware, controllers.GetMe)
+			auth.PUT("/profile", authMiddleware, controllers.UpdateProfile)
+			auth.PUT("/password", authMiddleware, controllers.ChangePassword)
+			auth.PATCH("/role", authMiddleware, controllers.UpgradeRole)
+			auth.POST("/upgrade-role", authMiddleware, controllers.UpgradeRole)
 		}
 
 		// Vehicles
@@ -207,6 +211,15 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			payments.GET("/wallet", controllers.GetWallet)
 			payments.POST("/initialize", controllers.InitializePayment)
 			payments.POST("/payout", middleware.RequireRoles("technician", "admin"), controllers.RequestPayout)
+		}
+
+		// Admin Governance & Moderation (Protected - Admin only)
+		admin := api.Group("/admin")
+		admin.Use(authMiddleware, middleware.RequireRoles("admin"))
+		{
+			admin.GET("/metrics", controllers.GetAdminMetrics)
+			admin.GET("/flagged-listings", controllers.GetFlaggedListings)
+			admin.PATCH("/listings/:id/status", controllers.ModerateListingStatus)
 		}
 	}
 

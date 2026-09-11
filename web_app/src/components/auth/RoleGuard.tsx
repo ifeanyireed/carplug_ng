@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { Lock, ShieldAlert, ArrowRight, ArrowLeft, Loader2, UserCheck } from "lucide-react";
+import { Lock, ShieldAlert, ArrowRight, ArrowLeft, Loader2, UserCheck, Sparkles, Store } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthUser } from "@/services/api";
 
@@ -17,7 +17,9 @@ export function RoleGuard({
   portalName,
   children,
 }: RoleGuardProps) {
-  const { user, isLoading, openAuthModal, logout } = useAuth();
+  const { user, isLoading, openAuthModal, logout, upgradeRole } = useAuth();
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   // 1. Loading state during session hydration
   if (isLoading) {
@@ -99,6 +101,23 @@ export function RoleGuard({
         ? "/technician/dashboard"
         : "/buyer/search";
 
+    const canUpgradeToSeller = user.role === "buyer" && allowedRoles.includes("seller");
+    const canUpgradeToDealer = user.role === "buyer" && allowedRoles.includes("dealer") && !allowedRoles.includes("seller");
+
+    const handleUpgrade = async (targetRole: "seller" | "dealer") => {
+      setIsUpgrading(true);
+      setUpgradeError(null);
+      try {
+        await upgradeRole(targetRole);
+      } catch (err) {
+        setUpgradeError(
+          err instanceof Error ? err.message : "Failed to activate role upgrade. Please try again."
+        );
+      } finally {
+        setIsUpgrading(false);
+      }
+    };
+
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4 sm:p-6">
         <div className="max-w-md w-full bg-white rounded-2xl border border-amber-200 p-6 sm:p-8 shadow-xl text-center">
@@ -123,10 +142,56 @@ export function RoleGuard({
             <strong>{allowedRoles.join(" / ").toUpperCase()}</strong> account.
           </p>
 
+          {upgradeError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl text-left">
+              {upgradeError}
+            </div>
+          )}
+
           <div className="space-y-2.5">
+            {canUpgradeToSeller && (
+              <button
+                onClick={() => handleUpgrade("seller")}
+                disabled={isUpgrading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow cursor-pointer disabled:opacity-50"
+              >
+                {isUpgrading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Activating Seller Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Activate Free Seller Account</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {canUpgradeToDealer && (
+              <button
+                onClick={() => handleUpgrade("dealer")}
+                disabled={isUpgrading}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow cursor-pointer disabled:opacity-50"
+              >
+                {isUpgrading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Activating Dealership Showroom...</span>
+                  </>
+                ) : (
+                  <>
+                    <Store className="w-4 h-4" />
+                    <span>Activate Dealership Showroom</span>
+                  </>
+                )}
+              </button>
+            )}
+
             <Link
               href={userPortalPath}
-              className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow"
+              className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow"
             >
               <UserCheck className="w-4 h-4" />
               <span>Go to Your {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Hub</span>

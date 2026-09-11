@@ -9,6 +9,7 @@ import {
   X,
   ArrowUpRight,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -197,6 +198,20 @@ export const PortalShell = ({
                 </Link>
               );
             })}
+
+            <div className="pt-2 mt-2 border-t border-gray-100">
+              <Link
+                href="/settings"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
+                  pathname === "/settings"
+                    ? "bg-neutral-900 text-white shadow-xs font-semibold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Account Settings</span>
+              </Link>
+            </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200 px-3">
@@ -258,6 +273,21 @@ export const PortalShell = ({
                       </Link>
                     );
                   })}
+
+                  <div className="pt-2 mt-2 border-t border-gray-100">
+                    <Link
+                      href="/settings"
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium ${
+                        pathname === "/settings"
+                          ? "bg-neutral-900 text-white font-semibold"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Account Settings</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
 

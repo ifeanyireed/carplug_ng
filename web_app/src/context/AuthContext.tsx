@@ -13,6 +13,7 @@ import {
   loginUser,
   registerUser,
   fetchMe,
+  upgradeUserRole,
 } from "@/services/api";
 
 interface AuthContextType {
@@ -30,6 +31,7 @@ interface AuthContextType {
     phone?: string;
     role?: string;
   }) => Promise<void>;
+  upgradeRole: (newRole: "seller" | "dealer" | "technician") => Promise<void>;
   logout: (redirectUrl?: string) => void;
   openAuthModal: (mode?: "login" | "signup") => void;
   closeAuthModal: () => void;
@@ -155,6 +157,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const upgradeRole = useCallback(
+    async (newRole: "seller" | "dealer" | "technician") => {
+      setIsLoading(true);
+      try {
+        const res = await upgradeUserRole(newRole);
+        setTokenState(res.token);
+        setUser(res.user);
+        setStoredUser(res.user);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   const logout = useCallback((redirectUrl?: string) => {
     clearAuthToken();
     clearStoredUser();
@@ -186,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authModalMode,
       login,
       register,
+      upgradeRole,
       logout,
       openAuthModal,
       closeAuthModal,
@@ -198,6 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authModalMode,
       login,
       register,
+      upgradeRole,
       logout,
       openAuthModal,
       closeAuthModal,

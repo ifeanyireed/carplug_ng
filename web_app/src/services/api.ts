@@ -1634,3 +1634,156 @@ export async function requestPayout(payload: {
   return await res.json();
 }
 
+export interface AdminMetrics {
+  totalVehicles: number;
+  tier3PlusVehicles: number;
+  totalDealers: number;
+  totalTechnicians: number;
+  totalInspections: number;
+  completedInspections: number;
+  pendingVerifications: number;
+  totalVolume: number;
+  escrowVolume: number;
+  settledVolume: number;
+  totalLeads: number;
+  totalSwaps: number;
+  totalUsers: number;
+}
+
+export interface FlaggedListing {
+  id: string;
+  vehicleId: string;
+  vehicle: string;
+  seller: string;
+  sellerId: string;
+  reason: string;
+  severity: "High" | "Medium" | "Low";
+  flaggedDate: string;
+  price: number;
+  marketMin: number;
+  marketMax: number;
+  trustTier: number;
+}
+
+/**
+ * Fetches platform-wide governance metrics for the admin console.
+ */
+export async function fetchAdminMetrics(): Promise<AdminMetrics | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/metrics`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.metrics || null;
+  } catch (err) {
+    console.warn("Failed to fetch admin metrics:", err);
+    return null;
+  }
+}
+
+/**
+ * Fetches vehicle listings flagged for administrative moderation review.
+ */
+export async function fetchFlaggedListings(): Promise<FlaggedListing[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/flagged-listings`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.flagged || [];
+  } catch (err) {
+    console.warn("Failed to fetch flagged listings:", err);
+    return [];
+  }
+}
+
+/**
+ * Moderates a vehicle listing (suspend, activate, remove).
+ */
+export async function moderateListingStatus(
+  vehicleId: string,
+  status: "suspended" | "active" | "removed",
+  reason?: string
+): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}/admin/listings/${vehicleId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ status, reason }),
+  });
+  return res.ok;
+}
+
+/**
+ * Updates the authenticated user's name, phone, or avatar.
+ */
+export async function updateProfile(payload: {
+  name?: string;
+  phone?: string;
+  avatar?: string;
+}): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update profile");
+  }
+  const data = await res.json();
+  if (data.user) {
+    setStoredUser(data.user);
+  }
+  return data.user;
+}
+
+/**
+ * Changes the authenticated user's account password.
+ */
+export async function changePassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/auth/password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update password");
+  }
+  const data = await res.json();
+  return { success: true, message: data.message || "Password updated successfully" };
+}
+
+/**
+ * Upgrades the authenticated user's role (e.g. from buyer to seller or dealer).
+ * Immediately stores the newly signed JWT token and updated user object in localStorage.
+ */
+export async function upgradeUserRole(
+  role: "seller" | "dealer" | "technician"
+): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/role`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to upgrade account role");
+  }
+  const data: AuthResponse = await res.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  if (data.user) {
+    setStoredUser(data.user);
+  }
+  return data;
+}
+
+
+

@@ -84,12 +84,18 @@ The application is structured into 6 primary portals and public flows across 43+
 
 ### 2.6 Admin Portal (`/admin`)
 - `/admin/dashboard` — Platform overview: Gross vehicle volume, active listings, active inspections, open disputes.
-- `/admin/listings` — Moderation queue for submitted vehicles.
+- `/admin/listings` — Moderation queue for submitted vehicles with algorithmic anomaly detection.
 - `/admin/leads` — Master platform inquiry CRM.
 - `/admin/swaps` — Master swap request queue with equity approval workflows.
 - `/admin/advertising` — Campaign management and creative approval.
 - `/admin/verifications` — Customs document and CAC badge manual verification.
 - `/admin/payments` — Escrow and payment ledger.
+
+### 2.7 Account Settings & Role Workspace (`/settings`)
+- `/settings` — User Profile, Password & Security Console:
+  - **Profile Details**: Live editor for user name and phone number with verification.
+  - **Security & Password**: Secure password update with current password bcrypt validation.
+  - **Role Workspace**: Portal launchers and **1-Click Role Upgrade** cards for buyers to activate Private Seller or Dealership Hub accounts.
 
 ---
 
@@ -117,13 +123,21 @@ The service layer provides typed client functions that interface with the Go bac
   - `adaptInspectionReport(RawInspectionReport)`: Normalizes JSON `categories` and `media`.
 - **Resilience & Fallbacks**: If the backend is temporarily unreachable or times out (5s abort signal), queries automatically log a warning and fall back to `src/data/mockStore.ts`.
 - **Authentication & Token Management**:
-  - `setAuthToken(token: string)`: Persists JWT in client-side storage (`localStorage` key: `carplug_auth_token`).
+  - `setAuthToken(token: string)`: Persists JWT in client-side storage (`localStorage` key: `verza_auth_token`).
   - `getAuthToken()`: Safely retrieves the stored JWT token with SSR/window checks.
   - `clearAuthToken()`: Clears the stored JWT on logout.
   - `getAuthHeaders()`: Injects `{ Authorization: "Bearer <token>" }` into fetch request options when an active session exists.
   - `registerUser(payload)`: Submits new registration to `POST /api/auth/register`, caches returned token, and returns user profile.
   - `loginUser(payload)`: Authenticates user credentials via `POST /api/auth/login`, caches token, and returns user profile.
   - `fetchMe()`: Queries `GET /api/auth/me` with Bearer auth to restore the active user session.
+  - `updateProfile(payload)`: Submits updated user profile details to `PUT /api/auth/profile`.
+  - `changePassword(payload)`: Submits current and new password to `PUT /api/auth/password`.
+  - `upgradeUserRole(role)`: Submits role upgrade request (`"seller" | "dealer" | "technician"`) to `PATCH /api/auth/role`. Immediately updates `verza_auth_token` and `verza_auth_user` in `localStorage` without a page refresh.
+- **1-Click Role Upgrade Integration**:
+  - **AuthContext**: Exposes `upgradeRole(role)` which awaits `upgradeUserRole`, updates reactive `user` and `token` state, and keeps the user signed in on their same email.
+  - **Vehicle Creation Wizard Guard**: At Step 10 of `/dealer/vehicles/new/page.tsx`, checks if `user?.role === 'buyer'`. Displays an informative upgrade banner, dynamically labels the CTA as *"Activate Free Seller Account & Publish"*, executes `upgradeRole("seller")`, and publishes the vehicle with `sellerType: "private"` in a single continuous action.
+  - **RoleGuard 1-Click Upgrade**: When buyers navigate to restricted seller or dealer portals, `RoleGuard.tsx` presents direct *"Activate Free Seller Account"* and *"Activate Dealership Showroom"* buttons, granting instant access without account switching.
+  - **Navbar Discovery**: Displays dynamic *"Become a Seller"* links in desktop user menu and mobile drawer for buyer accounts.
 - **Saved Vehicles & Garage API**:
   - `fetchSavedVehicles()`: Retrieves all full vehicle objects saved to the user's garage.
   - `fetchSavedVehicleIds()`: Retrieves list of string IDs for quick bookmark state check on cards.
@@ -133,7 +147,7 @@ The service layer provides typed client functions that interface with the Go bac
 - **Cloudinary Image Upload**:
   - `uploadVehicleImages(files: File[])`: Packages files into a `FormData` envelope (`images` field) and dispatches multipart request to `POST /api/upload/images` with JWT authorization. Returns array of secure HTTPS Cloudinary image URLs.
 - **Protected Request Headers**:
-  - Mutating operations (`createVehicle`, `updateVehicle`, `deleteVehicle`, `createDealer`, `createInspection`, `updateInspectionStatus`, `updateLeadStatus`, `fetchLeads`, `createSwap`, `updateSwapStatus`, `createCampaign`, `updateCampaignStatus`, `uploadVehicleImages`, `toggleSavedVehicle`) automatically include `...getAuthHeaders()` to satisfy backend RBAC requirements.
+  - Mutating operations (`createVehicle`, `updateVehicle`, `deleteVehicle`, `createDealer`, `createInspection`, `updateInspectionStatus`, `updateLeadStatus`, `fetchLeads`, `createSwap`, `updateSwapStatus`, `createCampaign`, `updateCampaignStatus`, `uploadVehicleImages`, `toggleSavedVehicle`, `updateProfile`, `changePassword`, `upgradeUserRole`) automatically include `...getAuthHeaders()` to satisfy backend RBAC requirements.
 
 ---
 
@@ -171,6 +185,8 @@ The service layer provides typed client functions that interface with the Go bac
 | **28** | 2026-09-11 | Roadmap Step 5: KYC Compliance Queue & Document Verification Portals | Done | Integrated document verification and compliance audit system across user roles: 1. Added `VerificationItem`, `submitVerification`, `fetchVerifications`, and `updateVerificationStatus` to `src/services/api.ts`. 2. Overhauled `/admin/verifications/page.tsx` to fetch real pending documents (`customs_sgd`, `seller_nin`, `tech_license`, `dealer_cac`), with status tabs (All, Pending, Approved, Rejected), document preview links, modal audit notes dialog, and Approve/Reject action triggers. 3. Overhauled `/seller/onboard/page.tsx` with Cloudinary image upload for National Identity (NIN) / Voter's Card, submitting directly to `/api/verifications` and redirecting to seller dashboard. 4. Overhauled `/technician/onboard/page.tsx` with Cloudinary upload for Trade Test Certificate and ASE/NABTEB credentials, submitting verification to queue. Verified with 0 ESLint errors and Next.js 16 build compiling all 38 routes cleanly. |
 | **29** | 2026-09-11 | Roadmap Step 6: Financial Ledger, Escrow & Technician Payout Wallet | Done | Integrated payments console and wallet withdrawal system: 1. Added `TransactionItem`, `TransactionsResponse`, `WalletResponse`, `fetchTransactions`, `fetchWallet`, `initializePayment`, and `requestPayout` to `src/services/api.ts`. 2. Overhauled `/admin/payments/page.tsx` with real-time financial ledger data, 30-day total volume counter (₦), escrow reserve counter, partner settlement counter, category filter tabs (All, Inspection Escrow, Dealer Plans, Tech Payouts), and status filter tabs (Held in Escrow, Settled, Pending). 3. Overhauled `/technician/earnings/page.tsx` with live wallet balance fetching, available cash metric, pending escrow metric, lifetime audit settlements table, and an interactive Bank Transfer Payout modal supporting commercial bank selection, account verification, and instant disbursement request. Verified with 0 ESLint errors and Next.js 16 build passing all 38 routes with exit code 0. |
 | **30** | 2026-09-11 | Roadmap Step 7: Buyer Concierge Sourcing & District Map Discovery | Done | Completed final roadmap feature: 1. Connected `/buyer/concierge/page.tsx` to live `createLead` API with `type: "concierge"`, payload bundling buyer brief (name, phone, target vehicle, budget, condition, priority, city), loading spinner, and success confirmation. 2. Highlighted VIP Concierge leads in `/admin/leads/page.tsx` with high-visibility gold styling (`★ VIP Concierge`). 3. Overhauled `/buyer/map/page.tsx` with live `fetchVehicles` inventory retrieval, dynamic district count calculations (Lekki, Ikeja, Victoria Island, Surulere, Abuja), interactive vehicle hotspot pins, and drawer preview utilizing Next.js `Image` component. 4. Expanded `VehicleSearchParams` in `src/services/api.ts` with `page` and `pageSize`. Verified clean `npx eslint .` (0 errors) and Next.js 16 build passing all 38 routes with exit code 0. |
+| **31** | 2026-09-11 | Admin Governance Telemetry, Live Command Dashboards & Account Settings Portal | Done | 1. Added `AdminMetrics`, `FlaggedListing`, `fetchAdminMetrics`, `fetchFlaggedListings`, `moderateListingStatus`, `updateProfile`, and `changePassword` to `src/services/api.ts`. 2. Overhauled `/admin/dashboard/page.tsx` with live telemetry KPI cards, % Tier 3+ listings, active dealer shops, completed inspections, pending verifications, and 30-day transaction volume. 3. Overhauled `/admin/listings/page.tsx` with algorithmic anomaly detection, risk badges, listing suspension, permanent removal, and dismissal. 4. Overhauled `/seller/dashboard/page.tsx` displaying live seller listings, inbound chat threads, KYC status badge, and Next.js Image rendering. 5. Overhauled `/technician/dashboard/page.tsx` displaying live wallet available cash, escrow hold, completed inspection tally, and dynamic active job resume link. 6. Created `/settings/page.tsx` account profile and security console with name/phone editor, password update with bcrypt verification, and role workspace launchers. 7. Added Account Settings link to `Navbar.tsx` and `PortalShell.tsx`. Verified clean `npx eslint .` (0 errors) and `npx next build` compiling all 39 static and dynamic routes. |
+| **32** | 2026-09-11 | 1-Click Role Upgrade Architecture ("Become a Seller") | Done | Completed 1-click role upgrade feature according to `backend/prompts.md`: 1. Added `upgradeUserRole(role)` in `src/services/api.ts` saving newly signed JWT token directly into `localStorage.getItem("verza_auth_token")` with zero page reload. 2. Added `upgradeRole(role)` method in `AuthContext.tsx` dynamically updating authenticated `user` and `token` state. 3. Overhauled Step 10 of `/dealer/vehicles/new/page.tsx` checking for `user.role === 'buyer'`: displays high-visibility 1-click activation banner, swaps button label to *"Activate Free Seller Account & Publish"*, and seamlessly upgrades the user to seller before vehicle creation. 4. Updated `RoleGuard.tsx` to display 1-click *"Activate Free Seller Account"* and *"Activate Dealership Showroom"* buttons when a buyer visits seller/dealer portals, granting instant access upon upgrade. 5. Updated `/settings/page.tsx` Role Workspace tab with dedicated 1-click upgrade cards for buyers with instant activation buttons. 6. Added *"Become a Seller"* links to `Navbar.tsx` desktop user dropdown and mobile drawer for buyer accounts. Verified with clean `npx eslint .` (0 errors) and `npx next build` compiling all 39 routes with 100% success. |
 
 
 

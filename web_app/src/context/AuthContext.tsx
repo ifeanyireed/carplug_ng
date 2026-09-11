@@ -12,9 +12,20 @@ import {
   isTokenExpired,
   loginUser,
   registerUser,
+  verifyOTP,
+  resendOTP,
+  forgotPassword,
+  resetPassword,
   fetchMe,
   upgradeUserRole,
 } from "@/services/api";
+
+export type AuthModalMode =
+  | "login"
+  | "signup"
+  | "verify_otp"
+  | "forgot_password"
+  | "reset_password";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -22,7 +33,9 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAuthModalOpen: boolean;
-  authModalMode: "login" | "signup";
+  authModalMode: AuthModalMode;
+  pendingVerificationEmail: string | null;
+  setPendingVerificationEmail: (email: string | null) => void;
   login: (payload: { email: string; password: string }) => Promise<void>;
   register: (payload: {
     name: string;
@@ -30,10 +43,25 @@ interface AuthContextType {
     password: string;
     phone?: string;
     role?: string;
+  }) => Promise<{ requiresVerification?: boolean; email?: string }>;
+  verifyCode: (payload: {
+    email: string;
+    code: string;
+    type?: "signup" | "verification" | "password_reset";
+  }) => Promise<void>;
+  resendCode: (payload: {
+    email: string;
+    type?: "signup" | "verification" | "password_reset";
+  }) => Promise<{ status: string; message: string }>;
+  requestPasswordReset: (payload: { email: string }) => Promise<{ status: string; message: string }>;
+  confirmPasswordReset: (payload: {
+    email: string;
+    code: string;
+    newPassword: string;
   }) => Promise<void>;
   upgradeRole: (newRole: "seller" | "dealer" | "technician") => Promise<void>;
   logout: (redirectUrl?: string) => void;
-  openAuthModal: (mode?: "login" | "signup") => void;
+  openAuthModal: (mode?: AuthModalMode, email?: string) => void;
   closeAuthModal: () => void;
 }
 
@@ -44,7 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
+  const [authModalMode, setAuthModalMode] = useState<AuthModalMode>("login");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
   // Revalidate authenticated session on mount without logging out on refresh
   useEffect(() => {
@@ -128,9 +157,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const res = await loginUser(payload);
-      setTokenState(res.token);
-      setUser(res.user);
-      setStoredUser(res.user);
+      if (res.token) setTokenState(res.token);
+      if (res.user) {
+        setUser(res.user);
+        setStoredUser(res.user);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -147,9 +178,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const res = await registerUser(payload);
-        setTokenState(res.token);
-        setUser(res.user);
-        setStoredUser(res.user);
+        if (res.token) setTokenState(res.token);
+        if (res.user) {
+          setUser(res.user);
+          setStoredUser(res.user);
+        }
+        setPendingVerificationEmail(payload.email);
+        return {
+          requiresVerification: res.requiresVerification ?? true,
+          email: payload.email,
+        };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const verifyCode = useCallback(
+    async (payload: {
+      email: string;
+      code: string;
+      type?: "signup" | "verification" | "password_reset";
+    }) => {
+      setIsLoading(true);
+      try {
+        const res = await verifyOTP(payload);
+        if (res.token) setTokenState(res.token);
+        if (res.user) {
+          setUser(res.user);
+          setStoredUser(res.user);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const resendCode = useCallback(
+    async (payload: {
+      email: string;
+      type?: "signup" | "verification" | "password_reset";
+    }) => {
+      return await resendOTP(payload);
+    },
+    []
+  );
+
+  const requestPasswordReset = useCallback(
+    async (payload: { email: string }) => {
+      return await forgotPassword(payload);
+    },
+    []
+  );
+
+  const confirmPasswordReset = useCallback(
+    async (payload: {
+      email: string;
+      code: string;
+      newPassword: string;
+    }) => {
+      setIsLoading(true);
+      try {
+        const res = await resetPassword(payload);
+        if (res.token) setTokenState(res.token);
+        if (res.user) {
+          setUser(res.user);
+          setStoredUser(res.user);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -162,9 +259,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const res = await upgradeUserRole(newRole);
-        setTokenState(res.token);
-        setUser(res.user);
-        setStoredUser(res.user);
+        if (res.token) setTokenState(res.token);
+        if (res.user) {
+          setUser(res.user);
+          setStoredUser(res.user);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -177,14 +276,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearStoredUser();
     setTokenState(null);
     setUser(null);
+    setPendingVerificationEmail(null);
     if (typeof window !== "undefined") {
       const target = typeof redirectUrl === "string" ? redirectUrl : "/";
       window.location.href = target;
     }
   }, []);
 
-  const openAuthModal = useCallback((mode: "login" | "signup" = "login") => {
+  const openAuthModal = useCallback((mode: AuthModalMode = "login", email?: string) => {
     setAuthModalMode(mode);
+    if (email) setPendingVerificationEmail(email);
     setIsAuthModalOpen(true);
   }, []);
 
@@ -201,8 +302,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!user,
       isAuthModalOpen,
       authModalMode,
+      pendingVerificationEmail,
+      setPendingVerificationEmail,
       login,
       register,
+      verifyCode,
+      resendCode,
+      requestPasswordReset,
+      confirmPasswordReset,
       upgradeRole,
       logout,
       openAuthModal,
@@ -214,8 +321,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       isAuthModalOpen,
       authModalMode,
+      pendingVerificationEmail,
       login,
       register,
+      verifyCode,
+      resendCode,
+      requestPasswordReset,
+      confirmPasswordReset,
       upgradeRole,
       logout,
       openAuthModal,

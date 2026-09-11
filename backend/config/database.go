@@ -79,6 +79,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			&models.Subscription{},
 			&models.Verification{},
 			&models.Transaction{},
+			&models.OTPVerification{},
 		)
 		if err != nil {
 			return nil, fmt.Errorf("auto-migration failed: %w", err)
@@ -124,6 +125,14 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 				log.Printf("[Database] Warning: auto-migrating Transaction table: %v\n", migErr)
 			} else {
 				log.Println("[Database] Transaction table verified/migrated.")
+			}
+		}
+		if !DB.Migrator().HasTable(&models.OTPVerification{}) {
+			log.Println("[Database] Initializing OTPVerification table...")
+			if migErr := DB.AutoMigrate(&models.OTPVerification{}); migErr != nil {
+				log.Printf("[Database] Warning: auto-migrating OTPVerification table: %v\n", migErr)
+			} else {
+				log.Println("[Database] OTPVerification table verified/migrated.")
 			}
 		}
 	}

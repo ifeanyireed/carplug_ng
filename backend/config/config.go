@@ -26,6 +26,9 @@ type Config struct {
 	CloudinaryCloudName string
 	CloudinaryAPIKey    string
 	CloudinaryAPISecret string
+	BrevoAPIKey        string
+	BrevoSenderName    string
+	BrevoSenderEmail   string
 }
 
 var AppConfig *Config
@@ -79,6 +82,9 @@ func LoadConfig() *Config {
 		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
 		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
 		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
+		BrevoAPIKey:        getEnv("BREVO_API_KEY", ""),
+		BrevoSenderName:    getEnv("BREVO_SENDER_NAME", "CarPlug Nigeria"),
+		BrevoSenderEmail:   getEnv("BREVO_SENDER_EMAIL", "verify@carplug.ng"),
 	}
 
 	if AppConfig.DBPassword == "" {

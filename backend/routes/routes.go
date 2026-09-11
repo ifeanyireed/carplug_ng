@@ -77,6 +77,10 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			auth.PUT("/password", authMiddleware, controllers.ChangePassword)
 			auth.PATCH("/role", authMiddleware, controllers.UpgradeRole)
 			auth.POST("/upgrade-role", authMiddleware, controllers.UpgradeRole)
+			auth.POST("/verify-otp", controllers.VerifyOTP)
+			auth.POST("/resend-otp", controllers.ResendOTP)
+			auth.POST("/forgot-password", controllers.ForgotPassword)
+			auth.POST("/reset-password", controllers.ResetPassword)
 		}
 
 		// Vehicles

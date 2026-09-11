@@ -28,8 +28,10 @@ export interface AuthUser {
 
 export interface AuthResponse {
   status: string;
-  token: string;
-  user: AuthUser;
+  token?: string;
+  user?: AuthUser;
+  requiresVerification?: boolean;
+  message?: string;
 }
 
 export function getAuthToken(): string | null {
@@ -1109,6 +1111,97 @@ export async function loginUser(payload: {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `Login failed: ${res.statusText}`);
+  }
+  const data: AuthResponse = await res.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  if (data.user) {
+    setStoredUser(data.user);
+  }
+  return data;
+}
+
+/**
+ * Verifies a 6-digit OTP code for email confirmation or password recovery.
+ */
+export async function verifyOTP(payload: {
+  email: string;
+  code: string;
+  type?: "signup" | "verification" | "password_reset";
+}): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Verification failed: ${res.statusText}`);
+  }
+  const data: AuthResponse = await res.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  if (data.user) {
+    setStoredUser(data.user);
+  }
+  return data;
+}
+
+/**
+ * Requests a fresh 6-digit OTP code with 60-second cooldown rate-limiting.
+ */
+export async function resendOTP(payload: {
+  email: string;
+  type?: "signup" | "verification" | "password_reset";
+}): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to resend code: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+/**
+ * Dispatches a 6-digit recovery code via Brevo to the user's email.
+ */
+export async function forgotPassword(payload: {
+  email: string;
+}): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to request password reset: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+/**
+ * Resets user password using the 6-digit recovery code and signs in.
+ */
+export async function resetPassword(payload: {
+  email: string;
+  code: string;
+  newPassword: string;
+}): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Password reset failed: ${res.statusText}`);
   }
   const data: AuthResponse = await res.json();
   if (data.token) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
@@ -32,39 +32,51 @@ export default function DealerVehiclesPage() {
     return user?.id || "dealer-reed-motors";
   }, [user?.id]);
 
-  // Load dealer inventory
-  const loadInventory = useCallback(async () => {
+  const [refreshIndex, setRefreshIndex] = useState<number>(0);
+
+  const handleRefresh = () => {
     setIsLoading(true);
-    setError(null);
-    try {
-      // Fetch dealer's dedicated inventory first
-      const data = await fetchDealerInventory(dealerId);
-      if (data && data.length > 0) {
-        setVehicles(data);
-      } else {
-        // Fallback to general vehicle fetch or mock if database has no records for this dealer
-        const allVehicles = await fetchVehicles();
-        const matched = allVehicles.filter(
-          (v) => v.sellerId === dealerId || v.sellerType === "dealer"
-        );
-        setVehicles(matched.length > 0 ? matched : MOCK_VEHICLES);
-      }
-    } catch (err) {
-      console.warn("Failed to load inventory from API, fallback to mock:", err);
-      setError("Could not synchronize with cloud inventory. Showing local cached listings.");
-      setVehicles(MOCK_VEHICLES);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dealerId]);
+    setRefreshIndex((prev) => prev + 1);
+  };
 
   useEffect(() => {
     let isMounted = true;
-    loadInventory();
+
+    async function fetchInventory() {
+      try {
+        // Fetch dealer's dedicated inventory first
+        const data = await fetchDealerInventory(dealerId);
+        if (!isMounted) return;
+
+        if (data && data.length > 0) {
+          setVehicles(data);
+        } else {
+          // Fallback to general vehicle fetch or mock if database has no records for this dealer
+          const allVehicles = await fetchVehicles();
+          if (!isMounted) return;
+          const matched = allVehicles.filter(
+            (v) => v.sellerId === dealerId || v.sellerType === "dealer"
+          );
+          setVehicles(matched.length > 0 ? matched : MOCK_VEHICLES);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.warn("Failed to load inventory from API, fallback to mock:", err);
+        setError("Could not synchronize with cloud inventory. Showing local cached listings.");
+        setVehicles(MOCK_VEHICLES);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchInventory();
+
     return () => {
       isMounted = false;
     };
-  }, [loadInventory]);
+  }, [dealerId, refreshIndex]);
 
   // Filtered vehicles with useMemo
   const filteredVehicles = useMemo(() => {
@@ -128,7 +140,7 @@ export default function DealerVehiclesPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadInventory}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition flex items-center justify-center disabled:opacity-50"
             title="Refresh Inventory"
@@ -278,7 +290,7 @@ export default function DealerVehiclesPage() {
                           <Eye className="w-4 h-4" />
                         </Link>
                         <Link
-                          href={`/dealer/vehicles/new`}
+                          href={`/dealer/vehicles/new?edit=${car.id}`}
                           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-neutral-900 transition"
                           title="Edit Vehicle"
                         >

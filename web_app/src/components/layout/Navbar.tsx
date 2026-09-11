@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { RojoLogo } from "@/components/common/RojoLogo";
 import {
@@ -20,8 +20,17 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 
+const emptySubscribe = () => () => {};
+function useIsMounted(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export interface NavbarProps {
-  onOpenAuth?: (mode: "login" | "signup") => void;
+  onOpenAuth?: (mode?: "login" | "signup") => void;
   savedCount?: number;
   onOpenSaved?: () => void;
 }
@@ -36,12 +45,8 @@ export const Navbar = ({
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useIsMounted();
   const navRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const handleAuthTrigger = useCallback(
     (mode: "login" | "signup") => {

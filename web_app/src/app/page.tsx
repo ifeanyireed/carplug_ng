@@ -26,8 +26,8 @@ export default function HomePage() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<CarListing[] | null>(null);
 
-  const handleOpenAuth = (mode: "login" | "signup") => {
-    openAuthModal(mode);
+  const handleOpenAuth = (mode?: "login" | "signup") => {
+    openAuthModal(mode || "login");
   };
 
   const handleSearch = (filters: SearchFilterState) => {

@@ -51,8 +51,12 @@ export default function LeadRoutingBoardPage() {
                 <span className="font-bold text-sm text-neutral-900">{lead.buyerName}</span>
                 <span className="text-gray-400">•</span>
                 <span className="text-gray-500">{lead.buyerCity}</span>
-                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold uppercase text-[10px]">
-                  {lead.type.replace("_", " ")}
+                <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[10px] ${
+                  lead.type === "concierge"
+                    ? "bg-amber-100 text-amber-900 border border-amber-300 font-black"
+                    : "bg-blue-50 text-blue-700"
+                }`}>
+                  {lead.type === "concierge" ? "★ VIP Concierge" : lead.type.replace("_", " ")}
                 </span>
               </div>
               <div className="text-neutral-800 font-semibold">

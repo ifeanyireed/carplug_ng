@@ -43,20 +43,55 @@ export function setAuthToken(token: string): void {
   }
 }
 
-export function getStoredUser(): AuthUser | null {
-  if (typeof window === "undefined") return null;
+export function parseJwtPayload(token: string): {
+  userId?: string;
+  email?: string;
+  role?: AuthUser["role"];
+  name?: string;
+  exp?: number;
+} | null {
   try {
-    const raw = localStorage.getItem("verza_auth_user");
-    return raw ? JSON.parse(raw) : null;
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
   } catch {
     return null;
   }
 }
 
-export function setStoredUser(user: AuthUser): void {
+export function isTokenExpired(token: string): boolean {
+  const payload = parseJwtPayload(token);
+  if (!payload || !payload.exp) return false;
+  return Date.now() >= payload.exp * 1000;
+}
+
+export function getStoredUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("verza_auth_user");
+    if (!raw || raw === "undefined" || raw === "null") return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user: AuthUser | null): void {
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem("verza_auth_user", JSON.stringify(user));
+      if (user) {
+        localStorage.setItem("verza_auth_user", JSON.stringify(user));
+      } else {
+        localStorage.removeItem("verza_auth_user");
+      }
     } catch {
       // ignore storage quota errors
     }
@@ -342,6 +377,15 @@ export interface VehicleSearchParams {
   q?: string;
   sellerId?: string;
   featured?: boolean;
+  bodyType?: string;
+  fuelType?: string;
+  transmission?: string;
+  yearMin?: number | string;
+  yearMax?: number | string;
+  year?: number | string;
+  state?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 // ==================== API SERVICE METHODS ====================
@@ -360,6 +404,21 @@ export async function fetchVehicles(
       if (params.condition && params.condition !== "all") {
         url.searchParams.set("condition", params.condition);
       }
+      if (params.bodyType && params.bodyType !== "all") {
+        url.searchParams.set("bodyType", params.bodyType);
+      }
+      if (params.fuelType && params.fuelType !== "all") {
+        url.searchParams.set("fuelType", params.fuelType);
+      }
+      if (params.transmission && params.transmission !== "all") {
+        url.searchParams.set("transmission", params.transmission);
+      }
+      if (params.yearMin) url.searchParams.set("yearMin", String(params.yearMin));
+      if (params.yearMax) url.searchParams.set("yearMax", String(params.yearMax));
+      if (params.year) url.searchParams.set("year", String(params.year));
+      if (params.state) url.searchParams.set("state", params.state);
+      if (params.page) url.searchParams.set("page", String(params.page));
+      if (params.pageSize) url.searchParams.set("pageSize", String(params.pageSize));
       if (params.minTrustTier && params.minTrustTier !== "all") {
         url.searchParams.set("minTrustTier", String(params.minTrustTier));
       }
@@ -614,6 +673,99 @@ export async function createDealer(dealer: Partial<DealerShop>): Promise<DealerS
 }
 
 /**
+ * Updates a dealer shop storefront settings.
+ */
+export async function updateDealerShop(
+  id: string,
+  shop: Partial<DealerShop>
+): Promise<DealerShop> {
+  const res = await fetch(`${API_BASE_URL}/dealers/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(shop),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to update dealer shop: ${res.statusText}`);
+  }
+  const json = await res.json();
+  return json.data || json;
+}
+
+/**
+ * Fetches the authenticated dealer's shop profile.
+ */
+export async function fetchDealerMeShop(): Promise<DealerShop | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/dealers/me`, {
+      headers: { ...getAuthHeaders() },
+      next: { revalidate: 15 },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export interface DealerSubscription {
+  id: string;
+  dealerId: string;
+  plan: string;
+  status: string;
+  billingCycle: string;
+  listingsLimit: number;
+  price: number;
+  expiresAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DealerSubscriptionResponse {
+  subscription: DealerSubscription;
+  activeListingsCount: number;
+  listingsLimit: number;
+  daysRemaining: number;
+}
+
+/**
+ * Fetches the authenticated dealer's current subscription & limits.
+ */
+export async function fetchDealerSubscription(): Promise<DealerSubscriptionResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/dealers/me/subscription`, {
+      headers: { ...getAuthHeaders() },
+      next: { revalidate: 15 },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upgrades or modifies the dealership's active plan subscription.
+ */
+export async function upgradeDealerSubscription(
+  plan: string
+): Promise<DealerSubscription> {
+  const res = await fetch(`${API_BASE_URL}/dealers/subscription/upgrade`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ plan }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to upgrade subscription: ${res.statusText}`);
+  }
+  const json = await res.json();
+  return json.subscription || json.data || json;
+}
+
+/**
  * Fetches a single technician by ID.
  */
 export async function fetchTechnicianById(id: string): Promise<Technician | undefined> {
@@ -698,6 +850,69 @@ export async function updateInspectionStatus(
   if (!res.ok) throw new Error(`Failed to update inspection status: ${res.statusText}`);
   const raw = await res.json();
   return adaptInspectionReport(raw);
+}
+
+/**
+ * Submits and publishes a completed vehicle inspection health report.
+ * Automatically upgrades target vehicle listing to Tier 5.
+ */
+export async function submitInspectionReport(
+  id: string,
+  reportData: {
+    overallScore: number;
+    technicianSummary: string;
+    repairCostMin?: number;
+    repairCostMax?: number;
+    categories?: unknown;
+    media?: unknown;
+  }
+): Promise<InspectionReport> {
+  const payload = {
+    ...reportData,
+    categories: Array.isArray(reportData.categories)
+      ? JSON.stringify(reportData.categories)
+      : reportData.categories,
+    media: Array.isArray(reportData.media)
+      ? JSON.stringify(reportData.media)
+      : reportData.media,
+  };
+  const res = await fetch(`${API_BASE_URL}/inspections/${id}/report`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error || `Failed to submit inspection report: ${res.statusText}`);
+  }
+  const json = await res.json();
+  return adaptInspectionReport(json.data || json);
+}
+
+/**
+ * Fetches inspection dispatches assigned to the authenticated technician.
+ */
+export async function fetchTechnicianMeInspections(params?: {
+  status?: string;
+}): Promise<InspectionReport[]> {
+  try {
+    const url = new URL(`${API_BASE_URL}/technicians/me/inspections`);
+    if (params?.status && params.status !== "all") {
+      url.searchParams.set("status", params.status);
+    }
+    const res = await fetch(url.toString(), {
+      headers: { ...getAuthHeaders() },
+      next: { revalidate: 15 },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const json = await res.json();
+    const list: RawInspectionReport[] = json.data || [];
+    return list.map(adaptInspectionReport);
+  } catch (err) {
+    console.warn("Technician dispatches API unavailable or unauthenticated, falling back:", err);
+    return fetchInspections(params);
+  }
 }
 
 export interface SwapRequest {
@@ -905,24 +1120,45 @@ export async function loginUser(payload: {
   return data;
 }
 
+export interface FetchMeResult {
+  user: AuthUser | null;
+  isUnauthorized: boolean;
+}
+
 /**
  * Fetches the authenticated user profile.
+ * Distinguishes between 401 Unauthorized (token invalid/expired) and transient server/network errors.
  */
-export async function fetchMe(): Promise<AuthUser | null> {
+export async function fetchMe(): Promise<FetchMeResult> {
   const token = getAuthToken();
-  if (!token) return null;
+  if (!token) return { user: null, isUnauthorized: true };
+
+  if (isTokenExpired(token)) {
+    return { user: null, isUnauthorized: true };
+  }
 
   try {
     const res = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
     });
-    if (!res.ok) return null;
+
+    if (res.status === 401) {
+      return { user: null, isUnauthorized: true };
+    }
+
+    if (!res.ok) {
+      // 500, 502, 503, etc.: Server error, do NOT log user out
+      return { user: null, isUnauthorized: false };
+    }
+
     const data = await res.json();
-    return data.user;
+    return { user: data.user, isUnauthorized: false };
   } catch {
-    return null;
+    // Network error: do NOT log user out
+    return { user: null, isUnauthorized: false };
   }
 }
 
@@ -1054,6 +1290,347 @@ export async function uploadVehicleImages(
   return data.urls;
 }
 
+// ---------------------------------------------------------------------------
+// Direct Messaging & Buyer-Seller Chat API
+// ---------------------------------------------------------------------------
 
+export interface Conversation {
+  id: string;
+  vehicleId: string;
+  buyerId: string;
+  sellerId: string;
+  dealerId?: string;
+  lastMessage: string;
+  lastMessageAt?: string;
+  vehicleTitle: string;
+  vehicleImage: string;
+  vehiclePrice: number;
+  buyerName: string;
+  sellerName: string;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  body: string;
+  readAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Starts a new conversation or retrieves an existing one for a vehicle listing.
+ */
+export async function startConversation(
+  vehicleId: string,
+  message?: string
+): Promise<Conversation> {
+  const res = await fetch(`${API_BASE_URL}/conversations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ vehicleId, message }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to start conversation");
+  }
+  return await res.json();
+}
+
+/**
+ * Fetches all conversations the authenticated user participates in.
+ */
+export async function fetchConversations(): Promise<Conversation[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/conversations`, {
+      headers: { ...getAuthHeaders() },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetches single conversation metadata.
+ */
+export async function fetchConversationById(id: string): Promise<Conversation> {
+  const res = await fetch(`${API_BASE_URL}/conversations/${id}`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to load conversation");
+  }
+  return await res.json();
+}
+
+/**
+ * Fetches all messages in a conversation thread and marks incoming messages as read.
+ */
+export async function fetchMessages(conversationId: string): Promise<ChatMessage[]> {
+  const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch messages");
+  }
+  return await res.json();
+}
+
+/**
+ * Sends a message in a conversation thread.
+ */
+export async function sendMessage(
+  conversationId: string,
+  body: string
+): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to send message");
+  }
+  return await res.json();
+}
+
+// ==================== DOCUMENT VERIFICATION & KYC API ====================
+
+export interface VerificationItem {
+  id: string;
+  userId: string;
+  entityType: "customs_sgd" | "seller_nin" | "tech_license" | "dealer_cac" | string;
+  entityId?: string;
+  documentUrl: string;
+  vin?: string;
+  status: "pending" | "approved" | "rejected" | string;
+  notes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubmitVerificationPayload {
+  entityType: "customs_sgd" | "seller_nin" | "tech_license" | "dealer_cac" | string;
+  entityId?: string;
+  documentUrl: string;
+  vin?: string;
+  notes?: string;
+}
+
+export interface VerificationsResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  data: VerificationItem[];
+}
+
+/**
+ * Submits a compliance verification document.
+ */
+export async function submitVerification(
+  payload: SubmitVerificationPayload
+): Promise<VerificationItem> {
+  const res = await fetch(`${API_BASE_URL}/verifications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to submit verification document");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+/**
+ * Fetches compliance verification queue for admin or current user.
+ */
+export async function fetchVerifications(params?: {
+  status?: string;
+  entityType?: string;
+  userId?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<VerificationsResponse> {
+  const url = new URL(`${API_BASE_URL}/verifications`);
+  if (params) {
+    if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
+    if (params.entityType && params.entityType !== "all") url.searchParams.set("entityType", params.entityType);
+    if (params.userId) url.searchParams.set("userId", params.userId);
+    if (params.page) url.searchParams.set("page", String(params.page));
+    if (params.pageSize) url.searchParams.set("pageSize", String(params.pageSize));
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch verifications");
+  }
+  return await res.json();
+}
+
+/**
+ * Admin action to approve or reject a verification request.
+ */
+export async function updateVerificationStatus(
+  id: string,
+  status: "approved" | "rejected",
+  notes?: string
+): Promise<VerificationItem> {
+  const res = await fetch(`${API_BASE_URL}/verifications/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({ status, notes }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update verification status");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export interface TransactionItem {
+  id: string;
+  reference: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  type: "inspection_escrow" | "dealer_subscription" | "ad_campaign" | "tech_payout" | string;
+  title: string;
+  entityId?: string;
+  amount: number;
+  currency: string;
+  gateway: string;
+  status: "pending" | "held_in_escrow" | "settled" | "refunded" | "failed" | string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TransactionsResponse {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalVolume: number;
+  escrowVolume: number;
+  settledVolume: number;
+  data: TransactionItem[];
+}
+
+export interface WalletResponse {
+  balance: number;
+  pendingEscrow: number;
+  totalEarned: number;
+  currency: string;
+  transactions: TransactionItem[];
+}
+
+/**
+ * Fetches platform financial ledger transactions (Admin only).
+ */
+export async function fetchTransactions(params?: {
+  type?: string;
+  status?: string;
+  userId?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<TransactionsResponse> {
+  const url = new URL(`${API_BASE_URL}/payments/transactions`);
+  if (params) {
+    if (params.type && params.type !== "all") url.searchParams.set("type", params.type);
+    if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
+    if (params.userId) url.searchParams.set("userId", params.userId);
+    if (params.page) url.searchParams.set("page", String(params.page));
+    if (params.pageSize) url.searchParams.set("pageSize", String(params.pageSize));
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch financial ledger");
+  }
+  return await res.json();
+}
+
+/**
+ * Fetches authenticated user/technician wallet balance & payout history.
+ */
+export async function fetchWallet(): Promise<WalletResponse> {
+  const res = await fetch(`${API_BASE_URL}/payments/wallet`, {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch wallet");
+  }
+  return await res.json();
+}
+
+/**
+ * Initializes a platform transaction (Paystack / Escrow).
+ */
+export async function initializePayment(payload: {
+  type: string;
+  amount: number;
+  entityId?: string;
+  title?: string;
+  gateway?: string;
+  callbackUrl?: string;
+}): Promise<{ reference: string; checkoutUrl: string; transaction: TransactionItem }> {
+  const res = await fetch(`${API_BASE_URL}/payments/initialize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to initialize payment");
+  }
+  return await res.json();
+}
+
+/**
+ * Technician / Seller payout withdrawal request.
+ */
+export async function requestPayout(payload: {
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}): Promise<{ message: string; transaction: TransactionItem }> {
+  const res = await fetch(`${API_BASE_URL}/payments/payout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to request payout settlement");
+  }
+  return await res.json();
+}
 

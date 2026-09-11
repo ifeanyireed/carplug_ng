@@ -91,8 +91,17 @@ func UpdateLeadStatus(c *gin.Context) {
 	}
 
 	db := config.GetDB()
-	if err := db.Model(&models.Lead{}).Where("id = ?", id).Update("status", req.Status).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update lead status: " + err.Error()})
+	var updateErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		updateErr = db.Model(&models.Lead{}).Where("id = ?", id).Update("status", req.Status).Error
+		if updateErr == nil {
+			break
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+
+	if updateErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update lead status: " + updateErr.Error()})
 		return
 	}
 

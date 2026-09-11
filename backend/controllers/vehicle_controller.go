@@ -24,6 +24,38 @@ func GetVehicles(c *gin.Context) {
 	if bodyType := c.Query("bodyType"); bodyType != "" {
 		query = query.Where("body_type = ?", bodyType)
 	}
+	if fuelType := c.Query("fuelType"); fuelType != "" {
+		query = query.Where("fuel_type = ?", fuelType)
+	}
+	if transmission := c.Query("transmission"); transmission != "" {
+		query = query.Where("transmission = ?", transmission)
+	}
+	if yearMinStr := c.Query("yearMin"); yearMinStr != "" {
+		if yearMin, err := strconv.Atoi(yearMinStr); err == nil {
+			query = query.Where("year >= ?", yearMin)
+		}
+	} else if minYearStr := c.Query("minYear"); minYearStr != "" {
+		if minYear, err := strconv.Atoi(minYearStr); err == nil {
+			query = query.Where("year >= ?", minYear)
+		}
+	}
+	if yearMaxStr := c.Query("yearMax"); yearMaxStr != "" {
+		if yearMax, err := strconv.Atoi(yearMaxStr); err == nil {
+			query = query.Where("year <= ?", yearMax)
+		}
+	} else if maxYearStr := c.Query("maxYear"); maxYearStr != "" {
+		if maxYear, err := strconv.Atoi(maxYearStr); err == nil {
+			query = query.Where("year <= ?", maxYear)
+		}
+	}
+	if yearStr := c.Query("year"); yearStr != "" {
+		if yr, err := strconv.Atoi(yearStr); err == nil {
+			query = query.Where("year = ?", yr)
+		}
+	}
+	if state := c.Query("state"); state != "" {
+		query = query.Where("public_location LIKE ?", "%"+state+"%")
+	}
 	if condition := c.Query("condition"); condition != "" {
 		switch condition {
 		case "tokunbo":
@@ -145,6 +177,9 @@ func GetVehicleByID(c *gin.Context) {
 }
 
 func CreateVehicle(c *gin.Context) {
+	userID := c.GetString("userID")
+	userRole := c.GetString("userRole")
+
 	var vehicle models.Vehicle
 	if err := c.ShouldBindJSON(&vehicle); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -154,8 +189,37 @@ func CreateVehicle(c *gin.Context) {
 	if vehicle.ID == "" {
 		vehicle.ID = "v-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	}
+	if vehicle.Images == "" {
+		vehicle.Images = "[]"
+	}
+
+	// Attribution: non-admins cannot impersonate other seller IDs
+	if userRole != "admin" || vehicle.SellerID == "" {
+		vehicle.SellerID = userID
+	}
+
+	if vehicle.SellerType == "" {
+		if userRole == "dealer" {
+			vehicle.SellerType = "dealer"
+		} else {
+			vehicle.SellerType = "private"
+		}
+	}
 
 	db := config.GetDB()
+	// Optionally populate seller name / phone from user profile if not provided
+	if vehicle.SellerName == "" || vehicle.SellerPhone == "" {
+		var user models.User
+		if err := db.First(&user, "id = ?", userID).Error; err == nil {
+			if vehicle.SellerName == "" {
+				vehicle.SellerName = user.Name
+			}
+			if vehicle.SellerPhone == "" && user.Phone != "" {
+				vehicle.SellerPhone = user.Phone
+			}
+		}
+	}
+
 	if err := db.Create(&vehicle).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vehicle: " + err.Error()})
 		return
@@ -174,15 +238,38 @@ func UpdateVehicle(c *gin.Context) {
 		return
 	}
 
+	userID := c.GetString("userID")
+	userRole := c.GetString("userRole")
+
+	// Ownership check: only the listing owner or an admin can modify this vehicle
+	isOwner := (existing.SellerID == userID)
+	if !isOwner && userRole == "dealer" {
+		var dealer models.DealerShop
+		if err := db.Where("user_id = ? AND id = ?", userID, existing.SellerID).First(&dealer).Error; err == nil {
+			isOwner = true
+		}
+	}
+	if userRole != "admin" && !isOwner {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to modify this vehicle listing"})
+		return
+	}
+
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Never allow primary key to be modified via update payload
+	// Never allow primary key or seller ownership to be hijacked via update payload
 	delete(updates, "id")
 	delete(updates, "ID")
+	if userRole != "admin" {
+		delete(updates, "sellerId")
+		delete(updates, "seller_id")
+		delete(updates, "SellerID")
+		delete(updates, "sellerType")
+		delete(updates, "seller_type")
+	}
 
 	if err := db.Model(&existing).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vehicle: " + err.Error()})
@@ -198,7 +285,29 @@ func DeleteVehicle(c *gin.Context) {
 	id := c.Param("id")
 	db := config.GetDB()
 
-	if err := db.Delete(&models.Vehicle{}, "id = ?", id).Error; err != nil {
+	var existing models.Vehicle
+	if err := db.First(&existing, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vehicle not found"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	userRole := c.GetString("userRole")
+
+	// Ownership check: only the listing owner or an admin can delete this vehicle
+	isOwner := (existing.SellerID == userID)
+	if !isOwner && userRole == "dealer" {
+		var dealer models.DealerShop
+		if err := db.Where("user_id = ? AND id = ?", userID, existing.SellerID).First(&dealer).Error; err == nil {
+			isOwner = true
+		}
+	}
+	if userRole != "admin" && !isOwner {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this vehicle listing"})
+		return
+	}
+
+	if err := db.Delete(&existing).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete vehicle: " + err.Error()})
 		return
 	}

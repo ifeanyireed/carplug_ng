@@ -8,6 +8,8 @@ import {
   getStoredUser,
   setStoredUser,
   clearStoredUser,
+  parseJwtPayload,
+  isTokenExpired,
   loginUser,
   registerUser,
   fetchMe,
@@ -42,40 +44,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "signup">("login");
 
-  // Revalidate authenticated session in background on mount
+  // Revalidate authenticated session on mount without logging out on refresh
   useEffect(() => {
-    const storedToken = getAuthToken();
-    const storedUser = getStoredUser();
+    let isMounted = true;
 
-    if (!storedToken) {
-      setIsLoading(false);
-      return;
-    }
+    const initSession = async () => {
+      const storedToken = getAuthToken();
+      if (!storedToken || isTokenExpired(storedToken)) {
+        if (storedToken) {
+          clearAuthToken();
+          clearStoredUser();
+        }
+        if (isMounted) setIsLoading(false);
+        return;
+      }
 
-    setTokenState(storedToken);
-    if (storedUser) {
-      setUser(storedUser);
-      setIsLoading(false);
-    }
+      if (isMounted) {
+        setTokenState(storedToken);
+      }
 
-    fetchMe()
-      .then((currentUser) => {
-        if (currentUser) {
-          setUser(currentUser);
-          setStoredUser(currentUser);
-        } else {
+      // Restore user immediately so client is authenticated without waiting for remote network
+      const storedUser = getStoredUser();
+      if (storedUser) {
+        if (isMounted) {
+          setUser(storedUser);
+          setIsLoading(false);
+        }
+      } else {
+        const claims = parseJwtPayload(storedToken);
+        if (claims && claims.userId) {
+          const fallbackUser: AuthUser = {
+            id: claims.userId,
+            name: claims.name || claims.email?.split("@")[0] || "User",
+            email: claims.email || "",
+            role: (claims.role as AuthUser["role"]) || "buyer",
+            isVerified: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          if (isMounted) {
+            setUser(fallbackUser);
+            setIsLoading(false);
+          }
+          setStoredUser(fallbackUser);
+        }
+      }
+
+      // Verify and sync latest profile with backend in background
+      try {
+        const { user: freshUser, isUnauthorized } = await fetchMe();
+        if (!isMounted) return;
+
+        if (freshUser) {
+          setUser(freshUser);
+          setStoredUser(freshUser);
+        } else if (isUnauthorized) {
+          // Only clear session if token was explicitly rejected with HTTP 401
           clearAuthToken();
           clearStoredUser();
           setTokenState(null);
           setUser(null);
         }
-      })
-      .catch(() => {
-        // preserve cached user on network error
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+        // If server error or network issue (isUnauthorized === false), preserve current user session!
+      } catch {
+        // preserve active session on network failure
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = useCallback(async (payload: { email: string; password: string }) => {

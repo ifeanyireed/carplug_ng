@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { Vehicle } from "@/data/mockStore";
-import { createVehicle, uploadVehicleImages } from "@/services/api";
+import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages } from "@/services/api";
 import {
   Upload,
   Check,
@@ -13,49 +14,112 @@ import {
   Wrench,
   X,
   Loader2,
-  ImageIcon,
   AlertCircle,
 } from "lucide-react";
 
-export default function AddVehicleWizardPage() {
+function AddVehicleWizardContent() {
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit") || searchParams.get("id");
+  const isEditMode = Boolean(editId);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [published, setPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(() => Boolean(editId));
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [originalVehicle, setOriginalVehicle] = useState<Vehicle | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
-    // Step 1: Basic details
-    make: "Mercedes-Benz",
-    model: "GLC 300",
-    year: "2021",
-    trim: "4MATIC AMG Line",
-    bodyType: "SUV",
-    // Step 2: Condition
-    condition: "Foreign Used (Tokunbo)",
-    // Step 3: Location
-    locationZone: "Lekki Phase 1, Lagos",
-    exactAddress: "Plot 14 Admiralty Way",
-    // Step 4: Specs
-    mileage: "32000",
-    transmission: "Automatic",
-    engineSize: "2.0L Turbo Inline-4",
-    fuelType: "Petrol",
-    // Step 5: Customs & Docs
-    vin: "WDC2539841F901823",
-    customsCleared: true,
-    originalReceipt: true,
-    // Step 6: Photos & Cloudinary Images
-    images: [] as string[],
-    // Step 7: Pricing
-    askingPrice: "42000000",
-    negotiable: true,
-    // Step 8: Faults disclosure
-    disclosedFaults: "Minor front bumper stone chips. Interior pristine.",
-    // Step 9: Pre-inspection opt-in
-    preInspectionOptIn: true,
+  const [formData, setFormData] = useState(() => {
+    const qMake = searchParams.get("make");
+    const qModel = searchParams.get("model");
+    const qYear = searchParams.get("year");
+    const qMileage = searchParams.get("mileage");
+
+    return {
+      // Step 1: Basic details
+      make: qMake || "Mercedes-Benz",
+      model: qModel || "GLC 300",
+      year: qYear || "2021",
+      trim: "4MATIC AMG Line",
+      bodyType: "SUV",
+      // Step 2: Condition
+      condition: "Foreign Used (Tokunbo)",
+      // Step 3: Location
+      locationZone: "Lekki Phase 1, Lagos",
+      exactAddress: "Plot 14 Admiralty Way",
+      // Step 4: Specs
+      mileage: qMileage || "32000",
+      transmission: "Automatic",
+      engineSize: "2.0L Turbo Inline-4",
+      fuelType: "Petrol",
+      // Step 5: Customs & Docs
+      vin: "WDC2539841F901823",
+      customsCleared: true,
+      originalReceipt: true,
+      // Step 6: Photos & Cloudinary Images
+      images: [] as string[],
+      // Step 7: Pricing
+      askingPrice: "42000000",
+      negotiable: true,
+      // Step 8: Faults disclosure
+      disclosedFaults: "Minor front bumper stone chips. Interior pristine.",
+      // Step 9: Pre-inspection opt-in
+      preInspectionOptIn: true,
+    };
   });
+
+  useEffect(() => {
+    if (!editId) return;
+
+    let isSubscribed = true;
+    fetchVehicleById(editId)
+      .then((car) => {
+        if (!isSubscribed) return;
+        if (car) {
+          setOriginalVehicle(car);
+          setFormData({
+            make: car.make || "",
+            model: car.model || "",
+            year: String(car.year || 2021),
+            trim: car.trim || "",
+            bodyType: car.bodyType || "SUV",
+            condition: car.condition || "Foreign Used (Tokunbo)",
+            locationZone: car.publicLocation || "Lagos, Nigeria",
+            exactAddress: car.exactLocation || "",
+            mileage: String(car.mileage || 0),
+            transmission: car.transmission || "Automatic",
+            engineSize: car.engineSize || "",
+            fuelType: car.fuelType || "Petrol",
+            vin: car.vin || "",
+            customsCleared: car.documentsAvailable?.customsDoc ?? true,
+            originalReceipt: car.documentsAvailable?.registrationDoc ?? true,
+            images: Array.isArray(car.images) && car.images.length > 0 ? car.images : [],
+            askingPrice: String(car.price || 0),
+            negotiable: true,
+            disclosedFaults: "",
+            preInspectionOptIn: car.trustTier >= 4,
+          });
+        } else {
+          setFetchError(`Vehicle listing with ID "${editId}" could not be found.`);
+        }
+      })
+      .catch((err) => {
+        if (!isSubscribed) return;
+        setFetchError(`Error loading vehicle: ${err instanceof Error ? err.message : String(err)}`);
+      })
+      .finally(() => {
+        if (isSubscribed) {
+          setIsLoadingExisting(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [editId]);
 
   const handleImageFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -68,9 +132,10 @@ export default function AddVehicleWizardPage() {
         ...prev,
         images: [...prev.images, ...urls],
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Cloudinary upload error:", err);
-      setUploadError(err.message || "Failed to upload photo(s) to Cloudinary");
+      const errorMessage = err instanceof Error ? err.message : "Failed to upload photo(s) to Cloudinary";
+      setUploadError(errorMessage);
     } finally {
       setIsUploadingImages(false);
       if (e.target) e.target.value = "";
@@ -103,48 +168,67 @@ export default function AddVehicleWizardPage() {
     } else {
       setIsPublishing(true);
       try {
-        const generatedId = `v-${formData.make.toLowerCase().replace(/\s+/g, "-")}-${formData.model.toLowerCase().replace(/\s+/g, "-")}-${String(Date.now()).slice(-6)}`;
-        await createVehicle({
-          id: generatedId,
-          title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
-          year: Number(formData.year) || 2021,
-          make: formData.make,
-          model: formData.model,
-          trim: formData.trim,
-          bodyType: formData.bodyType,
-          condition: formData.condition as Vehicle["condition"],
-          mileage: Number(formData.mileage) || 30000,
-          transmission: formData.transmission as Vehicle["transmission"],
-          fuelType: formData.fuelType as Vehicle["fuelType"],
-          engineSize: formData.engineSize,
-          vin: formData.vin,
-          price: Number(formData.askingPrice) || 35000000,
-          priceRating: "fair",
-          trustTier: formData.preInspectionOptIn ? 4 : 2,
-          trustTierLabel: formData.preInspectionOptIn
-            ? "Tier 4: Comprehensive Tech Inspected"
-            : "Tier 2: Verification In Progress",
-          images: formData.images.length > 0 ? formData.images : ["/images/cars/car18.jpeg"],
-          publicLocation: formData.locationZone,
-          exactLocation: formData.exactAddress,
-          sellerId: "dealer-reed-motors",
-          sellerType: "dealer",
-          sellerName: "Reed Motors Lagos",
-          sellerPhone: "+234 803 291 0021",
-          sellerRating: 4.9,
-          customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
-          documentsAvailable: {
-            customsDoc: formData.customsCleared,
-            registrationDoc: formData.originalReceipt,
-            roadworthiness: true,
-            tintPermit: false,
-            policeExtracted: false,
-          },
-          healthScore: formData.preInspectionOptIn ? 92 : 0,
-          featured: false,
-        });
+        if (isEditMode && editId) {
+          await updateVehicle(editId, {
+            title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
+            year: Number(formData.year) || originalVehicle?.year || 2021,
+            make: formData.make,
+            model: formData.model,
+            trim: formData.trim,
+            bodyType: formData.bodyType,
+            condition: formData.condition as Vehicle["condition"],
+            mileage: Number(formData.mileage) || originalVehicle?.mileage || 30000,
+            transmission: formData.transmission as Vehicle["transmission"],
+            fuelType: formData.fuelType as Vehicle["fuelType"],
+            engineSize: formData.engineSize,
+            vin: formData.vin,
+            price: Number(formData.askingPrice) || originalVehicle?.price || 35000000,
+            images: formData.images.length > 0 ? formData.images : originalVehicle?.images,
+            publicLocation: formData.locationZone,
+            exactLocation: formData.exactAddress,
+            customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
+          });
+        } else {
+          const generatedId = `v-${formData.make.toLowerCase().replace(/\s+/g, "-")}-${formData.model.toLowerCase().replace(/\s+/g, "-")}-${String(Date.now()).slice(-6)}`;
+          await createVehicle({
+            id: generatedId,
+            title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
+            year: Number(formData.year) || 2021,
+            make: formData.make,
+            model: formData.model,
+            trim: formData.trim,
+            bodyType: formData.bodyType,
+            condition: formData.condition as Vehicle["condition"],
+            mileage: Number(formData.mileage) || 30000,
+            transmission: formData.transmission as Vehicle["transmission"],
+            fuelType: formData.fuelType as Vehicle["fuelType"],
+            engineSize: formData.engineSize,
+            vin: formData.vin,
+            price: Number(formData.askingPrice) || 35000000,
+            priceRating: "fair",
+            trustTier: formData.preInspectionOptIn ? 4 : 2,
+            trustTierLabel: formData.preInspectionOptIn
+              ? "Tier 4: Comprehensive Tech Inspected"
+              : "Tier 2: Verification In Progress",
+            images: formData.images.length > 0 ? formData.images : ["/images/cars/car18.jpeg"],
+            publicLocation: formData.locationZone,
+            exactLocation: formData.exactAddress,
+            sellerType: "dealer",
+            sellerRating: 4.9,
+            customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
+            documentsAvailable: {
+              customsDoc: formData.customsCleared,
+              registrationDoc: formData.originalReceipt,
+              roadworthiness: true,
+              tintPermit: false,
+              policeExtracted: false,
+            },
+            healthScore: formData.preInspectionOptIn ? 92 : 0,
+            featured: false,
+          });
+        }
       } catch (err) {
-        console.warn("Failed to create vehicle on backend API, continuing offline:", err);
+        console.warn("Failed to persist vehicle on backend API, continuing offline:", err);
       } finally {
         setIsPublishing(false);
         setPublished(true);
@@ -165,13 +249,15 @@ export default function AddVehicleWizardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-100">
           <div>
             <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-              10-Step Publishing Pipeline
+              {isEditMode ? "Inventory Listing Editor" : "10-Step Publishing Pipeline"}
             </span>
             <h1 className="text-2xl font-black text-neutral-900 mt-1">
-              Add Vehicle to Showroom
+              {isEditMode ? "Edit Vehicle Listing" : "Add Vehicle to Showroom"}
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              Listings climb the Trust Ladder as verified documentation is uploaded.
+              {isEditMode
+                ? "Update vehicle specifications, pricing, documents, or showroom photos."
+                : "Listings climb the Trust Ladder as verified documentation is uploaded."}
             </p>
           </div>
 
@@ -204,10 +290,12 @@ export default function AddVehicleWizardPage() {
               <Check className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-black text-neutral-900">
-              Vehicle Published at Tier 4!
+              {isEditMode ? "Listing Updated Successfully!" : "Vehicle Published at Tier 4!"}
             </h2>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Your 2021 Mercedes-Benz GLC 300 is now live on the marketplace. Customs documents have been queued for administrative seal, and pre-inspection dispatch has been triggered.
+              {isEditMode
+                ? `Your modifications to the ${formData.year} ${formData.make} ${formData.model} have been synchronized live with the Carplug marketplace.`
+                : `Your ${formData.year} ${formData.make} ${formData.model} is now live on the marketplace. Customs documents have been queued for administrative seal, and pre-inspection dispatch has been triggered.`}
             </p>
             <div className="pt-4 flex items-center justify-center gap-3">
               <Link
@@ -217,12 +305,28 @@ export default function AddVehicleWizardPage() {
                 Go to Active Inventory
               </Link>
               <Link
-                href="/buyer/search"
+                href={isEditMode && editId ? `/buyer/vehicles/${editId}` : "/buyer/search"}
                 className="px-5 py-2.5 bg-gray-100 text-neutral-900 font-semibold text-xs rounded-xl hover:bg-gray-200"
               >
-                View on Marketplace
+                {isEditMode ? "View Public Listing" : "View on Marketplace"}
               </Link>
             </div>
+          </div>
+        ) : isLoadingExisting ? (
+          <div className="p-16 flex flex-col items-center justify-center gap-3 text-gray-400">
+            <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+            <span className="text-xs font-semibold">Loading vehicle listing details...</span>
+          </div>
+        ) : fetchError ? (
+          <div className="p-12 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+            <div className="text-sm font-bold text-neutral-900">{fetchError}</div>
+            <Link
+              href="/dealer/vehicles"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-neutral-900 text-white rounded-xl text-xs font-bold mt-2"
+            >
+              <span>Back to Showroom Inventory</span>
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">
@@ -595,8 +699,12 @@ export default function AddVehicleWizardPage() {
                 <span>
                   {currentStep === 10
                     ? isPublishing
-                      ? "Publishing Listing..."
-                      : "Publish Listing"
+                      ? isEditMode
+                        ? "Saving Changes..."
+                        : "Publishing Listing..."
+                      : isEditMode
+                        ? "Save Changes"
+                        : "Publish Listing"
                     : "Next Step"}
                 </span>
                 <ChevronRight className="w-4 h-4" />
@@ -606,5 +714,20 @@ export default function AddVehicleWizardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AddVehicleWizardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-16 flex flex-col items-center justify-center gap-3 text-gray-400">
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+          <span className="text-xs font-semibold">Loading vehicle wizard...</span>
+        </div>
+      }
+    >
+      <AddVehicleWizardContent />
+    </Suspense>
   );
 }

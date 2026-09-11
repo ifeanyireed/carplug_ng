@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
@@ -12,12 +13,25 @@ import (
 func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	allowed := make(map[string]bool, len(allowedOrigins))
 	for _, o := range allowedOrigins {
-		allowed[o] = true
+		allowed[strings.TrimSpace(o)] = true
 	}
 
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
-		if allowed[origin] {
+		isAllowed := allowed[origin] || allowed[strings.TrimRight(origin, "/")]
+
+		// Always permit localhost / loopback development ports
+		if !isAllowed && origin != "" {
+			if strings.HasPrefix(origin, "http://localhost:") ||
+				strings.HasPrefix(origin, "http://127.0.0.1:") ||
+				strings.HasPrefix(origin, "http://[::1]:") ||
+				origin == "http://localhost" ||
+				origin == "http://127.0.0.1" {
+				isAllowed = true
+			}
+		}
+
+		if isAllowed {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		} else if origin == "" {
@@ -69,9 +83,9 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			vehicles.GET("/:id", controllers.GetVehicleByID)
 
 			// Protected mutations
-			vehicles.POST("", authMiddleware, controllers.CreateVehicle)
-			vehicles.PUT("/:id", authMiddleware, controllers.UpdateVehicle)
-			vehicles.DELETE("/:id", authMiddleware, controllers.DeleteVehicle)
+			vehicles.POST("", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.CreateVehicle)
+			vehicles.PUT("/:id", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.UpdateVehicle)
+			vehicles.DELETE("/:id", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.DeleteVehicle)
 		}
 
 		// Dealer Shops
@@ -79,17 +93,22 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		{
 			// Public discovery
 			dealers.GET("", controllers.GetDealers)
+			dealers.GET("/me", authMiddleware, middleware.RequireRoles("dealer", "admin"), controllers.GetDealerMeShop)
+			dealers.GET("/me/subscription", authMiddleware, middleware.RequireRoles("dealer", "admin"), controllers.GetDealerSubscription)
+			dealers.POST("/subscription/upgrade", authMiddleware, middleware.RequireRoles("dealer", "admin"), controllers.UpgradeDealerSubscription)
 			dealers.GET("/:id", controllers.GetDealerBySlugOrID)
 			dealers.GET("/:id/inventory", controllers.GetDealerInventory)
 
-			// Protected registration
-			dealers.POST("", authMiddleware, controllers.CreateDealer)
+			// Protected mutations
+			dealers.POST("", authMiddleware, middleware.RequireRoles("dealer", "admin"), controllers.CreateDealer)
+			dealers.PUT("/:id", authMiddleware, middleware.RequireRoles("dealer", "admin"), controllers.UpdateDealer)
 		}
 
-		// Technicians (Public discovery)
+		// Technicians (Public discovery & authenticated technician endpoints)
 		technicians := api.Group("/technicians")
 		{
 			technicians.GET("", controllers.GetTechnicians)
+			technicians.GET("/me/inspections", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.GetTechnicianMeInspections)
 			technicians.GET("/:id", controllers.GetTechnicianByID)
 		}
 
@@ -102,7 +121,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 
 			// Protected order & status update
 			inspections.POST("", authMiddleware, controllers.CreateInspection)
-			inspections.PATCH("/:id/status", authMiddleware, controllers.UpdateInspectionStatus)
+			inspections.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.UpdateInspectionStatus)
+			inspections.POST("/:id/report", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.SubmitInspectionReport)
 		}
 
 		// Leads & Inquiries
@@ -112,8 +132,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			leads.POST("", controllers.CreateLead)
 
 			// Protected CRM lead viewing & status routing
-			leads.GET("", authMiddleware, controllers.GetLeads)
-			leads.PATCH("/:id/status", authMiddleware, controllers.UpdateLeadStatus)
+			leads.GET("", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.GetLeads)
+			leads.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.UpdateLeadStatus)
 		}
 
 		// Swaps & Trade-ins
@@ -124,7 +144,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 
 			// Protected submission & status update
 			swaps.POST("", authMiddleware, controllers.CreateSwap)
-			swaps.PATCH("/:id/status", authMiddleware, controllers.UpdateSwapStatus)
+			swaps.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("admin"), controllers.UpdateSwapStatus)
 		}
 
 		// Advertising Campaigns
@@ -134,8 +154,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			campaigns.GET("", controllers.GetCampaigns)
 
 			// Protected campaign creation & moderation
-			campaigns.POST("", authMiddleware, controllers.CreateCampaign)
-			campaigns.PATCH("/:id/status", authMiddleware, controllers.UpdateCampaignStatus)
+			campaigns.POST("", authMiddleware, middleware.RequireRoles("admin"), controllers.CreateCampaign)
+			campaigns.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("admin"), controllers.UpdateCampaignStatus)
 		}
 
 		// Saved / Favorited Vehicles (All strictly protected)
@@ -154,6 +174,39 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		upload.Use(authMiddleware)
 		{
 			upload.POST("/images", controllers.UploadImages)
+		}
+
+		// Conversations & Messaging (Direct Chat - All strictly protected)
+		conversations := api.Group("/conversations")
+		conversations.Use(authMiddleware)
+		{
+			conversations.POST("", controllers.StartConversation)
+			conversations.GET("", controllers.GetConversations)
+			conversations.GET("/:id", controllers.GetConversationByID)
+			conversations.GET("/:id/messages", controllers.GetMessages)
+			conversations.POST("/:id/messages", controllers.SendMessage)
+		}
+
+		// Document Verifications & KYC Compliance Queue (Protected)
+		verifications := api.Group("/verifications")
+		verifications.Use(authMiddleware)
+		{
+			verifications.POST("", controllers.SubmitVerification)
+			verifications.GET("", controllers.GetVerifications)
+			verifications.PATCH("/:id/status", middleware.RequireRoles("admin"), controllers.UpdateVerificationStatus)
+		}
+
+		// Financial Ledger, Escrow & Wallet
+		payments := api.Group("/payments")
+		{
+			payments.POST("/webhook", controllers.HandleWebhook)
+
+			// Authenticated actions
+			payments.Use(authMiddleware)
+			payments.GET("/transactions", middleware.RequireRoles("admin"), controllers.GetTransactions)
+			payments.GET("/wallet", controllers.GetWallet)
+			payments.POST("/initialize", controllers.InitializePayment)
+			payments.POST("/payout", middleware.RequireRoles("technician", "admin"), controllers.RequestPayout)
 		}
 	}
 

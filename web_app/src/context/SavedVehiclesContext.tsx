@@ -9,6 +9,7 @@ import React, {
   useMemo,
 } from "react";
 import { Vehicle } from "@/data/mockStore";
+import { CarListing } from "@/data/mockCars";
 import {
   fetchSavedVehicles,
   fetchSavedVehicleIds,
@@ -19,6 +20,7 @@ import { useAuth } from "./AuthContext";
 
 export type SavedVehicleItem =
   | Vehicle
+  | CarListing
   | {
       id: string;
       make?: string;
@@ -33,8 +35,8 @@ export type SavedVehicleItem =
       transmission?: string;
       fuelType?: string;
       condition?: string;
+      bodyType?: string;
       badge?: string | null;
-      [key: string]: any;
     };
 
 interface SavedVehiclesContextType {
@@ -57,7 +59,7 @@ export function SavedVehiclesProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, openAuthModal } = useAuth();
   const [savedVehicles, setSavedVehicles] = useState<Vehicle[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -93,16 +95,40 @@ export function SavedVehiclesProvider({
 
   useEffect(() => {
     let isMounted = true;
+
     if (isAuthenticated) {
-      refreshSaved();
+      (async () => {
+        try {
+          const [vehiclesList, idsList] = await Promise.all([
+            fetchSavedVehicles(),
+            fetchSavedVehicleIds(),
+          ]);
+
+          if (!isMounted) return;
+
+          setSavedVehicles(vehiclesList);
+
+          const allIds = new Set<string>();
+          idsList.forEach((id) => allIds.add(id));
+          vehiclesList.forEach((v) => allIds.add(v.id));
+          setSavedIds(allIds);
+        } catch (err) {
+          console.warn("Failed to load saved vehicles from backend:", err);
+        }
+      })();
     } else {
-      setSavedVehicles([]);
-      setSavedIds(new Set());
+      queueMicrotask(() => {
+        if (isMounted) {
+          setSavedVehicles([]);
+          setSavedIds(new Set());
+        }
+      });
     }
+
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, refreshSaved]);
+  }, [isAuthenticated]);
 
   const isSaved = useCallback(
     (vehicleId: string): boolean => {

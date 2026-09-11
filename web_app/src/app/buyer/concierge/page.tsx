@@ -4,14 +4,18 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Sparkles, Check, ArrowRight, ChevronRight } from "lucide-react";
+import { Sparkles, Check, ArrowRight, ChevronRight, Loader2 } from "lucide-react";
+import { createLead } from "@/services/api";
 
 export default function ConciergePage() {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    city: "Lagos",
+    city: "Lagos (Island & Mainland)",
     makeModel: "",
     yearMin: "2018",
     budgetNaira: "25000000",
@@ -19,9 +23,28 @@ export default function ConciergePage() {
     priority: "Verified Inspection & Low Mileage",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await createLead({
+        buyerName: formData.name,
+        buyerPhone: formData.phone,
+        buyerCity: formData.city,
+        vehicleTitle: formData.makeModel,
+        vehiclePrice: parseFloat(formData.budgetNaira) || 0,
+        type: "concierge",
+        note: `Condition: ${formData.condition} • Priority: ${formData.priority} • Min Year: ${formData.yearMin}`,
+        status: "new",
+      });
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to submit concierge request";
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,6 +72,12 @@ export default function ConciergePage() {
           <p className="text-xs text-gray-500 mt-2 leading-relaxed">
             Tell us the exact make, model, budget, and condition you need. Our team matches your request against private off-market dealer lots, sends an independent technician to pre-inspect the vehicle, and presents only verified options.
           </p>
+
+          {error && (
+            <div className="mt-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700">
+              {error}
+            </div>
+          )}
 
           {submitted ? (
             <div className="mt-8 p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
@@ -155,20 +184,30 @@ export default function ConciergePage() {
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   >
-                    <option>Lagos (Island & Mainland)</option>
-                    <option>Abuja FCT</option>
-                    <option>Port Harcourt</option>
-                    <option>Ibadan</option>
+                    <option value="Lagos (Island & Mainland)">Lagos (Island & Mainland)</option>
+                    <option value="Abuja FCT">Abuja FCT</option>
+                    <option value="Port Harcourt">Port Harcourt</option>
+                    <option value="Ibadan">Ibadan</option>
                   </select>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-xs transition"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
               >
-                <span>Submit Sourcing Request</span>
-                <ArrowRight className="w-4 h-4" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Submitting Brief to Sourcing Desk...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit Sourcing Request</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </form>
           )}

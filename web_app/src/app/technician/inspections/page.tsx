@@ -3,38 +3,52 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { InspectionReport, MOCK_INSPECTIONS } from "@/data/mockStore";
-import { fetchInspections } from "@/services/api";
-import { Loader2, RefreshCw, Filter } from "lucide-react";
+import { fetchTechnicianMeInspections, fetchInspections } from "@/services/api";
+import { Loader2, RefreshCw } from "lucide-react";
 
 export default function TechnicianInspectionsListPage() {
   const [inspections, setInspections] = useState<InspectionReport[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [refreshIndex, setRefreshIndex] = useState<number>(0);
 
-  const loadInspections = async () => {
+  const handleRefresh = () => {
     setIsLoading(true);
-    try {
-      const data = await fetchInspections();
-      if (data && data.length > 0) {
-        setInspections(data);
-      } else {
-        setInspections(MOCK_INSPECTIONS);
-      }
-    } catch (err) {
-      console.warn("Failed to fetch inspections from API, using cached:", err);
-      setInspections(MOCK_INSPECTIONS);
-    } finally {
-      setIsLoading(false);
-    }
+    setRefreshIndex((prev) => prev + 1);
   };
 
   useEffect(() => {
     let isMounted = true;
-    loadInspections();
+
+    async function fetchJobs() {
+      try {
+        const data = await fetchTechnicianMeInspections();
+        if (!isMounted) return;
+        if (data && data.length > 0) {
+          setInspections(data);
+        } else {
+          // Fallback to all inspections or mock
+          const fallback = await fetchInspections();
+          if (!isMounted) return;
+          setInspections(fallback && fallback.length > 0 ? fallback : MOCK_INSPECTIONS);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.warn("Failed to fetch inspections from API, using cached:", err);
+        setInspections(MOCK_INSPECTIONS);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchJobs();
+
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshIndex]);
 
   const filtered = useMemo(() => {
     if (statusFilter === "all") return inspections;
@@ -58,7 +72,7 @@ export default function TechnicianInspectionsListPage() {
         </div>
 
         <button
-          onClick={loadInspections}
+          onClick={handleRefresh}
           disabled={isLoading}
           className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition flex items-center gap-2 text-xs font-semibold self-start sm:self-auto disabled:opacity-50"
         >

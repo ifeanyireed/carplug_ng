@@ -28,51 +28,65 @@ export default function DealerDashboardPage() {
     return user?.id || "dealer-reed-motors";
   }, [user?.id]);
 
-  const loadDashboardData = async () => {
+  const [refreshIndex, setRefreshIndex] = useState<number>(0);
+
+  const handleRefresh = () => {
     setIsLoading(true);
-    try {
-      // Parallel fetch for dealer details, inventory, and inbound leads
-      const [inventoryData, leadsData, shopData] = await Promise.all([
-        fetchDealerInventory(dealerId).catch(() => []),
-        fetchLeads().catch(() => []),
-        fetchDealerBySlugOrId(dealerId).catch(() => undefined),
-      ]);
-
-      if (inventoryData && inventoryData.length > 0) {
-        setVehicles(inventoryData);
-      } else {
-        const allVehicles = await fetchVehicles().catch(() => []);
-        const filtered = allVehicles.filter(
-          (v) => v.sellerId === dealerId || v.sellerType === "dealer"
-        );
-        setVehicles(filtered.length > 0 ? filtered : MOCK_VEHICLES.slice(0, 3));
-      }
-
-      if (leadsData && leadsData.length > 0) {
-        setLeads(leadsData);
-      } else {
-        setLeads(MOCK_LEADS);
-      }
-
-      if (shopData) {
-        setShop(shopData);
-      }
-    } catch (err) {
-      console.warn("Failed to load dealer dashboard live data, fallback to mock:", err);
-      setVehicles(MOCK_VEHICLES.slice(0, 3));
-      setLeads(MOCK_LEADS);
-    } finally {
-      setIsLoading(false);
-    }
+    setRefreshIndex((prev) => prev + 1);
   };
 
   useEffect(() => {
     let isMounted = true;
-    loadDashboardData();
+
+    async function fetchDashboardData() {
+      try {
+        // Parallel fetch for dealer details, inventory, and inbound leads
+        const [inventoryData, leadsData, shopData] = await Promise.all([
+          fetchDealerInventory(dealerId).catch(() => []),
+          fetchLeads().catch(() => []),
+          fetchDealerBySlugOrId(dealerId).catch(() => undefined),
+        ]);
+
+        if (!isMounted) return;
+
+        if (inventoryData && inventoryData.length > 0) {
+          setVehicles(inventoryData);
+        } else {
+          const allVehicles = await fetchVehicles().catch(() => []);
+          if (!isMounted) return;
+          const filtered = allVehicles.filter(
+            (v) => v.sellerId === dealerId || v.sellerType === "dealer"
+          );
+          setVehicles(filtered.length > 0 ? filtered : MOCK_VEHICLES.slice(0, 3));
+        }
+
+        if (leadsData && leadsData.length > 0) {
+          setLeads(leadsData);
+        } else {
+          setLeads(MOCK_LEADS);
+        }
+
+        if (shopData) {
+          setShop(shopData);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.warn("Failed to load dealer dashboard live data, fallback to mock:", err);
+        setVehicles(MOCK_VEHICLES.slice(0, 3));
+        setLeads(MOCK_LEADS);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchDashboardData();
+
     return () => {
       isMounted = false;
     };
-  }, [dealerId]);
+  }, [dealerId, refreshIndex]);
 
   // Derived metrics with useMemo
   const metrics = useMemo(() => {
@@ -109,7 +123,7 @@ export default function DealerDashboardPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadDashboardData}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition flex items-center justify-center disabled:opacity-50"
             title="Refresh Metrics"

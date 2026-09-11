@@ -66,12 +66,16 @@ export const AuthModal = ({
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // Cleanly reset override mode, password visibility, and errors whenever modal open status or requested mode changes
-  useEffect(() => {
+  const [prevAuthModalMode, setPrevAuthModalMode] = useState(authModalMode);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (authModalMode !== prevAuthModalMode || isOpen !== prevIsOpen) {
+    setPrevAuthModalMode(authModalMode);
+    setPrevIsOpen(isOpen);
     setOverrideMode(null);
     setShowPassword(false);
     setError(null);
-  }, [authModalMode, isOpen]);
+  }
 
   const handleClose = () => {
     setError(null);

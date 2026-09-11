@@ -9,9 +9,9 @@ import {
   Star,
   MapPin,
   ChevronRight,
-  ArrowRight,
   CheckCircle,
 } from "lucide-react";
+import { DispatchTechnicianButton } from "./DispatchButton";
 
 export default async function ChooseTechnicianPage({
   params,
@@ -116,13 +116,11 @@ export default async function ChooseTechnicianPage({
                   {tech.availability}
                 </span>
 
-                <Link
-                  href={`/buyer/inspections/insp-001/tracker`}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition"
-                >
-                  <span>Select & Dispatch</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <DispatchTechnicianButton
+                  vehicleId={vehicle.id}
+                  technicianId={tech.id}
+                  tier={tier}
+                />
               </div>
             </div>
           ))}

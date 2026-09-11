@@ -1,30 +1,92 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { MOCK_SHOPS } from "@/data/mockStore";
-import { ShieldCheck, Save, ArrowUpRight } from "lucide-react";
+import { MOCK_SHOPS, DealerShop } from "@/data/mockStore";
+import { fetchDealerMeShop, updateDealerShop } from "@/services/api";
+import { ShieldCheck, Save, ArrowUpRight, Loader2, AlertCircle } from "lucide-react";
 
 export default function DealerShopSettingsPage() {
-  const shop = MOCK_SHOPS[0];
+  const [shop, setShop] = useState<DealerShop>(MOCK_SHOPS[0]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    name: shop.name,
-    tagline: shop.tagline,
-    location: shop.location,
-    address: shop.address,
-    phone: shop.phone,
-    whatsapp: shop.whatsapp,
-    email: shop.email,
-    operatingHours: shop.operatingHours,
+    name: MOCK_SHOPS[0].name,
+    tagline: MOCK_SHOPS[0].tagline,
+    location: MOCK_SHOPS[0].location,
+    address: MOCK_SHOPS[0].address,
+    phone: MOCK_SHOPS[0].phone,
+    whatsapp: MOCK_SHOPS[0].whatsapp,
+    email: MOCK_SHOPS[0].email,
+    operatingHours: MOCK_SHOPS[0].operatingHours,
   });
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadShop() {
+      try {
+        const data = await fetchDealerMeShop();
+        if (!isMounted) return;
+        if (data) {
+          setShop(data);
+          setForm({
+            name: data.name || "",
+            tagline: data.tagline || "",
+            location: data.location || "",
+            address: data.address || "",
+            phone: data.phone || "",
+            whatsapp: data.whatsapp || "",
+            email: data.email || "",
+            operatingHours: data.operatingHours || "",
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to fetch dealer shop from API:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadShop();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setIsSaving(true);
+    setErrorMessage(null);
+    try {
+      const updated = await updateDealerShop(shop.id, form);
+      if (updated) {
+        setShop(updated);
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 4000);
+    } catch (err: unknown) {
+      console.error("Failed to update dealer shop:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Failed to update storefront settings");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-16 bg-white border border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-3 text-gray-400">
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+        <span className="text-xs font-semibold">Loading dealership storefront...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -57,6 +119,13 @@ export default function DealerShopSettingsPage() {
         {saved && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl text-center">
             ✓ Storefront settings updated and published successfully!
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
           </div>
         )}
 
@@ -150,10 +219,20 @@ export default function DealerShopSettingsPage() {
 
         <button
           type="submit"
-          className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition"
+          disabled={isSaving}
+          className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition"
         >
-          <Save className="w-4 h-4" />
-          <span>Save Changes</span>
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              <span>Save Changes</span>
+            </>
+          )}
         </button>
       </form>
     </div>

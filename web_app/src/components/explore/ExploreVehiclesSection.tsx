@@ -141,10 +141,10 @@ export const ExploreVehiclesSection = ({
                   ? v.marketPriceRange[1]
                   : undefined,
               badge,
-              fuelType: (v.fuelType as any) || "Petrol",
-              transmission: (v.transmission as any) || "Automatic",
+              fuelType: (v.fuelType as ExploreCar["fuelType"]) || "Petrol",
+              transmission: (v.transmission as ExploreCar["transmission"]) || "Automatic",
               condition: v.condition,
-              bodyType: (v.bodyType as any) || "Sedan",
+              bodyType: (v.bodyType as ExploreCar["bodyType"]) || "Sedan",
             };
           });
           setVehicles(mapped);
@@ -171,10 +171,10 @@ export const ExploreVehiclesSection = ({
         price: car.price,
         image: car.image,
         images: [car.image],
-        fuelType: car.fuelType as any,
-        transmission: car.transmission as any,
-        condition: car.condition as any,
-        bodyType: car.bodyType as any,
+        fuelType: car.fuelType,
+        transmission: car.transmission,
+        condition: car.condition,
+        bodyType: car.bodyType,
       });
       onToggleFavorite?.(car.id);
     } catch (err) {

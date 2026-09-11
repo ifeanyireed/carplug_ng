@@ -107,12 +107,20 @@ export default function SellMyCarPage() {
               <div className="text-xs text-gray-700">
                 <b>3 Verified Dealers</b> ready to make direct cash offers for this car.
               </div>
-              <Link
-                href="/seller/listings"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition"
-              >
-                Publish for Dealer Offers
-              </Link>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Link
+                  href="/seller/listings"
+                  className="px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-900 font-semibold text-xs rounded-xl transition text-center"
+                >
+                  My Listings
+                </Link>
+                <Link
+                  href={`/dealer/vehicles/new?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}&mileage=${encodeURIComponent(mileage)}`}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition text-center shadow-xs"
+                >
+                  List Car for Sale
+                </Link>
+              </div>
             </div>
           </div>
         )}

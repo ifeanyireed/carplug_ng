@@ -4,6 +4,7 @@ import "time"
 
 type DealerShop struct {
 	ID                  string    `gorm:"primaryKey;size:64" json:"id"`
+	UserID              string    `gorm:"size:64;index" json:"userId,omitempty"`
 	Slug                string    `gorm:"size:100;uniqueIndex;not null" json:"slug"`
 	Name                string    `gorm:"size:150;not null" json:"name"`
 	Tagline             string    `gorm:"size:255" json:"tagline"`

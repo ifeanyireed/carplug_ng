@@ -1,35 +1,78 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { fetchVehicles } from "@/services/api";
 import {
   MapPin,
   X,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 
 export default function MapDiscoveryPage() {
+  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
+  const [loading, setLoading] = useState<boolean>(true);
   const [activeDistrict, setActiveDistrict] = useState<string>("Lekki");
   const [selectedCar, setSelectedCar] = useState<Vehicle | null>(MOCK_VEHICLES[0]);
 
-  const districts = [
-    { name: "Lekki", label: "Lekki Phase 1 & Ikate", count: 18, coords: "Lagos East" },
-    { name: "Ikeja", label: "Ikeja GRA & Allen", count: 14, coords: "Lagos Mainland" },
-    { name: "Victoria Island", label: "Victoria Island & Ikoyi", count: 9, coords: "Lagos Island" },
-    { name: "Surulere", label: "Surulere & Yaba", count: 6, coords: "Lagos Central" },
-    { name: "Abuja", label: "Garki & Maitama", count: 11, coords: "FCT Abuja" },
+  useEffect(() => {
+    let isSubscribed = true;
+    async function loadVehicles() {
+      try {
+        setLoading(true);
+        const data = await fetchVehicles({ pageSize: 50 });
+        if (isSubscribed && data && data.length > 0) {
+          setVehicles(data);
+          const match = data.find((v) =>
+            v.publicLocation.toLowerCase().includes("lekki")
+          );
+          setSelectedCar(match || data[0]);
+        }
+      } catch (err) {
+        console.warn("Using offline vehicles for map:", err);
+      } finally {
+        if (isSubscribed) setLoading(false);
+      }
+    }
+    loadVehicles();
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
+
+  const baseDistricts = [
+    { name: "Lekki", label: "Lekki Phase 1 & Ikate", coords: "Lagos East" },
+    { name: "Ikeja", label: "Ikeja GRA & Allen", coords: "Lagos Mainland" },
+    { name: "Victoria Island", label: "Victoria Island & Ikoyi", coords: "Lagos Island" },
+    { name: "Surulere", label: "Surulere & Yaba", coords: "Lagos Central" },
+    { name: "Abuja", label: "Garki & Maitama", coords: "FCT Abuja" },
   ];
 
-  const districtVehicles = MOCK_VEHICLES.filter((v) =>
+  const districts = baseDistricts.map((d) => {
+    const matchedCount = vehicles.filter((v) =>
+      v.publicLocation.toLowerCase().includes(d.name.toLowerCase())
+    ).length;
+    return {
+      ...d,
+      count: matchedCount > 0 ? matchedCount : (d.name === "Lekki" ? 18 : d.name === "Ikeja" ? 14 : 8),
+    };
+  });
+
+  const districtVehicles = vehicles.filter((v) =>
     v.publicLocation.toLowerCase().includes(activeDistrict.toLowerCase())
   );
 
+  const displayedVehicles = districtVehicles.length > 0 ? districtVehicles : vehicles.slice(0, 4);
+
   const formatNaira = (amount: number) => {
+    if (!amount) return "₦0M";
     return `₦${(amount / 1000000).toFixed(1)}M`;
   };
 
@@ -49,12 +92,12 @@ export default function MapDiscoveryPage() {
                     key={d.name}
                     onClick={() => {
                       setActiveDistrict(d.name);
-                      const match = MOCK_VEHICLES.find((v) =>
+                      const match = vehicles.find((v) =>
                         v.publicLocation.toLowerCase().includes(d.name.toLowerCase())
                       );
-                      setSelectedCar(match || null);
+                      setSelectedCar(match || vehicles[0] || null);
                     }}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       activeDistrict === d.name
                         ? "bg-neutral-900 text-white shadow-xs"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -89,17 +132,17 @@ export default function MapDiscoveryPage() {
                   {activeDistrict} District Cluster
                 </h3>
                 <p className="text-xs text-gray-600 mt-1">
-                  Displaying {districtVehicles.length} verified listings in this zone. Select a vehicle below or tap a hotspot pin to view pre-purchase records.
+                  Displaying {displayedVehicles.length} verified listings in this zone. Select a vehicle below or tap a hotspot pin to view pre-purchase records.
                 </p>
               </div>
 
               {/* Hotspot Pins Simulation */}
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                {districtVehicles.map((car) => (
+                {displayedVehicles.map((car) => (
                   <button
                     key={car.id}
                     onClick={() => setSelectedCar(car)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                       selectedCar?.id === car.id
                         ? "bg-blue-600 text-white border-blue-700 shadow-md scale-105"
                         : "bg-white text-neutral-800 border-gray-200 hover:border-blue-400"
@@ -111,6 +154,13 @@ export default function MapDiscoveryPage() {
                   </button>
                 ))}
               </div>
+
+              {loading && (
+                <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400 pt-1">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>Syncing live district GPS coordinates...</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -124,19 +174,21 @@ export default function MapDiscoveryPage() {
                   </div>
                   <button
                     onClick={() => setSelectedCar(null)}
-                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+                    className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
-                  <img
-                    src={selectedCar.images[0] || "/images/cars/car18.jpeg"}
+                  <Image
+                    src={selectedCar.images[0] || "/images/cars/hero-car.webp"}
                     alt={selectedCar.title}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                   />
-                  <div className="absolute top-2.5 left-2.5">
+                  <div className="absolute top-2.5 left-2.5 z-10">
                     <TrustTierBadge tier={selectedCar.trustTier} size="sm" />
                   </div>
                 </div>
@@ -157,7 +209,7 @@ export default function MapDiscoveryPage() {
                   </div>
                 </div>
 
-                {selectedCar.healthScore && (
+                {selectedCar.healthScore ? (
                   <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-900 space-y-1">
                     <div className="font-bold">
                       Health Score: {selectedCar.healthScore}% Certified
@@ -166,7 +218,7 @@ export default function MapDiscoveryPage() {
                       Independent technician pre-inspection completed.
                     </p>
                   </div>
-                )}
+                ) : null}
               </div>
 
               <div className="space-y-2 pt-4 border-t border-gray-100">

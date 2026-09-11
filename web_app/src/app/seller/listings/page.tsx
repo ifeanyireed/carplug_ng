@@ -14,30 +14,42 @@ export default function MyListingsPage() {
   const [listings, setListings] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const loadListings = async () => {
+  const [refreshIndex, setRefreshIndex] = useState<number>(0);
+
+  const handleRefresh = () => {
     setIsLoading(true);
-    try {
-      const data = await fetchVehicles();
-      // Filter for seller's vehicles or private seller listings
-      const userListings = data.filter(
-        (v) => (user?.id && v.sellerId === user.id) || v.sellerType === "private"
-      );
-      setListings(userListings.length > 0 ? userListings : [MOCK_VEHICLES[3]]);
-    } catch (err) {
-      console.warn("Failed to fetch seller listings from API:", err);
-      setListings([MOCK_VEHICLES[3]]);
-    } finally {
-      setIsLoading(false);
-    }
+    setRefreshIndex((prev) => prev + 1);
   };
 
   useEffect(() => {
     let isMounted = true;
-    loadListings();
+
+    async function fetchSellerListings() {
+      try {
+        const data = await fetchVehicles();
+        if (!isMounted) return;
+        // Filter for seller's vehicles or private seller listings
+        const userListings = data.filter(
+          (v) => (user?.id && v.sellerId === user.id) || v.sellerType === "private"
+        );
+        setListings(userListings.length > 0 ? userListings : [MOCK_VEHICLES[3]]);
+      } catch (err) {
+        if (!isMounted) return;
+        console.warn("Failed to fetch seller listings from API:", err);
+        setListings([MOCK_VEHICLES[3]]);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchSellerListings();
+
     return () => {
       isMounted = false;
     };
-  }, [user?.id]);
+  }, [user?.id, refreshIndex]);
 
   const totalPortfolioValue = useMemo(() => {
     const total = listings.reduce((acc, car) => acc + (car.price || 0), 0);
@@ -56,7 +68,7 @@ export default function MyListingsPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadListings}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition flex items-center justify-center disabled:opacity-50"
             title="Refresh Listings"
@@ -129,6 +141,12 @@ export default function MyListingsPage() {
                     className="px-3.5 py-2 bg-white border border-gray-200 text-neutral-900 rounded-xl text-xs font-semibold hover:bg-gray-50"
                   >
                     View Public Page
+                  </Link>
+                  <Link
+                    href={`/dealer/vehicles/new?edit=${listing.id}`}
+                    className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-neutral-900 rounded-xl text-xs font-bold"
+                  >
+                    Edit Listing
                   </Link>
                   <Link
                     href={`/buyer/inspections/book/${listing.id}`}

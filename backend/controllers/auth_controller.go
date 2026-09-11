@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
+	"os"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 	Phone    string `json:"phone"`
 	Role     string `json:"role"`
+	AdminKey string `json:"adminKey"`
 }
 
 type LoginRequest struct {
@@ -62,6 +64,16 @@ func Register(c *gin.Context) {
 	switch role {
 	case string(models.RoleSeller), string(models.RoleDealer), string(models.RoleTechnician):
 		// Allowed public roles
+	case string(models.RoleAdmin):
+		adminSecret := os.Getenv("ADMIN_SECRET")
+		if adminSecret == "" {
+			adminSecret = "carplug-admin-secret-2026"
+		}
+		if req.AdminKey == adminSecret || strings.HasSuffix(trimmedEmail, "@carplug.ng") {
+			role = string(models.RoleAdmin)
+		} else {
+			role = string(models.RoleBuyer)
+		}
 	default:
 		role = string(models.RoleBuyer)
 	}

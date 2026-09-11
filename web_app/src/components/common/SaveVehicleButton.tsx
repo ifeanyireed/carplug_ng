@@ -28,28 +28,33 @@ export const SaveVehicleButton: React.FC<SaveVehicleButtonProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
-    const v = vehicle as any;
+    const v = vehicle as unknown as Record<string, unknown>;
+    const vName = typeof v.name === "string" ? v.name : "";
+    const vTitle = typeof v.title === "string" ? v.title : "";
+    const vMake = typeof v.make === "string" ? v.make : "";
+    const vModel = typeof v.model === "string" ? v.model : "";
+
     const normalizedVehicle: SavedVehicleItem = {
       ...vehicle,
       id: vehicle.id,
       make:
-        v.make ||
-        (v.name
-          ? v.name.split(" ")[0]
-          : v.title
-          ? v.title.split(" ")[0]
+        vMake ||
+        (vName
+          ? vName.split(" ")[0]
+          : vTitle
+          ? vTitle.split(" ")[0]
           : ""),
       model:
-        v.model ||
-        (v.name
-          ? v.name.split(" ").slice(1).join(" ")
-          : v.title
-          ? v.title.split(" ").slice(1).join(" ")
+        vModel ||
+        (vName
+          ? vName.split(" ").slice(1).join(" ")
+          : vTitle
+          ? vTitle.split(" ").slice(1).join(" ")
           : ""),
       images:
-        v.images && Array.isArray(v.images) && v.images.length > 0
-          ? v.images
-          : v.image
+        Array.isArray(v.images) && v.images.length > 0
+          ? (v.images as string[])
+          : typeof v.image === "string"
           ? [v.image]
           : [],
     };

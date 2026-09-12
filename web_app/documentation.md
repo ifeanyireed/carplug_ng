@@ -146,8 +146,41 @@ The service layer provides typed client functions that interface with the Go bac
   - `toggleSavedVehicle(vehicleId)`: Optimistically toggles saved state with backend synchronization.
 - **Cloudinary Image Upload**:
   - `uploadVehicleImages(files: File[])`: Packages files into a `FormData` envelope (`images` field) and dispatches multipart request to `POST /api/upload/images` with JWT authorization. Returns array of secure HTTPS Cloudinary image URLs.
+- **Brevo OTP Email Verification & Password Recovery**:
+  - `verifyOTP(payload)`: Submits 6-digit verification code to `POST /api/auth/verify-otp`, verifies email ownership, and refreshes auth token.
+  - `resendOTP(payload)`: Dispatches a fresh code to `POST /api/auth/resend-otp` (governed by a 60-second cooldown timer).
+  - `forgotPassword(payload)`: Dispatches recovery OTP to `POST /api/auth/forgot-password`.
+  - `resetPassword(payload)`: Submits recovery code and new password to `POST /api/auth/reset-password`.
+- **Direct Messaging & Chat API**:
+  - `startConversation(vehicleId, message)`: Initiates or returns active thread for a vehicle via `POST /api/conversations`.
+  - `fetchConversations()`: Queries `GET /api/conversations` for user's active threads with unread counters.
+  - `fetchConversationById(id)`: Queries `GET /api/conversations/:id` for thread metadata.
+  - `fetchMessages(conversationId)`: Retrieves thread message stream via `GET /api/conversations/:id/messages` and marks incoming messages as read.
+  - `sendMessage(conversationId, body)`: Appends message to thread via `POST /api/conversations/:id/messages`.
+- **Document Verification & KYC Compliance Queue**:
+  - `submitVerification(payload)`: Submits compliance audit document (`customs_sgd`, `seller_nin`, `tech_license`, `dealer_cac`) via `POST /api/verifications`.
+  - `fetchMyVerifications(params)`: Queries self-scoped compliance documents via `GET /api/verifications/me`.
+  - `fetchVerifications(params)`: Admin-only master audit queue query via `GET /api/verifications`.
+  - `updateVerificationStatus(id, status, notes)`: Admin-only decision dispatcher via `PATCH /api/verifications/:id/status`.
+- **Dealer Storefronts & Subscriptions**:
+  - `fetchDealerMeShop()`: Retrieves or provisions dealership showroom profile via `GET /api/dealers/me`.
+  - `updateDealerShop(id, payload)`: Modifies showroom profile, banner, hours, and contacts via `PUT /api/dealers/:id`.
+  - `fetchDealerSubscription()`: Queries subscription tier, quota limits, and remaining days via `GET /api/dealers/me/subscription`.
+  - `upgradeDealerSubscription(plan)`: Upgrades dealership plan via `POST /api/dealers/subscription/upgrade`.
+- **Technicians & 150-Point Certified Inspections**:
+  - `fetchTechnicianMeInspections(params)`: Queries assigned inspection jobs via `GET /api/technicians/me/inspections`.
+  - `submitInspectionReport(id, payload)`: Publishes complete 150-point report via `POST /api/inspections/:id/report`, triggering automated Tier 5 listing upgrade.
+- **Financial Ledger, Escrow & Technician Payout Wallet**:
+  - `fetchTransactions(params)`: Queries platform ledger with volume totals via `GET /api/payments/transactions`.
+  - `fetchWallet()`: Queries technician wallet balances (`availableCash`, `escrowHold`, `lifetimeEarnings`) via `GET /api/payments/wallet`.
+  - `initializePayment(payload)`: Generates transaction reference and Paystack checkout URL via `POST /api/payments/initialize`.
+  - `requestPayout(payload)`: Submits bank account details for instant technician payout via `POST /api/payments/payout`.
+- **Admin Governance & Listing Moderation**:
+  - `fetchAdminMetrics()`: Queries platform telemetry metrics via `GET /api/admin/metrics`.
+  - `fetchFlaggedListings()`: Queries listings flagged by pricing anomaly or verification algorithms via `GET /api/admin/flagged-listings`.
+  - `moderateListingStatus(id, status)`: Suspends, restores, or deletes listings via `PATCH /api/admin/listings/:id/status`.
 - **Protected Request Headers**:
-  - Mutating operations (`createVehicle`, `updateVehicle`, `deleteVehicle`, `createDealer`, `createInspection`, `updateInspectionStatus`, `updateLeadStatus`, `fetchLeads`, `createSwap`, `updateSwapStatus`, `createCampaign`, `updateCampaignStatus`, `uploadVehicleImages`, `toggleSavedVehicle`, `updateProfile`, `changePassword`, `upgradeUserRole`) automatically include `...getAuthHeaders()` to satisfy backend RBAC requirements.
+  - Mutating and protected operations (`createVehicle`, `updateVehicle`, `deleteVehicle`, `createDealer`, `updateDealerShop`, `fetchDealerMeShop`, `fetchDealerSubscription`, `upgradeDealerSubscription`, `createInspection`, `updateInspectionStatus`, `submitInspectionReport`, `fetchTechnicianMeInspections`, `updateLeadStatus`, `fetchLeads`, `createSwap`, `updateSwapStatus`, `createCampaign`, `updateCampaignStatus`, `uploadVehicleImages`, `toggleSavedVehicle`, `updateProfile`, `changePassword`, `upgradeUserRole`, `startConversation`, `fetchConversations`, `sendMessage`, `submitVerification`, `fetchMyVerifications`, `fetchVerifications`, `updateVerificationStatus`, `fetchTransactions`, `fetchWallet`, `initializePayment`, `requestPayout`, `fetchAdminMetrics`, `fetchFlaggedListings`, `moderateListingStatus`) automatically include `...getAuthHeaders()` to satisfy backend RBAC requirements.
 
 ---
 
@@ -188,6 +221,64 @@ The service layer provides typed client functions that interface with the Go bac
 | **31** | 2026-09-11 | Admin Governance Telemetry, Live Command Dashboards & Account Settings Portal | Done | 1. Added `AdminMetrics`, `FlaggedListing`, `fetchAdminMetrics`, `fetchFlaggedListings`, `moderateListingStatus`, `updateProfile`, and `changePassword` to `src/services/api.ts`. 2. Overhauled `/admin/dashboard/page.tsx` with live telemetry KPI cards, % Tier 3+ listings, active dealer shops, completed inspections, pending verifications, and 30-day transaction volume. 3. Overhauled `/admin/listings/page.tsx` with algorithmic anomaly detection, risk badges, listing suspension, permanent removal, and dismissal. 4. Overhauled `/seller/dashboard/page.tsx` displaying live seller listings, inbound chat threads, KYC status badge, and Next.js Image rendering. 5. Overhauled `/technician/dashboard/page.tsx` displaying live wallet available cash, escrow hold, completed inspection tally, and dynamic active job resume link. 6. Created `/settings/page.tsx` account profile and security console with name/phone editor, password update with bcrypt verification, and role workspace launchers. 7. Added Account Settings link to `Navbar.tsx` and `PortalShell.tsx`. Verified clean `npx eslint .` (0 errors) and `npx next build` compiling all 39 static and dynamic routes. |
 | **32** | 2026-09-11 | 1-Click Role Upgrade Architecture ("Become a Seller") | Done | Completed 1-click role upgrade feature according to `backend/prompts.md`: 1. Added `upgradeUserRole(role)` in `src/services/api.ts` saving newly signed JWT token directly into `localStorage.getItem("verza_auth_token")` with zero page reload. 2. Added `upgradeRole(role)` method in `AuthContext.tsx` dynamically updating authenticated `user` and `token` state. 3. Overhauled Step 10 of `/dealer/vehicles/new/page.tsx` checking for `user.role === 'buyer'`: displays high-visibility 1-click activation banner, swaps button label to *"Activate Free Seller Account & Publish"*, and seamlessly upgrades the user to seller before vehicle creation. 4. Updated `RoleGuard.tsx` to display 1-click *"Activate Free Seller Account"* and *"Activate Dealership Showroom"* buttons when a buyer visits seller/dealer portals, granting instant access upon upgrade. 5. Updated `/settings/page.tsx` Role Workspace tab with dedicated 1-click upgrade cards for buyers with instant activation buttons. 6. Added *"Become a Seller"* links to `Navbar.tsx` desktop user dropdown and mobile drawer for buyer accounts. Verified with clean `npx eslint .` (0 errors) and `npx next build` compiling all 39 routes with 100% success. |
 | **33** | 2026-09-11 | Brevo OTP Verification Popup, Cooldown & Password Recovery Workflows | Done | Integrated Brevo email verification and password recovery across the web app: 1. Added `verifyOTP`, `resendOTP`, `forgotPassword`, and `resetPassword` to `src/services/api.ts` with updated `AuthResponse` interface. 2. Updated `AuthContext.tsx` with `AuthModalMode` (`"login" | "signup" | "verify_otp" | "forgot_password" | "reset_password"`), `verifyCode`, `resendCode`, `requestPasswordReset`, and `confirmPasswordReset`. 3. Overhauled `AuthModal.tsx` to automatically display a 6-digit OTP verification screen upon user registration, complete with 6 individual numeric input slots, auto-advance, backspace navigation, paste handling, and a 60-second resend cooldown countdown timer. 4. Implemented interactive "Forgot Password?" and "Reset Password" workflows with recovery code validation and password visibility toggling, adhering to the CarPlug design system. |
+| **34** | 2026-09-12 | Priority 0: KYC Approval Trust Flag Activation & Surfacing | Done | Surfaced verified trust indicators across the frontend: 1. Updated `/dealer/shop` and `/shops/[slug]` to render `shop.verifiedCAC` badge upon dealership CAC compliance approval. 2. Surfaced `user.isVerified` trust indicators across `/seller/dashboard`, `/technician/dashboard`, and `/settings`. 3. Verified full synchronization with backend `UpdateVerificationStatus` which elevates `VerifiedCAC` and `IsVerified` upon compliance audit sign-off. |
+| **35** | 2026-09-12 | Priority 1: KYC Route-Level Hardening & Self-Scoped Endpoint Split | Done | Hardened KYC verification queries across roles: 1. Added `fetchMyVerifications()` in `src/services/api.ts` wired to `GET /api/verifications/me`. 2. Updated `/seller/dashboard/page.tsx` to query `/api/verifications/me`, ensuring non-admin users receive only their own submitted verifications. 3. Reserved `fetchVerifications()` (`GET /api/verifications`) strictly for `/admin/verifications/page.tsx` with `RequireRoles("admin")` enforcement. |
+| **36** | 2026-09-12 | Priority 2: CORS Localhost Security & Dev Parity | Done | Documented browser origin isolation security rationale in `backend/routes/routes.go`. Confirmed local frontend development instances on any loopback port (`http://localhost:*`, `http://127.0.0.1:*`) communicate seamlessly with backend API with zero CORS preflight rejections. |
+| **37** | 2026-09-12 | Priority 3: Git History Database Credential Scrub | Done | Cleared all historical database credentials across git commit history using `git filter-repo`. Verified commit history tree cleanly matches remote `origin/shuddy` without dangling secrets. |
+| **38** | 2026-09-12 | Priority 4: Asset Hygiene, Cloudinary Demo Purge & Font Optimization | Done | 1. Purged 58 unreferenced TTF fonts in `web_app/public/fonts/` (saving 19.5 MB), retaining active Geist font files in `web_app/src/fonts/` configured via Next.js `localFont`. 2. Cleared 58 unused demo sample images from Cloudinary (`wlasi06s`) using Admin API. 3. Removed unused SVG boilerplate files and `car6.jpeg`. Fixed phantom references (`hero-car.webp`, `car2.jpeg`). 4. Preserved and verified all 3 customer story videos (`story1.mp4`, `story2.mp4`, `story3.mp4`) in `web_app/public/images/stories/` and their interactive video player modal in `WhatTheySaidSection.tsx`. |
+| **39** | 2026-09-12 | Lead Ownership Security & Status Validation Hardening | Done | Hardened lead status mutations: 1. Added strict validation preventing invalid status updates. 2. Enforced caller ownership checking (`lead.SellerID == userID` or dealer showroom owner, or `admin`) on `PATCH /api/leads/:id/status`. Verified via manual two-account integration test asserting HTTP 403 Forbidden on unauthorized cross-seller mutations. |
+| **40** | 2026-09-12 | Full E2E User Journey Verification & Automated Technician Fee Settlement | Done | 1. Connected automatic technician fee crediting (`inspection_earning`, ₦45,000, `status = "settled"`) in `SubmitInspectionReport`. 2. Built and executed comprehensive 9-stage end-to-end integration test (`test_e2e_user_journey.js`) asserting health check, registration & Brevo OTP verification, 1-click role upgrade, vehicle creation, buyer discovery & direct chat, lead management & 403 cross-seller guard, 150-point report filing & Tier 5 auto-upgrade, KYC NIN submission & admin approval, escrow payment, wallet balance, and payout disbursement. All 9 stages passed with 100% success. |
+
+---
+
+## 6. Asset & Media Registry & Optimization Standard
+
+### 6.1 Font System Architecture
+- **Location**: `web_app/src/fonts/`
+- **Active Fonts**:
+  - `GeistVF.woff`: Primary sans-serif font loaded via Next.js `localFont` with CSS variable `--font-geist-sans`.
+  - `GeistMonoVF.woff`: Monospace font loaded via Next.js `localFont` with CSS variable `--font-geist-mono`.
+- **Optimization**: Legacy `web_app/public/fonts/` directory containing 58 unreferenced TTF files (19.5 MB) was completely removed to eliminate bundle bloat and ensure zero redundant fonts are served.
+
+### 6.2 Public Static Images & Videos
+- **Location**: `web_app/public/images/`
+- **Active Referenced Images**: Exactly 31 referenced image assets across car category silhouettes, feature banners, security icons, and brand graphics. Zero dangling or unreferenced images on disk.
+- **Stories & Testimonial Video Assets**:
+  - Located at `web_app/public/images/stories/`:
+    - `story1.mp4` — Customer verification journey video
+    - `story2.mp4` — Dealership inspection experience video
+    - `story3.mp4` — Escrow & smooth handover video
+  - Rendered dynamically via `WhatTheySaidSection.tsx` with full thumbnail poster previews, play/pause controls, and fullscreen playback modal.
+
+### 6.3 Cloudinary Remote Media Strategy
+- **Cloud Name**: `wlasi06s`
+- **Root Folder**: `carplug/vehicles/` for user and dealer listing uploads.
+- **Hygiene**: All default Cloudinary sample demo assets (e.g. `cld-sample-1..5`, `samples/*`, `dam/*`) were permanently purged via Cloudinary Admin API, ensuring 100% of remote storage is dedicated to legitimate CarPlug inventory.
+
+---
+
+## 7. Quality Assurance & Verification Matrix
+
+Every feature addition and codebase modification must pass the two-tier verification gate run strictly from repository root:
+
+1. **Backend Quality Gate**:
+   ```bash
+   cd backend
+   go build ./...
+   go vet ./...
+   cd ..
+   ```
+   Ensures zero compilation errors, type mismatches, or static analysis regressions across all Go packages and controllers.
+
+2. **Frontend Quality Gate**:
+   ```bash
+   cd web_app
+   npx eslint .
+   npx next build
+   cd ..
+   ```
+   Ensures zero ESLint violations, zero TypeScript errors, and successful static/dynamic compilation across all 39 Next.js App Router routes.
+
 
 
 

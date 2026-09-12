@@ -90,10 +90,39 @@ func UpdateLeadStatus(c *gin.Context) {
 		return
 	}
 
+	validStatuses := map[string]bool{
+		"new": true, "routed": true, "contacted": true,
+		"completed": true, "cancelled": true,
+	}
+	if !validStatuses[req.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status: must be one of new, routed, contacted, completed, cancelled"})
+		return
+	}
+
 	db := config.GetDB()
+	var lead models.Lead
+	if err := db.First(&lead, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lead not found"})
+		return
+	}
+
+	userID := c.GetString("userID")
+	role := c.GetString("userRole")
+	isOwner := (lead.SellerID == userID)
+	if !isOwner && role == "dealer" {
+		var dealer models.DealerShop
+		if err := db.Where("user_id = ? AND id = ?", userID, lead.SellerID).First(&dealer).Error; err == nil {
+			isOwner = true
+		}
+	}
+	if role != "admin" && !isOwner {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to update this lead"})
+		return
+	}
+
 	var updateErr error
 	for attempt := 1; attempt <= 3; attempt++ {
-		updateErr = db.Model(&models.Lead{}).Where("id = ?", id).Update("status", req.Status).Error
+		updateErr = db.Model(&lead).Update("status", req.Status).Error
 		if updateErr == nil {
 			break
 		}
@@ -107,3 +136,4 @@ func UpdateLeadStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Lead status updated", "id": id, "status": req.Status})
 }
+

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
 )
+
 
 func toJSONString(val any) string {
 	if val == nil {
@@ -316,11 +318,40 @@ func SubmitInspectionReport(c *gin.Context) {
 		_ = db.Model(&models.Vehicle{}).Where("id = ?", report.VehicleID).Updates(vehicleUpdates).Error
 	}
 
+	// Automatic Technician Earnings Settlement: credit inspection fee to technician wallet
+	if report.TechnicianID != "" {
+		feeAmount := int64(45000)
+		if report.InspectionTier == "Pre-Purchase Master" || report.InspectionTier == "Comprehensive" {
+			feeAmount = 45000
+		} else if report.InspectionTier == "Standard" {
+			feeAmount = 25000
+		}
+		feeTxn := models.Transaction{
+			ID:        "txn-" + strconv.FormatInt(time.Now().UnixNano(), 36),
+			Reference: fmt.Sprintf("CP-EARN-%d-%s", time.Now().Unix(), report.ID),
+			UserID:    report.TechnicianID,
+			UserName:  report.TechnicianName,
+			UserRole:  "technician",
+			Type:      "inspection_earning",
+			Title:     fmt.Sprintf("Inspection Fee: %s (%s)", report.VehicleTitle, report.InspectionTier),
+			EntityID:  report.ID,
+			Amount:    feeAmount,
+			Currency:  "NGN",
+			Gateway:   "wallet",
+			Status:    "settled",
+			Notes:     fmt.Sprintf("Disbursed from Carplug Escrow upon 150-point report completion for %s", report.VehicleTitle),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		_ = db.Create(&feeTxn).Error
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Inspection report compiled and vehicle upgraded to Tier 5 successfully",
 		"data":    report,
 	})
 }
+
 
 // GetTechnicianMeInspections returns inspection dispatches assigned to the authenticated technician
 func GetTechnicianMeInspections(c *gin.Context) {

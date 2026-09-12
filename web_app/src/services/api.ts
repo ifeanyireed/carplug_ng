@@ -172,6 +172,7 @@ interface RawInspectionReport {
   vehicleTitle: string;
   vehicleVin: string;
   buyerId: string;
+  escrowTransactionId?: string;
   technicianId: string;
   technicianName: string;
   technicianAvatar?: string;
@@ -294,6 +295,7 @@ export function adaptInspectionReport(raw: RawInspectionReport): InspectionRepor
     vehicleTitle: raw.vehicleTitle,
     vehicleVin: raw.vehicleVin,
     buyerId: raw.buyerId,
+    escrowTransactionId: raw.escrowTransactionId,
     technicianId: raw.technicianId,
     technicianName: raw.technicianName,
     technicianAvatar: raw.technicianAvatar,
@@ -832,10 +834,14 @@ export async function createInspection(
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`Failed to create inspection: ${res.statusText}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to create inspection: ${res.statusText}`);
+  }
   const raw = await res.json();
   return adaptInspectionReport(raw);
 }
+
 
 /**
  * Updates an inspection's status.

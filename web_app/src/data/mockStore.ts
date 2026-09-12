@@ -46,6 +46,7 @@ export interface InspectionReport {
   vehicleTitle: string;
   vehicleVin: string;
   buyerId: string;
+  escrowTransactionId?: string;
   technicianId: string;
   technicianName: string;
   technicianAvatar?: string;

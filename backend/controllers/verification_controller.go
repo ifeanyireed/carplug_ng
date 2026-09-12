@@ -83,24 +83,57 @@ func SubmitVerification(c *gin.Context) {
 	})
 }
 
-// GetVerifications lists pending, approved, or rejected verifications
-func GetVerifications(c *gin.Context) {
+// GetMyVerifications lists the authenticated user's own verification document submissions
+func GetMyVerifications(c *gin.Context) {
 	userIDVal, _ := c.Get("userID")
-	userRoleVal, _ := c.Get("userRole")
 	userID, _ := userIDVal.(string)
-	userRole, _ := userRoleVal.(string)
 
+	db := config.GetDB()
+	query := db.Model(&models.Verification{}).Where("user_id = ?", userID)
+
+	if status := c.Query("status"); status != "" && status != "all" {
+		query = query.Where("status = ?", status)
+	}
+
+	if entityType := c.Query("entityType"); entityType != "" && entityType != "all" {
+		query = query.Where("entity_type = ?", entityType)
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "50"))
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count verifications: " + err.Error()})
+		return
+	}
+
+	var list []models.Verification
+	if err := query.Order("created_at desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query verifications: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+		"data":     list,
+	})
+}
+
+// GetVerifications lists pending, approved, or rejected verifications for the admin compliance queue
+func GetVerifications(c *gin.Context) {
 	db := config.GetDB()
 	query := db.Model(&models.Verification{})
 
-	// SECURITY CRITICAL (PII PROTECTION):
-	// Non-admin callers MUST strictly be restricted to user_id = userID.
-	// This filter block is the only line of defense preventing unauthorized users from accessing
-	// other parties' sensitive KYC compliance documentation (customs declarations, NINs, CAC records).
-	// DO NOT REMOVE OR MODIFY WITHOUT SPLITTING INTO DEDICATED ADMIN/USER ROUTES.
-	if userRole != "admin" {
-		query = query.Where("user_id = ?", userID)
-	} else if filterUser := c.Query("userId"); filterUser != "" {
+	if filterUser := c.Query("userId"); filterUser != "" {
 		query = query.Where("user_id = ?", filterUser)
 	}
 

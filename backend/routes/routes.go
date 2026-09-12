@@ -20,8 +20,9 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		isAllowed := allowed[origin] || allowed[strings.TrimRight(origin, "/")]
 
-		// Always permit localhost / loopback development ports regardless of GIN_MODE
-		// so local CLI tooling, mobile testing emulators, and local Next.js frontends can communicate safely.
+		// Always permit localhost/loopback origins for local development.
+		// Safe in production too: browsers never let a page on another origin
+		// forge a request with Origin: localhost, so this can't be abused remotely.
 		if !isAllowed && origin != "" {
 			if strings.HasPrefix(origin, "http://localhost:") ||
 				strings.HasPrefix(origin, "http://127.0.0.1:") ||
@@ -201,7 +202,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		verifications.Use(authMiddleware)
 		{
 			verifications.POST("", controllers.SubmitVerification)
-			verifications.GET("", controllers.GetVerifications)
+			verifications.GET("/me", controllers.GetMyVerifications)
+			verifications.GET("", middleware.RequireRoles("admin"), controllers.GetVerifications)
 			verifications.PATCH("/:id/status", middleware.RequireRoles("admin"), controllers.UpdateVerificationStatus)
 		}
 

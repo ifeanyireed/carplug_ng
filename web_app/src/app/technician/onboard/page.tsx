@@ -33,10 +33,9 @@ export default function TechnicianOnboardingPage() {
         setUploadedFileName(file.name);
       }
     } catch (err: unknown) {
-      console.warn("Cloudinary upload error, using fallback preview:", err);
-      const fakeUrl = `https://res.cloudinary.com/wlasi06s/image/upload/sample.jpg`;
-      setUploadedDocUrl(fakeUrl);
-      setUploadedFileName(file.name);
+      console.warn("Document upload error:", err);
+      const msg = err instanceof Error ? err.message : "Certificate upload failed. Please try again.";
+      setErrorMsg(msg);
     } finally {
       setIsUploading(false);
     }

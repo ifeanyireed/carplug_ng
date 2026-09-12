@@ -4,33 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Check, X, Loader2, FileText, ExternalLink, ShieldCheck, RefreshCw } from "lucide-react";
 import { fetchVerifications, updateVerificationStatus, VerificationItem } from "@/services/api";
 
-const INITIAL_FALLBACK_QUEUE: VerificationItem[] = [
-  {
-    id: "ver-fallback-101",
-    userId: "usr-demo-dealer",
-    entityType: "customs_sgd",
-    entityId: "v-mercedes-gle450-2022",
-    documentUrl: "https://res.cloudinary.com/wlasi06s/image/upload/sample.jpg",
-    vin: "WDC2539841F901823",
-    status: "pending",
-    notes: "Direct Tokunbo SGD single goods customs declaration with Tin Can port stamp",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "ver-fallback-102",
-    userId: "usr-demo-seller",
-    entityType: "seller_nin",
-    entityId: "usr-demo-seller",
-    documentUrl: "https://res.cloudinary.com/wlasi06s/image/upload/sample.jpg",
-    vin: "NIN: 49201928401",
-    status: "pending",
-    notes: "National Identity Number digital slip submitted for private seller verification",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-];
-
 export default function VerificationQueuePage() {
   const [items, setItems] = useState<VerificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,15 +16,11 @@ export default function VerificationQueuePage() {
     fetchVerifications(statusFilter !== "all" ? { status: statusFilter } : undefined)
       .then((res) => {
         if (!isMounted) return;
-        if (res && res.data && res.data.length > 0) {
-          setItems(res.data);
-        } else {
-          setItems(INITIAL_FALLBACK_QUEUE);
-        }
+        setItems(res?.data || []);
       })
       .catch((err) => {
-        console.warn("Failed to fetch verifications from API, using fallback queue:", err);
-        if (isMounted) setItems(INITIAL_FALLBACK_QUEUE);
+        console.warn("Failed to fetch verifications from API:", err);
+        if (isMounted) setItems([]);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);

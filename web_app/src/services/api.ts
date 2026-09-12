@@ -355,7 +355,7 @@ export function adaptTechnician(raw: RawTechnician): Technician {
     id: raw.id,
     name: raw.name,
     badge: raw.badge || "Platform Certified",
-    avatar: raw.avatar || "/images/tech-musa.jpg",
+    avatar: raw.avatar || "",
     rating: raw.rating ?? 4.8,
     completedJobs: raw.completedJobs ?? 0,
     serviceAreas: serviceAreas.length > 0 ? serviceAreas : ["Lagos"],
@@ -1551,7 +1551,35 @@ export async function submitVerification(
 }
 
 /**
- * Fetches compliance verification queue for admin or current user.
+ * Fetches compliance verification records submitted by the current authenticated user.
+ */
+export async function fetchMyVerifications(params?: {
+  status?: string;
+  entityType?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<VerificationsResponse> {
+  const url = new URL(`${API_BASE_URL}/verifications/me`);
+  if (params) {
+    if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
+    if (params.entityType && params.entityType !== "all") url.searchParams.set("entityType", params.entityType);
+    if (params.page) url.searchParams.set("page", String(params.page));
+    if (params.pageSize) url.searchParams.set("pageSize", String(params.pageSize));
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch user verifications");
+  }
+  return await res.json();
+}
+
+/**
+ * Fetches compliance verification queue for admin audit moderation.
  */
 export async function fetchVerifications(params?: {
   status?: string;

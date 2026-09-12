@@ -8,7 +8,7 @@ import { Vehicle } from "@/data/mockStore";
 import {
   fetchVehicles,
   fetchConversations,
-  fetchVerifications,
+  fetchMyVerifications,
   Conversation,
   VerificationItem,
 } from "@/services/api";
@@ -40,7 +40,7 @@ export default function SellerDashboardPage() {
         const [allVehicles, convs, verifs] = await Promise.all([
           fetchVehicles().catch(() => []),
           fetchConversations().catch(() => []),
-          fetchVerifications().catch(() => ({ data: [], total: 0, page: 1, pageSize: 10 })),
+          fetchMyVerifications().catch(() => ({ data: [], total: 0, page: 1, pageSize: 10 })),
         ]);
 
         if (!isMounted) return;

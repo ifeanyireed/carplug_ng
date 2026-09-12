@@ -199,7 +199,7 @@ export default function ReportComposerPage() {
         },
         {
           type: "image",
-          url: "/images/cars/car2.jpg",
+          url: "/images/cars/car2.jpeg",
           caption: "OBD-II Live Diagnostic System Scan",
         },
       ];

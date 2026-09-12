@@ -135,6 +135,14 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 				log.Println("[Database] OTPVerification table verified/migrated.")
 			}
 		}
+		if !DB.Migrator().HasColumn(&models.InspectionReport{}, "EscrowTransactionID") {
+			log.Println("[Database] Migrating inspection_reports for EscrowTransactionID column...")
+			if migErr := DB.AutoMigrate(&models.InspectionReport{}); migErr != nil {
+				log.Printf("[Database] Warning: auto-migrating inspection_reports: %v\n", migErr)
+			} else {
+				log.Println("[Database] inspection_reports table updated.")
+			}
+		}
 	}
 
 	// Auto seed initial data if enabled

@@ -3,11 +3,13 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
 )
@@ -70,26 +72,27 @@ func GetInspectionByID(c *gin.Context) {
 }
 
 type CreateInspectionInput struct {
-	ID                string  `json:"id"`
-	VehicleID         string  `json:"vehicleId"`
-	VehicleTitle      string  `json:"vehicleTitle"`
-	VehicleVIN        string  `json:"vehicleVin"`
-	BuyerID           string  `json:"buyerId"`
-	TechnicianID      string  `json:"technicianId"`
-	TechnicianName    string  `json:"technicianName"`
-	TechnicianAvatar  string  `json:"technicianAvatar"`
-	TechnicianPhone   string  `json:"technicianPhone"`
-	TechnicianTier    string  `json:"technicianTier"`
-	InspectionTier    string  `json:"inspectionTier"`
-	Status            string  `json:"status"`
-	ScheduledDate     string  `json:"scheduledDate"`
-	CompletedDate     string  `json:"completedDate"`
-	OverallScore      int     `json:"overallScore"`
-	Categories        any     `json:"categories"`
-	TechnicianSummary string  `json:"technicianSummary"`
-	RepairCostMin     float64 `json:"repairCostMin"`
-	RepairCostMax     float64 `json:"repairCostMax"`
-	Media             any     `json:"media"`
+	ID                  string  `json:"id"`
+	VehicleID           string  `json:"vehicleId"`
+	VehicleTitle        string  `json:"vehicleTitle"`
+	VehicleVIN          string  `json:"vehicleVin"`
+	BuyerID             string  `json:"buyerId"`
+	EscrowTransactionID string  `json:"escrowTransactionId"`
+	TechnicianID        string  `json:"technicianId"`
+	TechnicianName      string  `json:"technicianName"`
+	TechnicianAvatar    string  `json:"technicianAvatar"`
+	TechnicianPhone     string  `json:"technicianPhone"`
+	TechnicianTier      string  `json:"technicianTier"`
+	InspectionTier      string  `json:"inspectionTier"`
+	Status              string  `json:"status"`
+	ScheduledDate       string  `json:"scheduledDate"`
+	CompletedDate       string  `json:"completedDate"`
+	OverallScore        int     `json:"overallScore"`
+	Categories          any     `json:"categories"`
+	TechnicianSummary   string  `json:"technicianSummary"`
+	RepairCostMin       float64 `json:"repairCostMin"`
+	RepairCostMax       float64 `json:"repairCostMax"`
+	Media               any     `json:"media"`
 }
 
 func CreateInspection(c *gin.Context) {
@@ -101,27 +104,88 @@ func CreateInspection(c *gin.Context) {
 
 	db := config.GetDB()
 
+	// Priority 0.1: Require and validate real held escrow payment
+	if req.EscrowTransactionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "escrowTransactionId is required — an inspection cannot be created without a funded escrow payment"})
+		return
+	}
+
+	var escrowTxn models.Transaction
+	if err := db.Where("id = ? AND type = ? AND status = ?", req.EscrowTransactionID, "inspection_escrow", "held_in_escrow").
+		First(&escrowTxn).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No funded escrow transaction found for this inspection request"})
+		return
+	}
+
+	callerID := c.GetString("userID")
+	callerRole := c.GetString("userRole")
+
+	// Priority 0.1 & 0.3: Confirm escrow belongs to requesting caller (if not admin) and guard against self-assignment
+	buyerID := callerID
+	if callerRole != "admin" {
+		if escrowTxn.UserID != callerID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "This escrow transaction does not belong to you"})
+			return
+		}
+		if req.TechnicianID != "" && req.TechnicianID == callerID {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Self-assignment is not permitted: buyer cannot assign themselves as technician"})
+			return
+		}
+	} else {
+		if req.BuyerID != "" {
+			buyerID = req.BuyerID
+		} else if escrowTxn.UserID != "" {
+			buyerID = escrowTxn.UserID
+		}
+	}
+
+	// Guard against duplicate use of same escrow transaction
+	var existingReport models.InspectionReport
+	if err := db.Where("escrow_transaction_id = ?", req.EscrowTransactionID).First(&existingReport).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "This escrow transaction has already been linked to an inspection"})
+		return
+	}
+
+	// Priority 0.3: If a technician ID is passed, verify technician identity
+	if req.TechnicianID != "" {
+		var techUser models.User
+		isTech := false
+		if err := db.Where("id = ? AND role = ?", req.TechnicianID, "technician").First(&techUser).Error; err == nil {
+			isTech = true
+		} else {
+			var techRecord models.Technician
+			if err := db.Where("id = ?", req.TechnicianID).First(&techRecord).Error; err == nil {
+				isTech = true
+			}
+		}
+		if !isTech {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Assigned technician must be a valid registered platform technician"})
+			return
+		}
+	}
+
 	report := models.InspectionReport{
-		ID:                req.ID,
-		VehicleID:         req.VehicleID,
-		VehicleTitle:      req.VehicleTitle,
-		VehicleVIN:        req.VehicleVIN,
-		BuyerID:           req.BuyerID,
-		TechnicianID:      req.TechnicianID,
-		TechnicianName:    req.TechnicianName,
-		TechnicianAvatar:  req.TechnicianAvatar,
-		TechnicianPhone:   req.TechnicianPhone,
-		TechnicianTier:    req.TechnicianTier,
-		InspectionTier:    req.InspectionTier,
-		Status:            req.Status,
-		ScheduledDate:     req.ScheduledDate,
-		CompletedDate:     req.CompletedDate,
-		OverallScore:      req.OverallScore,
-		Categories:        toJSONString(req.Categories),
-		TechnicianSummary: req.TechnicianSummary,
-		RepairCostMin:     req.RepairCostMin,
-		RepairCostMax:     req.RepairCostMax,
-		Media:             toJSONString(req.Media),
+		ID:                  req.ID,
+		VehicleID:           req.VehicleID,
+		VehicleTitle:        req.VehicleTitle,
+		VehicleVIN:          req.VehicleVIN,
+		BuyerID:             buyerID,
+		EscrowTransactionID: req.EscrowTransactionID,
+		TechnicianID:        req.TechnicianID,
+		TechnicianName:      req.TechnicianName,
+		TechnicianAvatar:    req.TechnicianAvatar,
+		TechnicianPhone:     req.TechnicianPhone,
+		TechnicianTier:      req.TechnicianTier,
+		InspectionTier:      req.InspectionTier,
+		Status:              req.Status,
+		ScheduledDate:       req.ScheduledDate,
+		CompletedDate:       req.CompletedDate,
+		OverallScore:        req.OverallScore,
+		Categories:          toJSONString(req.Categories),
+		TechnicianSummary:   req.TechnicianSummary,
+		RepairCostMin:       req.RepairCostMin,
+		RepairCostMax:       req.RepairCostMax,
+		Media:               toJSONString(req.Media),
 	}
 
 	if report.ID == "" {
@@ -135,15 +199,6 @@ func CreateInspection(c *gin.Context) {
 	}
 	if report.ScheduledDate == "" {
 		report.ScheduledDate = time.Now().Format("Jan 02, 2006")
-	}
-
-	// Auto-populate BuyerID from auth context if not explicitly provided
-	if report.BuyerID == "" {
-		if uidVal, exists := c.Get("userID"); exists {
-			if uid, ok := uidVal.(string); ok {
-				report.BuyerID = uid
-			}
-		}
 	}
 
 	// Auto-populate Vehicle info if missing
@@ -255,6 +310,12 @@ func SubmitInspectionReport(c *gin.Context) {
 		return
 	}
 
+	// Priority 0.1 & Priority 1.4: Require valid linked escrow transaction
+	if report.EscrowTransactionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot submit report: no valid funded escrow transaction is attached to this inspection"})
+		return
+	}
+
 	userIDVal, _ := c.Get("userID")
 	userRoleVal, _ := c.Get("userRole")
 	userID, _ := userIDVal.(string)
@@ -302,31 +363,27 @@ func SubmitInspectionReport(c *gin.Context) {
 	report.CompletedDate = time.Now().Format("Jan 02, 2006")
 	report.UpdatedAt = time.Now()
 
-	if err := db.Save(&report).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save inspection report: " + err.Error()})
-		return
-	}
+	// Priority 0.2: Release actual escrow amount atomically inside one DB transaction
+	var escrowTxn models.Transaction
+	var feeTxn models.Transaction
 
-	// Automatic Vehicle Tier 5 Upgrade & Link
-	if report.VehicleID != "" {
-		vehicleUpdates := map[string]interface{}{
-			"trust_tier":           5,
-			"trust_tier_label":     "Tier 5 Verified • 150-Point Certified",
-			"health_score":         report.OverallScore,
-			"latest_inspection_id": report.ID,
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// 1. Verify and lock the held escrow transaction
+		if err := tx.Where("id = ? AND type = ? AND status = ?",
+			report.EscrowTransactionID, "inspection_escrow", "held_in_escrow").
+			First(&escrowTxn).Error; err != nil {
+			return fmt.Errorf("no held escrow found for this inspection: %w", err)
 		}
-		_ = db.Model(&models.Vehicle{}).Where("id = ?", report.VehicleID).Updates(vehicleUpdates).Error
-	}
 
-	// Automatic Technician Earnings Settlement: credit inspection fee to technician wallet
-	if report.TechnicianID != "" {
-		feeAmount := int64(45000)
-		if report.InspectionTier == "Pre-Purchase Master" || report.InspectionTier == "Comprehensive" {
-			feeAmount = 45000
-		} else if report.InspectionTier == "Standard" {
-			feeAmount = 25000
+		// 2. Mark escrow settled
+		escrowTxn.Status = "settled"
+		escrowTxn.UpdatedAt = time.Now()
+		if err := tx.Save(&escrowTxn).Error; err != nil {
+			return err
 		}
-		feeTxn := models.Transaction{
+
+		// 3. Create settled technician earning transaction with escrowTxn.Amount (REAL amount, no fabrication)
+		feeTxn = models.Transaction{
 			ID:        "txn-" + strconv.FormatInt(time.Now().UnixNano(), 36),
 			Reference: fmt.Sprintf("CP-EARN-%d-%s", time.Now().Unix(), report.ID),
 			UserID:    report.TechnicianID,
@@ -335,20 +392,50 @@ func SubmitInspectionReport(c *gin.Context) {
 			Type:      "inspection_earning",
 			Title:     fmt.Sprintf("Inspection Fee: %s (%s)", report.VehicleTitle, report.InspectionTier),
 			EntityID:  report.ID,
-			Amount:    feeAmount,
+			Amount:    escrowTxn.Amount,
 			Currency:  "NGN",
 			Gateway:   "wallet",
 			Status:    "settled",
-			Notes:     fmt.Sprintf("Disbursed from Carplug Escrow upon 150-point report completion for %s", report.VehicleTitle),
+			Notes:     fmt.Sprintf("Released from escrow (%s) upon inspection report completion", escrowTxn.Reference),
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
-		_ = db.Create(&feeTxn).Error
+		if err := tx.Create(&feeTxn).Error; err != nil {
+			return err
+		}
+
+		// 4. Save inspection report
+		if err := tx.Save(&report).Error; err != nil {
+			return err
+		}
+
+		// 5. Automatic Vehicle Tier 5 Upgrade & Link
+		if report.VehicleID != "" {
+			vehicleUpdates := map[string]interface{}{
+				"trust_tier":           5,
+				"trust_tier_label":     "Tier 5 Verified • 150-Point Certified",
+				"health_score":         report.OverallScore,
+				"latest_inspection_id": report.ID,
+			}
+			if err := tx.Model(&models.Vehicle{}).Where("id = ?", report.VehicleID).Updates(vehicleUpdates).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("[CRITICAL] Inspection report %s saved but earnings release failed: %v", report.ID, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to complete inspection report and disburse earnings: " + err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Inspection report compiled and vehicle upgraded to Tier 5 successfully",
-		"data":    report,
+		"message":            "Inspection report compiled and vehicle upgraded to Tier 5 successfully",
+		"data":               report,
+		"escrowTransaction":  escrowTxn,
+		"earningTransaction": feeTxn,
 	})
 }
 

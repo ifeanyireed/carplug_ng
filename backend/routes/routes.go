@@ -130,7 +130,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			inspections.GET("/:id", controllers.GetInspectionByID)
 
 			// Protected order & status update
-			inspections.POST("", authMiddleware, controllers.CreateInspection)
+			inspections.POST("", authMiddleware, middleware.RequireRoles("buyer", "admin"), controllers.CreateInspection)
 			inspections.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.UpdateInspectionStatus)
 			inspections.POST("/:id/report", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.SubmitInspectionReport)
 		}

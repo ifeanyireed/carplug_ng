@@ -145,6 +145,7 @@ export const BrowseByType = ({
                       src={item.image}
                       alt={item.imageAlt}
                       fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                       className={item.imageClass || "object-contain object-center"}
                     />
                   </div>

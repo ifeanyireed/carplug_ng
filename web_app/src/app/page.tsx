@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/hero/Hero";
 import { SearchFilterState } from "@/components/hero/HeroSearchBox";
 import { SearchResultsDisplay } from "@/components/hero/SearchResultsDisplay";
@@ -179,6 +180,9 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#F7F8FA] text-neutral-900 selection:bg-neutral-900 selection:text-white flex flex-col justify-between">
       <div>
+        {/* Sticky Floating Navbar */}
+        <Navbar floating onOpenAuth={handleOpenAuth} />
+
         {/* Hero Section with continuous car backdrop and search card */}
         <Hero
           onSearch={handleSearch}

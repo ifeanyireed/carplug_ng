@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Navbar } from "@/components/layout/Navbar";
 import { HeroSearchBox, SearchFilterState } from "./HeroSearchBox";
 import { FeaturedVehicleModal } from "./FeaturedVehicleModal";
 import { Play } from "lucide-react";
@@ -21,7 +20,7 @@ export const Hero = ({
   return (
     <section className="relative w-full">
       {/* Full-bleed Hero Visual Area spanning continuous background from top down under search form */}
-      <div className="relative w-full min-h-[660px] md:min-h-[720px] lg:min-h-[92vh] xl:min-h-[100dvh] overflow-hidden bg-neutral-900 flex flex-col justify-between pb-6 sm:pb-8 lg:pb-10 xl:pb-12">
+      <div className="relative w-full min-h-[660px] md:min-h-[720px] lg:min-h-[92vh] xl:min-h-[100dvh] overflow-hidden bg-neutral-900 flex flex-col justify-between pt-20 sm:pt-24 pb-6 sm:pb-8 lg:pb-10 xl:pb-12">
         
         {/* Background Image: Clean car1.jpeg edge-to-edge covering hero and area under form */}
         <div className="absolute inset-0 z-0 select-none">
@@ -30,6 +29,7 @@ export const Hero = ({
             alt="BMW Sports Coupe Hero"
             fill
             priority
+            sizes="100vw"
             className="object-cover object-[center_32%] sm:object-[center_34%] lg:object-[center_36%]"
           />
 
@@ -37,14 +37,6 @@ export const Hero = ({
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/75" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
           <div className="absolute inset-0 bg-black/10" />
-        </div>
-
-        {/* Top Floating Navbar Section */}
-        <div className="relative z-20 w-full">
-          <Navbar
-            onOpenAuth={onOpenAuth}
-            onOpenSaved={() => {}}
-          />
         </div>
 
         {/* Bottom-Aligned Hero Content & Search Box Group (tightly coupled directly above the form) */}

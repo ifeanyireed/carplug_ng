@@ -100,6 +100,7 @@ export const NewsAndArticlesSection = ({
               src={FEATURED_ARTICLE.image}
               alt={FEATURED_ARTICLE.imageAlt}
               fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
             />
           </div>
@@ -139,6 +140,7 @@ export const NewsAndArticlesSection = ({
                   src={article.image}
                   alt={article.imageAlt}
                   fill
+                  sizes="144px"
                   className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
               </div>

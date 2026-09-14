@@ -115,6 +115,7 @@ export const BestSellingMakesSection = ({
                 src={make.image}
                 alt={make.imageAlt}
                 fill
+                sizes="(max-width: 768px) 100vw, 33vw"
                 className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
               />
 
@@ -131,7 +132,7 @@ export const BestSellingMakesSection = ({
                       alt={make.logoAlt}
                       width={32}
                       height={32}
-                      className={`object-contain max-h-7 w-auto drop-shadow-md ${
+                      className={`object-contain max-h-7 w-auto h-auto drop-shadow-md ${
                         make.logoClass || ""
                       }`}
                     />
@@ -170,6 +171,7 @@ export const BestSellingMakesSection = ({
                 src={make.image}
                 alt={make.imageAlt}
                 fill
+                sizes="(max-width: 768px) 100vw, 33vw"
                 className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
               />
 
@@ -186,7 +188,7 @@ export const BestSellingMakesSection = ({
                       alt={make.logoAlt}
                       width={28}
                       height={28}
-                      className={`object-contain max-h-6 w-auto drop-shadow-md ${
+                      className={`object-contain max-h-6 w-auto h-auto drop-shadow-md ${
                         make.logoClass || ""
                       }`}
                     />

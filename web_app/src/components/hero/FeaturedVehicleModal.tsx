@@ -30,7 +30,7 @@ export const FeaturedVehicleModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       {/* Modal Container */}
       <div className="relative w-full max-w-4xl bg-[#17191b] border border-white/10 rounded-xl overflow-hidden shadow-2xl text-white">
         {/* Header Bar */}
@@ -63,6 +63,7 @@ export const FeaturedVehicleModal = ({
             src="/images/cars/car1.jpeg"
             alt="BMW Featured Coupe"
             fill
+            sizes="(max-width: 768px) 100vw, 800px"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
             priority
           />

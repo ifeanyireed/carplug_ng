@@ -34,11 +34,13 @@ export interface NavbarProps {
   onOpenAuth?: (mode?: "login" | "signup") => void;
   savedCount?: number;
   onOpenSaved?: () => void;
+  floating?: boolean;
 }
 
 export const Navbar = ({
   onOpenAuth,
   savedCount,
+  floating = false,
 }: NavbarProps) => {
   const { user, isAuthenticated, isLoading, logout, openAuthModal } = useAuth();
   const { savedCount: contextSavedCount } = useSavedVehicles();
@@ -46,8 +48,18 @@ export const Navbar = ({
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const isMounted = useIsMounted();
   const navRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleAuthTrigger = useCallback(
     (mode: "login" | "signup") => {
@@ -92,10 +104,18 @@ export const Navbar = ({
   }, []);
 
   return (
-    <header className="w-full pt-4 md:pt-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto z-40 relative">
+    <header
+      className={`${
+        floating ? "fixed top-0 inset-x-0" : "sticky top-0 w-full"
+      } z-50 pt-3 sm:pt-4 pb-2 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-none transition-all duration-300`}
+    >
       <nav
         ref={navRef}
-        className="bg-[#4a4e51]/90 hover:bg-[#43474a]/95 transition-colors backdrop-blur-xl border border-white/15 rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white shadow-xl flex items-center justify-between"
+        className={`pointer-events-auto transition-all duration-300 backdrop-blur-xl border rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white flex items-center justify-between ${
+          isScrolled
+            ? "bg-[#222528]/95 border-white/20 shadow-2xl"
+            : "bg-[#4a4e51]/90 hover:bg-[#43474a]/95 border-white/15 shadow-xl"
+        }`}
       >
         {/* Left: Brand Logo */}
         <Link
@@ -566,7 +586,7 @@ export const Navbar = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="pointer-events-auto lg:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150 max-h-[85vh] overflow-y-auto">
           <div className="flex flex-col space-y-1.5">
             <Link
               href="/buyer/search"

@@ -4,19 +4,58 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_SHOPS, MOCK_VEHICLES } from "@/data/mockStore";
+import { fetchDealerBySlugOrId, fetchDealerInventory, buildWhatsAppDeepLink } from "@/services/api";
+import { WhatsAppIcon } from "@/components/vehicle/ContactSellerModal";
+import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
+import type { Metadata } from "next";
 import {
   ShieldCheck,
   Star,
   MapPin,
   Clock,
   ArrowUpRight,
-  Heart,
   Zap,
   Fuel,
   Settings2,
   CarFront,
 } from "lucide-react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const shop = await fetchDealerBySlugOrId(slug);
+  if (!shop) {
+    return {
+      title: "Dealership Showroom",
+      description: "Verified dealership showroom on mycarsNg.",
+    };
+  }
+
+  const title = `${shop.name} - Verified Dealership Showroom`;
+  const description =
+    shop.tagline ||
+    `Explore verified automotive inventory from ${shop.name} in ${shop.location || "Nigeria"}. Verified dealership on mycarsNg.`;
+  const ogImage = shop.logo || "/logo.png";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | mycarsNg`,
+      description,
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | mycarsNg`,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function PublicShopStorefrontPage({
   params,
@@ -24,8 +63,11 @@ export default async function PublicShopStorefrontPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const shop = MOCK_SHOPS.find((s) => s.slug === slug) || MOCK_SHOPS[0];
-  const shopVehicles = MOCK_VEHICLES.filter((v) => v.sellerId === shop.id);
+  const shop = await fetchDealerBySlugOrId(slug);
+  if (!shop) {
+    notFound();
+  }
+  const shopVehicles = (await fetchDealerInventory(shop.id)) || [];
 
   const formatNaira = (amount: number) => {
     return `₦${(amount / 1000000).toFixed(1)}M`;
@@ -59,10 +101,12 @@ export default async function PublicShopStorefrontPage({
                   <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">
                     {shop.name}
                   </h1>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>CAC Certified</span>
-                  </span>
+                  {shop.verifiedCAC && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>CAC Certified</span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 font-normal">{shop.tagline}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
@@ -78,7 +122,20 @@ export default async function PublicShopStorefrontPage({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <a
+                href={buildWhatsAppDeepLink(
+                  shop.whatsapp || shop.phone || "2348035004401",
+                  `Hello ${shop.name}, I am browsing your verified showroom on mycarsNg and would like to inquire about your inventory.`
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2"
+              >
+                <WhatsAppIcon className="w-4 h-4 fill-white" />
+                <span>Chat on WhatsApp</span>
+              </a>
+
               <Link
                 href="/buyer/concierge"
                 className="px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold transition shadow-xs"
@@ -117,14 +174,21 @@ export default async function PublicShopStorefrontPage({
             </div>
 
             <div className="text-xs text-gray-500 font-medium">
-              Verified by Verza Inspection Engine
+              Verified by mycarsNg Inspection Engine
             </div>
           </div>
 
           {/* Outer White Card Enclosing Grid */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-7 lg:p-8 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
-              {shopVehicles.map((car) => {
+            {shopVehicles.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <CarFront className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                <h4 className="font-semibold text-base text-gray-900">No Vehicles Listed Yet</h4>
+                <p className="text-xs text-gray-500 mt-1">This showroom does not have any active inventory listed at the moment.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
+                {shopVehicles.map((car) => {
                 const badgeText = car.priceRating === "deal" ? "Great Price" : car.trustTier === 5 ? "Platform Verified" : "Inspected";
                 const badgeBg = car.trustTier === 5 ? "bg-blue-600" : "bg-[#16a34a]";
 
@@ -150,13 +214,7 @@ export default async function PublicShopStorefrontPage({
                       </div>
 
                       {/* Favorite Heart Button */}
-                      <button
-                        type="button"
-                        aria-label="Add to favorites"
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
-                      >
-                        <Heart className="w-4 h-4 text-white" />
-                      </button>
+                      <SaveVehicleButton vehicle={car} />
 
                       {/* Carousel Pagination Dots */}
                       <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
@@ -223,6 +281,7 @@ export default async function PublicShopStorefrontPage({
                 );
               })}
             </div>
+          )}
           </div>
         </div>
       </main>

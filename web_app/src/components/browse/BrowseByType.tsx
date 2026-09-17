@@ -93,6 +93,7 @@ export const BrowseByType = ({
         <div className="flex items-center gap-4">
           <button
             onClick={handlePrev}
+            disabled={scrollIndex === 0}
             aria-label="Previous type"
             className="text-gray-600 hover:text-black transition p-1 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
           >
@@ -100,6 +101,7 @@ export const BrowseByType = ({
           </button>
           <button
             onClick={handleNext}
+            disabled={scrollIndex >= BODY_TYPES.length - 1}
             aria-label="Next type"
             className="text-gray-600 hover:text-black transition p-1 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
           >
@@ -143,6 +145,7 @@ export const BrowseByType = ({
                       src={item.image}
                       alt={item.imageAlt}
                       fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                       className={item.imageClass || "object-contain object-center"}
                     />
                   </div>
@@ -155,7 +158,7 @@ export const BrowseByType = ({
                   {item.name}
                 </div>
                 <div className="text-xs text-gray-500 font-normal mt-0.5">
-                  {item.units.toLocaleString()} units
+                  {item.units.toLocaleString("en-US")} units
                 </div>
               </div>
             </button>

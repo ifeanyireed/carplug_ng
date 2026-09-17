@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
+import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 import {
   X,
   Play,
@@ -23,12 +24,13 @@ export const FeaturedVehicleModal = ({
   isOpen,
   onClose,
 }: FeaturedVehicleModalProps) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const { isSaved, toggleSave } = useSavedVehicles();
+  const isLiked = isSaved("bmw-m3-e46");
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       {/* Modal Container */}
       <div className="relative w-full max-w-4xl bg-[#17191b] border border-white/10 rounded-xl overflow-hidden shadow-2xl text-white">
         {/* Header Bar */}
@@ -61,6 +63,7 @@ export const FeaturedVehicleModal = ({
             src="/images/cars/car1.jpeg"
             alt="BMW Featured Coupe"
             fill
+            sizes="(max-width: 768px) 100vw, 800px"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
             priority
           />
@@ -80,7 +83,7 @@ export const FeaturedVehicleModal = ({
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Rojo Verified 150-Point Inspection</span>
+                <span>mycarsNg Verified 150-Point Inspection</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                 2004 BMW M3 / 3-Series Coupe
@@ -143,7 +146,20 @@ export const FeaturedVehicleModal = ({
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={async () => {
+                await toggleSave({
+                  id: "bmw-m3-e46",
+                  make: "BMW",
+                  model: "M3 / 3-Series Coupe",
+                  year: 2004,
+                  price: 38500,
+                  images: ["/images/cars/car1.jpeg"],
+                  transmission: "Manual",
+                  fuelType: "Petrol",
+                  condition: "Foreign Used (Tokunbo)",
+                });
+              }}
+              aria-label={isLiked ? "Remove from saved cars" : "Save car"}
               className={`p-2.5 rounded-lg border transition ${
                 isLiked
                   ? "bg-red-500/20 border-red-500/40 text-red-400"

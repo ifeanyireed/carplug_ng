@@ -6,8 +6,8 @@ Carplug is a comprehensive automotive marketplace and trust-infrastructure platf
 
 The codebase is structured as a monorepo containing:
 
-- **[`web_app/`](./web_app)**: Next.js 16 (React 19, TypeScript, Tailwind CSS) web application and buyer/seller/dealer/technician portals.
-- **[`backend/`](./backend)**: High-performance Go (Golang) REST API powered by GORM and MySQL with connection pooling, automated migrations, and seed data.
+- **[`web_app/`](./web_app)**: Next.js 16 (React 19, TypeScript, Tailwind CSS) web application and buyer/seller/dealer/technician portals with real-time WebSocket messaging.
+- **[`backend/`](./backend)**: High-performance Go (Golang) REST & WebSocket API powered by Gin, Gorilla WebSocket, GORM, and MySQL with connection pooling, automated migrations, and seed data.
 
 ## Getting Started
 

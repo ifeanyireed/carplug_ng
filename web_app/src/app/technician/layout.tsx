@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PortalShell, NavItem } from "@/components/common/PortalShell";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import {
   LayoutDashboard,
   Wrench,
@@ -26,13 +27,15 @@ export default function TechnicianLayout({
   ];
 
   return (
-    <PortalShell
-      roleTitle="Technician Hub"
-      roleType="technician"
-      navItems={techNavItems}
-      userEmail="tech.musa@carplug.ng"
-    >
-      {children}
-    </PortalShell>
+    <RoleGuard allowedRoles={["technician", "admin"]} portalName="Technician Portal">
+      <PortalShell
+        roleTitle="Technician Hub"
+        roleType="technician"
+        navItems={techNavItems}
+        userEmail="tech.musa@carplug.ng"
+      >
+        {children}
+      </PortalShell>
+    </RoleGuard>
   );
 }

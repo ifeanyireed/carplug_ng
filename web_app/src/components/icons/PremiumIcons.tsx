@@ -81,6 +81,8 @@ export const RojoCertifiedIcon = ({ className = "w-4 h-4", size = 16, ...props }
   </svg>
 );
 
+export const VerzaCertifiedIcon = RojoCertifiedIcon;
+
 // 5. Warranty (Protection Shield)
 export const WarrantyIcon = ({ className = "w-4 h-4", size = 16, ...props }: IconProps) => (
   <svg

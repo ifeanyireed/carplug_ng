@@ -2,18 +2,16 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { RojoLogo } from "@/components/common/RojoLogo";
+import { NavLink } from "@/components/common/NavLink";
 import {
   Menu,
   X,
-  ChevronRight,
-  ShieldCheck,
-  User,
   ArrowUpRight,
   LogOut,
-  Bell,
+  Settings,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export interface NavItem {
   label: string;
@@ -37,8 +35,8 @@ export const PortalShell = ({
   children,
   userEmail = "user@carplug.ng",
 }: PortalShellProps) => {
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const pathname = usePathname();
 
   const roleColors = {
     buyer: "bg-blue-500/10 text-blue-600 border-blue-200",
@@ -62,7 +60,7 @@ export const PortalShell = ({
           </button>
 
           <Link href="/" className="flex items-center gap-2">
-            <RojoLogo className="h-6 w-auto text-neutral-900" />
+            <RojoLogo className="h-8 sm:h-9 w-auto text-neutral-900" />
           </Link>
 
           <span className="hidden sm:inline-block text-gray-300">/</span>
@@ -78,56 +76,56 @@ export const PortalShell = ({
           {/* Quick Role Switcher for Testing */}
           <div className="hidden lg:flex items-center gap-1.5 text-xs bg-gray-100 p-1 rounded-lg">
             <span className="px-2 text-gray-500 font-medium">Switch Portal:</span>
-            <Link
+            <NavLink
               href="/buyer/search"
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                pathname.startsWith("/buyer")
-                  ? "bg-white shadow-xs text-blue-600 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              matchPrefix
+              activeMatch={(p) => p.startsWith("/buyer")}
+              className="px-2.5 py-1 rounded-md font-medium transition"
+              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
+              inactiveClassName="text-gray-600 hover:text-gray-900"
             >
               Buyer
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/dealer/dashboard"
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                pathname.startsWith("/dealer")
-                  ? "bg-white shadow-xs text-amber-600 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              matchPrefix
+              activeMatch={(p) => p.startsWith("/dealer")}
+              className="px-2.5 py-1 rounded-md font-medium transition"
+              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
+              inactiveClassName="text-gray-600 hover:text-gray-900"
             >
               Dealer
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/seller/dashboard"
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                pathname.startsWith("/seller")
-                  ? "bg-white shadow-xs text-purple-600 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              matchPrefix
+              activeMatch={(p) => p.startsWith("/seller")}
+              className="px-2.5 py-1 rounded-md font-medium transition"
+              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
+              inactiveClassName="text-gray-600 hover:text-gray-900"
             >
               Private Seller
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/technician/dashboard"
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                pathname.startsWith("/technician")
-                  ? "bg-white shadow-xs text-emerald-600 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              matchPrefix
+              activeMatch={(p) => p.startsWith("/technician")}
+              className="px-2.5 py-1 rounded-md font-medium transition"
+              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
+              inactiveClassName="text-gray-600 hover:text-gray-900"
             >
               Technician
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/admin/dashboard"
-              className={`px-2.5 py-1 rounded-md font-medium transition ${
-                pathname.startsWith("/admin")
-                  ? "bg-white shadow-xs text-red-600 font-semibold"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              matchPrefix
+              activeMatch={(p) => p.startsWith("/admin")}
+              className="px-2.5 py-1 rounded-md font-medium transition"
+              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
+              inactiveClassName="text-gray-600 hover:text-gray-900"
             >
               Admin
-            </Link>
+            </NavLink>
           </div>
 
           <Link
@@ -138,8 +136,23 @@ export const PortalShell = ({
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
 
-          <div className="w-8 h-8 rounded-full bg-neutral-800 text-white flex items-center justify-center text-xs font-semibold">
-            {roleTitle.charAt(0)}
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs font-semibold shadow-xs"
+              title={user?.email || userEmail}
+            >
+              {user?.name?.charAt(0).toUpperCase() || roleTitle.charAt(0)}
+            </div>
+            {user && (
+              <button
+                onClick={() => logout()}
+                title="Log Out"
+                className="hidden sm:flex p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                aria-label="Log out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -150,45 +163,72 @@ export const PortalShell = ({
           <div className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/" &&
-                  pathname.startsWith(item.href) &&
-                  item.href !== `/${roleType}`);
-
               return (
-                <Link
+                <NavLink
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                    isActive
-                      ? "bg-neutral-900 text-white shadow-xs font-semibold"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  }`}
+                  activeMatch={(p) =>
+                    p === item.href ||
+                    (item.href !== "/" &&
+                      p.startsWith(item.href) &&
+                      item.href !== `/${roleType}`)
+                  }
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition"
+                  activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                  inactiveClassName="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
+                  {({ isActive }) => (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <Icon
+                          className={`w-4 h-4 ${
+                            isActive ? "text-emerald-600" : "text-gray-500"
+                          }`}
+                        />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                            isActive
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
                   )}
-                </Link>
+                </NavLink>
               );
             })}
+
+            <div className="pt-2 mt-2 border-t border-gray-100">
+              <NavLink
+                href="/settings"
+                exact
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition"
+                activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                inactiveClassName="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Settings
+                      className={`w-4 h-4 ${
+                        isActive ? "text-emerald-600" : "text-gray-500"
+                      }`}
+                    />
+                    <span>Account Settings</span>
+                  </>
+                )}
+              </NavLink>
+            </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200 px-3">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-              Verza Trust Engine
+              mycarsNg Trust Engine
             </div>
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 leading-relaxed">
               <p className="font-semibold mb-1">Independent Verification</p>
@@ -209,7 +249,7 @@ export const PortalShell = ({
             <div className="relative w-4/5 max-w-xs bg-white h-full p-4 flex flex-col justify-between z-10 shadow-2xl">
               <div>
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
-                  <RojoLogo className="h-6 w-auto text-neutral-900" />
+                  <RojoLogo className="h-7 w-auto text-neutral-900" />
                   <button
                     onClick={() => setMobileOpen(false)}
                     className="p-2 rounded-lg hover:bg-gray-100"
@@ -221,39 +261,89 @@ export const PortalShell = ({
                 <div className="space-y-1">
                   {navItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
                     return (
-                      <Link
+                      <NavLink
                         key={item.href}
                         href={item.href}
+                        activeMatch={(p) =>
+                          p === item.href ||
+                          (item.href !== "/" &&
+                            p.startsWith(item.href) &&
+                            item.href !== `/${roleType}`)
+                        }
                         onClick={() => setMobileOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium ${
-                          isActive
-                            ? "bg-neutral-900 text-white font-semibold"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition"
+                        activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                        inactiveClassName="text-gray-700 hover:bg-gray-100"
                       >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-4 h-4" />
-                          <span>{item.label}</span>
-                        </div>
-                        {item.badge && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
-                            {item.badge}
-                          </span>
+                        {({ isActive }) => (
+                          <>
+                            <div className="flex items-center gap-3">
+                              <Icon
+                                className={`w-4 h-4 ${
+                                  isActive ? "text-emerald-600" : "text-gray-500"
+                                }`}
+                              />
+                              <span>{item.label}</span>
+                            </div>
+                            {item.badge && (
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                  isActive
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
                         )}
-                      </Link>
+                      </NavLink>
                     );
                   })}
+
+                  <div className="pt-2 mt-2 border-t border-gray-100">
+                    <NavLink
+                      href="/settings"
+                      exact
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition"
+                      activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                      inactiveClassName="text-gray-700 hover:bg-gray-100"
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Settings
+                            className={`w-4 h-4 ${
+                              isActive ? "text-emerald-600" : "text-gray-500"
+                            }`}
+                          />
+                          <span>Account Settings</span>
+                        </>
+                      )}
+                    </NavLink>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
+                {user && (
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      logout();
+                    }}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log Out</span>
+                  </button>
+                )}
                 <Link
                   href="/"
                   className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200"
                 >
-                  <LogOut className="w-4 h-4" />
                   <span>Return to Home</span>
                 </Link>
               </div>

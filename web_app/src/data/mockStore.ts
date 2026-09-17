@@ -46,6 +46,7 @@ export interface InspectionReport {
   vehicleTitle: string;
   vehicleVin: string;
   buyerId: string;
+  escrowTransactionId?: string;
   technicianId: string;
   technicianName: string;
   technicianAvatar?: string;
@@ -513,8 +514,8 @@ export const MOCK_SHOPS: DealerShop[] = [
     slug: "reed-motors-lagos",
     name: "Reed Motors Lagos",
     tagline: "Certified Tokunbo & Luxury Vehicles with Independent Trust Scoring",
-    logo: "/images/dealer-logo-1.png",
-    banner: "/images/cars/hero-car.webp",
+    logo: "",
+    banner: "/hero-car.webp",
     location: "Lekki Phase 1, Lagos",
     address: "Plot 14 Admiralty Way, Lekki Phase 1, Lagos State",
     rating: 4.9,
@@ -533,8 +534,8 @@ export const MOCK_SHOPS: DealerShop[] = [
     slug: "crown-continental-autos",
     name: "Crown Continental Autos",
     tagline: "Direct US & Canadian Import Specialist Since 2018",
-    logo: "/images/dealer-logo-2.png",
-    banner: "/images/cars/hero-car.webp",
+    logo: "",
+    banner: "/hero-car.webp",
     location: "Ikeja GRA, Lagos",
     address: "12 Isaac John St, Ikeja GRA, Lagos State",
     rating: 4.7,
@@ -555,7 +556,7 @@ export const MOCK_TECHNICIANS: Technician[] = [
     id: "tech-musa",
     name: "Musa Danladi, ASE-Cert",
     badge: "Preferred Master",
-    avatar: "/images/tech-musa.jpg",
+    avatar: "",
     rating: 4.95,
     completedJobs: 218,
     serviceAreas: ["Lekki Phase 1", "Ikoyi", "Victoria Island", "Ajah"],
@@ -569,7 +570,7 @@ export const MOCK_TECHNICIANS: Technician[] = [
     id: "tech-kunle",
     name: "Engr. Kunle Adeleke",
     badge: "Platform Certified",
-    avatar: "/images/tech-kunle.jpg",
+    avatar: "",
     rating: 4.82,
     completedJobs: 146,
     serviceAreas: ["Ikeja", "Maryland", "Magodo", "Ogba"],
@@ -583,7 +584,7 @@ export const MOCK_TECHNICIANS: Technician[] = [
     id: "tech-emmanuel",
     name: "Emmanuel Chukwu",
     badge: "Standard Specialist",
-    avatar: "/images/tech-emmanuel.jpg",
+    avatar: "",
     rating: 4.7,
     completedJobs: 89,
     serviceAreas: ["Surulere", "Yaba", "Gbagada"],

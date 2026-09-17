@@ -1,53 +1,188 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { TrustTierBadge } from "@/components/common/TrustTierBadge";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { Vehicle } from "@/data/mockStore";
+import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages, fetchValuationEstimate, ValuationEstimateResult } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 import {
-  Car,
-  FileCheck,
   Upload,
   Check,
   ChevronRight,
   ChevronLeft,
   Wrench,
-  ShieldCheck,
-  Info,
+  X,
+  Loader2,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
 
-export default function AddVehicleWizardPage() {
+function AddVehicleWizardContent() {
+  const { user, upgradeRole } = useAuth();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit") || searchParams.get("id");
+  const isEditMode = Boolean(editId);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [published, setPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(() => Boolean(editId));
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [originalVehicle, setOriginalVehicle] = useState<Vehicle | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [priceValuation, setPriceValuation] = useState<ValuationEstimateResult | null>(null);
+  const [isEvaluatingPrice, setIsEvaluatingPrice] = useState(false);
 
-  const [formData, setFormData] = useState({
-    // Step 1: Basic details
-    make: "Mercedes-Benz",
-    model: "GLC 300",
-    year: "2021",
-    trim: "4MATIC AMG Line",
-    bodyType: "SUV",
-    // Step 2: Condition
-    condition: "Foreign Used (Tokunbo)",
-    // Step 3: Location
-    locationZone: "Lekki Phase 1, Lagos",
-    exactAddress: "Plot 14 Admiralty Way",
-    // Step 4: Specs
-    mileage: "32000",
-    transmission: "Automatic",
-    engineSize: "2.0L Turbo Inline-4",
-    fuelType: "Petrol",
-    // Step 5: Customs & Docs
-    vin: "WDC2539841F901823",
-    customsCleared: true,
-    originalReceipt: true,
-    // Step 6: Pricing
-    askingPrice: "42000000",
-    negotiable: true,
-    // Step 7: Faults disclosure
-    disclosedFaults: "Minor front bumper stone chips. Interior pristine.",
-    // Step 8: Pre-inspection opt-in
-    preInspectionOptIn: true,
+  const [formData, setFormData] = useState(() => {
+    const qMake = searchParams.get("make");
+    const qModel = searchParams.get("model");
+    const qYear = searchParams.get("year");
+    const qMileage = searchParams.get("mileage");
+
+    return {
+      // Step 1: Basic details
+      make: qMake || "Mercedes-Benz",
+      model: qModel || "GLC 300",
+      year: qYear || "2021",
+      trim: "4MATIC AMG Line",
+      bodyType: "SUV",
+      // Step 2: Condition
+      condition: "Foreign Used (Tokunbo)",
+      // Step 3: Location
+      locationZone: "Lekki Phase 1, Lagos",
+      exactAddress: "Plot 14 Admiralty Way",
+      // Step 4: Specs
+      mileage: qMileage || "32000",
+      transmission: "Automatic",
+      engineSize: "2.0L Turbo Inline-4",
+      fuelType: "Petrol",
+      // Step 5: Customs & Docs
+      vin: "WDC2539841F901823",
+      customsCleared: true,
+      originalReceipt: true,
+      // Step 6: Photos & Cloudinary Images
+      images: [] as string[],
+      // Step 7: Pricing
+      askingPrice: "42000000",
+      negotiable: true,
+      // Step 8: Faults disclosure
+      disclosedFaults: "Minor front bumper stone chips. Interior pristine.",
+      // Step 9: Pre-inspection opt-in
+      preInspectionOptIn: true,
+    };
   });
+
+  useEffect(() => {
+    if (!editId) return;
+
+    let isSubscribed = true;
+    fetchVehicleById(editId)
+      .then((car) => {
+        if (!isSubscribed) return;
+        if (car) {
+          setOriginalVehicle(car);
+          setFormData({
+            make: car.make || "",
+            model: car.model || "",
+            year: String(car.year || 2021),
+            trim: car.trim || "",
+            bodyType: car.bodyType || "SUV",
+            condition: car.condition || "Foreign Used (Tokunbo)",
+            locationZone: car.publicLocation || "Lagos, Nigeria",
+            exactAddress: car.exactLocation || "",
+            mileage: String(car.mileage || 0),
+            transmission: car.transmission || "Automatic",
+            engineSize: car.engineSize || "",
+            fuelType: car.fuelType || "Petrol",
+            vin: car.vin || "",
+            customsCleared: car.documentsAvailable?.customsDoc ?? true,
+            originalReceipt: car.documentsAvailable?.registrationDoc ?? true,
+            images: Array.isArray(car.images) && car.images.length > 0 ? car.images : [],
+            askingPrice: String(car.price || 0),
+            negotiable: true,
+            disclosedFaults: "",
+            preInspectionOptIn: car.trustTier >= 4,
+          });
+        } else {
+          setFetchError(`Vehicle listing with ID "${editId}" could not be found.`);
+        }
+      })
+      .catch((err) => {
+        if (!isSubscribed) return;
+        setFetchError(`Error loading vehicle: ${err instanceof Error ? err.message : String(err)}`);
+      })
+      .finally(() => {
+        if (isSubscribed) {
+          setIsLoadingExisting(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [editId]);
+
+  const handleImageFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingImages(true);
+    setUploadError(null);
+    try {
+      const urls = await uploadVehicleImages(Array.from(files), "carplug/vehicles");
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...urls],
+      }));
+    } catch (err: unknown) {
+      console.error("Cloudinary upload error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to upload photo(s) to Cloudinary";
+      setUploadError(errorMessage);
+    } finally {
+      setIsUploadingImages(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  useEffect(() => {
+    if (currentStep !== 7) return;
+
+    let isSubscribed = true;
+    const timer = setTimeout(() => {
+      setIsEvaluatingPrice(true);
+      fetchValuationEstimate({
+        make: formData.make,
+        model: formData.model,
+        year: Number(formData.year) || 2021,
+        condition: formData.condition,
+        mileage: Number(formData.mileage) || 30000,
+        askingPrice: Number(formData.askingPrice) || undefined,
+      })
+        .then((res) => {
+          if (isSubscribed && res) setPriceValuation(res);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isSubscribed) setIsEvaluatingPrice(false);
+        });
+    }, 300);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
+  }, [currentStep, formData.askingPrice, formData.make, formData.model, formData.year, formData.condition, formData.mileage]);
 
   const steps = [
     "Vehicle Identity",
@@ -62,11 +197,97 @@ export default function AddVehicleWizardPage() {
     "Review & Publish",
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < 10) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      setPublished(true);
+      setIsPublishing(true);
+      setPublishError(null);
+      try {
+        // Prompts.md requirement 4: If signed in as buyer, seamlessly upgrade to seller first
+        if (user?.role === "buyer") {
+          try {
+            await upgradeRole("seller");
+          } catch (upgradeErr) {
+            console.error("Failed to upgrade role to seller:", upgradeErr);
+            throw new Error(
+              upgradeErr instanceof Error
+                ? upgradeErr.message
+                : "Unable to activate seller account. Please check your network and try again."
+            );
+          }
+        }
+
+        if (isEditMode && editId) {
+          await updateVehicle(editId, {
+            title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
+            year: Number(formData.year) || originalVehicle?.year || 2021,
+            make: formData.make,
+            model: formData.model,
+            trim: formData.trim,
+            bodyType: formData.bodyType,
+            condition: formData.condition as Vehicle["condition"],
+            mileage: Number(formData.mileage) || originalVehicle?.mileage || 30000,
+            transmission: formData.transmission as Vehicle["transmission"],
+            fuelType: formData.fuelType as Vehicle["fuelType"],
+            engineSize: formData.engineSize,
+            vin: formData.vin,
+            price: Number(formData.askingPrice) || originalVehicle?.price || 35000000,
+            images: formData.images.length > 0 ? formData.images : originalVehicle?.images,
+            publicLocation: formData.locationZone,
+            exactLocation: formData.exactAddress,
+            customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
+          });
+        } else {
+          const generatedId = `v-${formData.make.toLowerCase().replace(/\s+/g, "-")}-${formData.model.toLowerCase().replace(/\s+/g, "-")}-${String(Date.now()).slice(-6)}`;
+          await createVehicle({
+            id: generatedId,
+            title: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
+            year: Number(formData.year) || 2021,
+            make: formData.make,
+            model: formData.model,
+            trim: formData.trim,
+            bodyType: formData.bodyType,
+            condition: formData.condition as Vehicle["condition"],
+            mileage: Number(formData.mileage) || 30000,
+            transmission: formData.transmission as Vehicle["transmission"],
+            fuelType: formData.fuelType as Vehicle["fuelType"],
+            engineSize: formData.engineSize,
+            vin: formData.vin,
+            price: Number(formData.askingPrice) || 35000000,
+            priceRating: "fair",
+            trustTier: formData.preInspectionOptIn ? 4 : 2,
+            trustTierLabel: formData.preInspectionOptIn
+              ? "Tier 4: Comprehensive Tech Inspected"
+              : "Tier 2: Verification In Progress",
+            images: formData.images.length > 0 ? formData.images : ["/images/cars/car18.jpeg"],
+            publicLocation: formData.locationZone,
+            exactLocation: formData.exactAddress,
+            sellerType: user?.role === "dealer" ? "dealer" : "private",
+            sellerRating: 5.0,
+            customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
+            documentsAvailable: {
+              customsDoc: formData.customsCleared,
+              registrationDoc: formData.originalReceipt,
+              roadworthiness: true,
+              tintPermit: false,
+              policeExtracted: false,
+            },
+            healthScore: formData.preInspectionOptIn ? 92 : 0,
+            featured: false,
+          });
+        }
+        setPublished(true);
+      } catch (err) {
+        console.error("Failed to publish vehicle listing:", err);
+        setPublishError(
+          err instanceof Error
+            ? err.message
+            : "Failed to publish vehicle listing. Please try again."
+        );
+      } finally {
+        setIsPublishing(false);
+      }
     }
   };
 
@@ -83,13 +304,15 @@ export default function AddVehicleWizardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-100">
           <div>
             <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-              10-Step Publishing Pipeline
+              {isEditMode ? "Inventory Listing Editor" : "10-Step Publishing Pipeline"}
             </span>
             <h1 className="text-2xl font-black text-neutral-900 mt-1">
-              Add Vehicle to Showroom
+              {isEditMode ? "Edit Vehicle Listing" : "Add Vehicle to Showroom"}
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              Listings climb the Trust Ladder as verified documentation is uploaded.
+              {isEditMode
+                ? "Update vehicle specifications, pricing, documents, or showroom photos."
+                : "Listings climb the Trust Ladder as verified documentation is uploaded."}
             </p>
           </div>
 
@@ -122,10 +345,12 @@ export default function AddVehicleWizardPage() {
               <Check className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-black text-neutral-900">
-              Vehicle Published at Tier 4!
+              {isEditMode ? "Listing Updated Successfully!" : "Vehicle Published at Tier 4!"}
             </h2>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Your 2021 Mercedes-Benz GLC 300 is now live on the marketplace. Customs documents have been queued for administrative seal, and pre-inspection dispatch has been triggered.
+              {isEditMode
+                ? `Your modifications to the ${formData.year} ${formData.make} ${formData.model} have been synchronized live with the mycarsNg marketplace.`
+                : `Your ${formData.year} ${formData.make} ${formData.model} is now live on the marketplace. Customs documents have been queued for administrative seal, and pre-inspection dispatch has been triggered.`}
             </p>
             <div className="pt-4 flex items-center justify-center gap-3">
               <Link
@@ -135,12 +360,28 @@ export default function AddVehicleWizardPage() {
                 Go to Active Inventory
               </Link>
               <Link
-                href="/buyer/search"
+                href={isEditMode && editId ? `/buyer/vehicles/${editId}` : "/buyer/search"}
                 className="px-5 py-2.5 bg-gray-100 text-neutral-900 font-semibold text-xs rounded-xl hover:bg-gray-200"
               >
-                View on Marketplace
+                {isEditMode ? "View Public Listing" : "View on Marketplace"}
               </Link>
             </div>
+          </div>
+        ) : isLoadingExisting ? (
+          <div className="p-16 flex flex-col items-center justify-center gap-3 text-gray-400">
+            <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+            <span className="text-xs font-semibold">Loading vehicle listing details...</span>
+          </div>
+        ) : fetchError ? (
+          <div className="p-12 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+            <div className="text-sm font-bold text-neutral-900">{fetchError}</div>
+            <Link
+              href="/dealer/vehicles"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-neutral-900 text-white rounded-xl text-xs font-bold mt-2"
+            >
+              <span>Back to Showroom Inventory</span>
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">
@@ -203,7 +444,7 @@ export default function AddVehicleWizardPage() {
                   ].map((c) => (
                     <div
                       key={c.id}
-                      onClick={() => setFormData({ ...formData, condition: c.id as any })}
+                      onClick={() => setFormData({ ...formData, condition: c.id as Vehicle["condition"] })}
                       className={`p-4 rounded-2xl border cursor-pointer transition ${
                         formData.condition === c.id
                           ? "bg-blue-50/70 border-blue-500 shadow-xs"
@@ -298,18 +539,93 @@ export default function AddVehicleWizardPage() {
 
             {currentStep === 6 && (
               <div className="space-y-4">
-                <h3 className="font-bold text-base text-neutral-900">
-                  Step 6: High-Res Photos & Walkaround Video
-                </h3>
-                <div className="p-6 bg-gray-50 border border-dashed border-gray-300 rounded-2xl text-center space-y-2">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                  <div className="text-xs font-bold text-neutral-900">
-                    Drag & Drop at least 8 high-resolution photos
-                  </div>
-                  <p className="text-[11px] text-gray-500">
-                    Front, rear, sides, interior dashboard, odometer, engine bay, and undercarriage
-                  </p>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-neutral-900">
+                    Step 6: High-Res Photos & Walkaround Video
+                  </h3>
+                  {formData.images.length > 0 && (
+                    <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full">
+                      {formData.images.length} photo{formData.images.length === 1 ? "" : "s"} uploaded
+                    </span>
+                  )}
                 </div>
+
+                {uploadError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-medium">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
+                {/* Upload Trigger Area */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-6 bg-gray-50 hover:bg-gray-100/80 border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-2xl text-center space-y-2 cursor-pointer transition"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/jpg"
+                    onChange={handleImageFilesSelected}
+                    className="hidden"
+                  />
+                  {isUploadingImages ? (
+                    <div className="py-3 flex flex-col items-center justify-center gap-2 text-neutral-800">
+                      <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+                      <div className="text-xs font-bold">Uploading photos to Cloudinary...</div>
+                      <p className="text-[11px] text-gray-500">Auto-compressing and generating WebP variants</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                      <div className="text-xs font-bold text-neutral-900">
+                        Click to Choose Photos or Drag & Drop Here
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        Supports JPG, PNG, WEBP, HEIC up to 50MB total.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* Uploaded Photos Grid */}
+                {formData.images.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-gray-600">Uploaded Gallery Previews:</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {formData.images.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group shadow-xs"
+                        >
+                          <Image
+                            src={imgUrl}
+                            alt={`Car photo ${idx + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                          {idx === 0 && (
+                            <span className="absolute top-2 left-2 z-10 px-2 py-0.5 bg-neutral-900/80 backdrop-blur-xs text-white text-[10px] font-bold rounded-md shadow-xs">
+                              Cover Photo
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(idx);
+                            }}
+                            className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition"
+                            title="Remove photo"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -326,11 +642,44 @@ export default function AddVehicleWizardPage() {
                     type="number"
                     value={formData.askingPrice}
                     onChange={(e) => setFormData({ ...formData, askingPrice: e.target.value })}
+                    placeholder="e.g. 42000000"
                     className="w-full px-3.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base font-extrabold text-neutral-900 focus:bg-white focus:outline-none"
                   />
-                  <span className="block text-[11px] text-emerald-700 font-semibold mt-1">
-                    ✓ Projected Price Rating: 🟢 Fair Market Value (Median ₦40m - ₦44m)
-                  </span>
+
+                  {priceValuation ? (
+                    <div className="mt-3 p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-gray-700">Projected Price Rating:</span>
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                            priceValuation.priceRating === "great"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : priceValuation.priceRating === "high"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {priceValuation.priceRating === "great"
+                            ? "🟢 Great Price"
+                            : priceValuation.priceRating === "high"
+                            ? "🟠 Above Market"
+                            : "🔵 Fair Market Value"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-600 font-medium">
+                        Market Range: ₦{(priceValuation.marketPriceMin / 1000000).toFixed(1)}M – ₦{(priceValuation.marketPriceMax / 1000000).toFixed(1)}M (Median ₦{(priceValuation.medianPrice / 1000000).toFixed(1)}M)
+                      </div>
+                      <p className="text-[11px] text-neutral-700 italic leading-relaxed">
+                        &ldquo;{priceValuation.priceVerdict}&rdquo;
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="block text-[11px] text-gray-500 mt-1.5">
+                      {isEvaluatingPrice
+                        ? "Evaluating live market comps..."
+                        : "✓ Dynamically calibrated against verified Nigerian dealer transactions and customs duties."}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -369,7 +718,7 @@ export default function AddVehicleWizardPage() {
                       Dispatch an Independent Technician to your Lot
                     </div>
                     <p className="text-blue-800 leading-relaxed">
-                      Pre-inspected dealer vehicles receive 4x more viewings and sell 18 days faster on average. Verza handles technician dispatch automatically.
+                      Pre-inspected dealer vehicles receive 4x more viewings and sell 18 days faster on average. mycarsNg handles technician dispatch automatically.
                     </p>
                     <label className="flex items-center gap-2 pt-2 font-bold text-neutral-900 cursor-pointer">
                       <input
@@ -392,6 +741,26 @@ export default function AddVehicleWizardPage() {
                 <h3 className="font-bold text-base text-neutral-900">
                   Step 10: Final Review & Publish
                 </h3>
+
+                {user?.role === "buyer" && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 text-xs">
+                    <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold">1-Click Free Seller Account Activation</p>
+                      <p className="text-amber-700 leading-relaxed">
+                        You are currently signed in as a <strong>Buyer</strong>. Publishing this vehicle will instantly activate your free <strong>Private Seller</strong> account and publish your listing in one seamless action with zero setup required.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {publishError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{publishError}</span>
+                  </div>
+                )}
+
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Vehicle:</span>
@@ -432,15 +801,46 @@ export default function AddVehicleWizardPage() {
 
               <button
                 onClick={handleNext}
-                className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                disabled={isPublishing}
+                className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs disabled:opacity-50 cursor-pointer"
               >
-                <span>{currentStep === 10 ? "Publish Listing" : "Next Step"}</span>
-                <ChevronRight className="w-4 h-4" />
+                {isPublishing && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>
+                  {currentStep === 10
+                    ? isPublishing
+                      ? isEditMode
+                        ? "Saving Changes..."
+                        : user?.role === "buyer"
+                        ? "Activating Seller & Publishing..."
+                        : "Publishing Listing..."
+                      : isEditMode
+                      ? "Save Changes"
+                      : user?.role === "buyer"
+                      ? "Activate Free Seller Account & Publish"
+                      : "Publish Listing"
+                    : "Next Step"}
+                </span>
+                {!isPublishing && <ChevronRight className="w-4 h-4" />}
               </button>
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function AddVehicleWizardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-16 flex flex-col items-center justify-center gap-3 text-gray-400">
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+          <span className="text-xs font-semibold">Loading vehicle wizard...</span>
+        </div>
+      }
+    >
+      <AddVehicleWizardContent />
+    </Suspense>
   );
 }

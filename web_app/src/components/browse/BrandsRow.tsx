@@ -94,7 +94,7 @@ export const BrandsRow = ({ onSelectBrand, selectedBrand }: BrandsRowProps) => {
                   alt={brand.name}
                   width={brand.width}
                   height={brand.height}
-                  className={`object-contain max-h-12 sm:max-h-14 w-auto grayscale contrast-125 transition-all duration-200 ${
+                  className={`object-contain max-h-12 sm:max-h-14 w-auto h-auto grayscale contrast-125 transition-all duration-200 ${
                     isSelected
                       ? "opacity-100 brightness-75"
                       : "opacity-75 group-hover:opacity-100 group-hover:brightness-90"

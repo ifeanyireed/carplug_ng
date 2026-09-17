@@ -18,8 +18,8 @@ func SeedInitialData(db *gorm.DB) {
 				Slug:                "reed-motors-lagos",
 				Name:                "Reed Motors Lagos",
 				Tagline:             "Certified Tokunbo & Luxury Vehicles with Independent Trust Scoring",
-				Logo:                "/images/dealer-logo-1.png",
-				Banner:              "/images/cars/hero-car.webp",
+				Logo:                "",
+				Banner:              "/hero-car.webp",
 				Location:            "Lekki Phase 1, Lagos",
 				Address:             "Plot 14 Admiralty Way, Lekki Phase 1, Lagos State",
 				Rating:              4.9,
@@ -38,8 +38,8 @@ func SeedInitialData(db *gorm.DB) {
 				Slug:                "crown-continental-autos",
 				Name:                "Crown Continental Autos",
 				Tagline:             "Direct US & Canadian Import Specialist Since 2018",
-				Logo:                "/images/dealer-logo-2.png",
-				Banner:              "/images/cars/hero-car.webp",
+				Logo:                "",
+				Banner:              "/hero-car.webp",
 				Location:            "Ikeja GRA, Lagos",
 				Address:             "12 Isaac John St, Ikeja GRA, Lagos State",
 				Rating:              4.7,
@@ -69,7 +69,7 @@ func SeedInitialData(db *gorm.DB) {
 				ID:              "tech-musa",
 				Name:            "Musa Danladi, ASE-Cert",
 				Badge:           "Preferred Master",
-				Avatar:          "/images/tech-musa.jpg",
+				Avatar:          "",
 				Rating:          4.95,
 				CompletedJobs:   218,
 				ServiceAreas:    `["Lekki Phase 1", "Ikoyi", "Victoria Island", "Ajah"]`,
@@ -83,7 +83,7 @@ func SeedInitialData(db *gorm.DB) {
 				ID:              "tech-kunle",
 				Name:            "Engr. Kunle Adeleke",
 				Badge:           "Platform Certified",
-				Avatar:          "/images/tech-kunle.jpg",
+				Avatar:          "",
 				Rating:          4.82,
 				CompletedJobs:   146,
 				ServiceAreas:    `["Ikeja", "Maryland", "Magodo", "Ogba"]`,
@@ -97,7 +97,7 @@ func SeedInitialData(db *gorm.DB) {
 				ID:              "tech-emmanuel",
 				Name:            "Emmanuel Chukwu",
 				Badge:           "Standard Specialist",
-				Avatar:          "/images/tech-emmanuel.jpg",
+				Avatar:          "",
 				Rating:          4.70,
 				CompletedJobs:   89,
 				ServiceAreas:    `["Surulere", "Yaba", "Gbagada"]`,
@@ -335,6 +335,93 @@ func SeedInitialData(db *gorm.DB) {
 		}
 		for _, s := range swaps {
 			db.FirstOrCreate(&s, SwapRequest{ID: s.ID})
+		}
+	}
+
+	// 6. Seed Transactions (Financial Ledger)
+	var txnCount int64
+	db.Model(&Transaction{}).Count(&txnCount)
+	if txnCount == 0 {
+		log.Println("[Seed] Seeding initial Transactions...")
+		txns := []Transaction{
+			{
+				ID:        "txn-8091",
+				Reference: "CP-TXN-1789001-PAYSTACK",
+				UserID:    "dealer-reed-motors",
+				UserName:  "Reed Motors Lagos",
+				UserEmail: "sales@reedmotors.ng",
+				UserRole:  "dealer",
+				Type:      "dealer_subscription",
+				Title:     "Dealer Subscription (Pro Shop)",
+				Amount:    65000,
+				Currency:  "NGN",
+				Gateway:   "paystack",
+				Status:    "settled",
+				Notes:     "30-day Pro Showroom Plan activated via Paystack card payment",
+			},
+			{
+				ID:        "txn-8090",
+				Reference: "CP-TXN-1789002-ESCROW",
+				UserID:    "usr-chidi-nwosu",
+				UserName:  "Dr. Chidi Nwosu",
+				UserEmail: "chidi.nwosu@gmail.com",
+				UserRole:  "buyer",
+				Type:      "inspection_escrow",
+				Title:     "150-Point Inspection Escrow Deposit",
+				Amount:    75000,
+				Currency:  "NGN",
+				Gateway:   "paystack",
+				Status:    "held_in_escrow",
+				Notes:     "Held in Carplug Secure Escrow pending technician report verification",
+			},
+			{
+				ID:        "txn-8089",
+				Reference: "CP-TXN-1789003-PAYOUT",
+				UserID:    "tech-tunde-adeleke",
+				UserName:  "Engr. Tunde Adeleke",
+				UserEmail: "tunde.mechanic@carplug.ng",
+				UserRole:  "technician",
+				Type:      "tech_payout",
+				Title:     "Technician Inspection Payout Settlement",
+				Amount:    35000,
+				Currency:  "NGN",
+				Gateway:   "bank_transfer",
+				Status:    "settled",
+				Notes:     "Disbursed to Access Bank • 0123984712 • Babatunde Adeleke",
+			},
+			{
+				ID:        "txn-8088",
+				Reference: "CP-TXN-1789004-CROWN",
+				UserID:    "dealer-crown-autos",
+				UserName:  "Crown Continental Autos",
+				UserEmail: "info@crownautos.ng",
+				UserRole:  "dealer",
+				Type:      "dealer_subscription",
+				Title:     "Dealer Subscription (Pro Shop)",
+				Amount:    65000,
+				Currency:  "NGN",
+				Gateway:   "paystack",
+				Status:    "settled",
+				Notes:     "30-day Pro Showroom Plan activated",
+			},
+			{
+				ID:        "txn-8087",
+				Reference: "CP-TXN-1789005-AMINA",
+				UserID:    "usr-amina-bello",
+				UserName:  "Amina Bello",
+				UserEmail: "amina.b@yahoo.com",
+				UserRole:  "buyer",
+				Type:      "inspection_escrow",
+				Title:     "Standard Pre-Purchase Inspection Fee",
+				Amount:    45000,
+				Currency:  "NGN",
+				Gateway:   "paystack",
+				Status:    "settled",
+				Notes:     "Inspection completed and funds disbursed to technician",
+			},
+		}
+		for _, t := range txns {
+			db.FirstOrCreate(&t, Transaction{ID: t.ID})
 		}
 	}
 }

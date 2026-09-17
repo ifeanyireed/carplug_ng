@@ -1,31 +1,61 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
-import { MOCK_VEHICLES, MOCK_INSPECTIONS } from "@/data/mockStore";
+import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
+import { VehicleContactActions } from "@/components/vehicle/VehicleContactActions";
+import { fetchVehicleById, fetchInspectionById } from "@/services/api";
+import type { Metadata } from "next";
 import {
   ShieldCheck,
   CheckCircle2,
   FileCheck,
-  AlertTriangle,
   MapPin,
-  Calendar,
-  Gauge,
-  Fuel,
   Wrench,
   Award,
-  PhoneCall,
-  MessageSquare,
   ArrowRight,
   Share2,
-  Heart,
-  Car,
   ChevronRight,
-  Info,
 } from "lucide-react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const vehicle = await fetchVehicleById(id);
+  if (!vehicle) {
+    return {
+      title: "Vehicle Listing",
+      description: "Verified vehicle listing on mycarsNg.",
+    };
+  }
+
+  const title = `${vehicle.year} ${vehicle.make} ${vehicle.model} - ₦${vehicle.price.toLocaleString()}`;
+  const description = `${vehicle.title} in ${vehicle.publicLocation || "Nigeria"}, ${vehicle.condition}. Inspect and buy securely on mycarsNg.`;
+  const ogImage = vehicle.images && vehicle.images.length > 0 ? vehicle.images[0] : "/logo.png";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | mycarsNg`,
+      description,
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | mycarsNg`,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function VehicleDetailPage({
   params,
@@ -33,13 +63,15 @@ export default async function VehicleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const vehicle = MOCK_VEHICLES.find((v) => v.id === id);
+  const vehicle = await fetchVehicleById(id);
 
   if (!vehicle) {
     notFound();
   }
 
-  const inspection = MOCK_INSPECTIONS.find((i) => i.vehicleId === vehicle.id);
+  const inspection = vehicle.latestInspectionId
+    ? await fetchInspectionById(vehicle.latestInspectionId)
+    : undefined;
 
   const formatNaira = (amount: number) => {
     return `₦${amount.toLocaleString()}`;
@@ -65,6 +97,14 @@ export default async function VehicleDetailPage({
           </div>
 
           <div className="flex items-center gap-3">
+            <SaveVehicleButton
+              vehicle={vehicle}
+              className="flex items-center gap-1.5 hover:text-neutral-900 transition font-medium"
+              iconClassName="w-3.5 h-3.5 text-neutral-500"
+              showText={true}
+              text="Save"
+              savedText="Saved"
+            />
             <button className="flex items-center gap-1 hover:text-neutral-900">
               <Share2 className="w-3.5 h-3.5" />
               <span>Share</span>
@@ -122,10 +162,13 @@ export default async function VehicleDetailPage({
             {/* Gallery Card */}
             <div className="bg-white border border-gray-200 rounded-3xl p-3 shadow-xs overflow-hidden">
               <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
-                <img
+                <Image
                   src={vehicle.images[0] || "/images/cars/car18.jpeg"}
                   alt={vehicle.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  priority
+                  unoptimized
+                  className="object-cover"
                 />
                 <div className="absolute bottom-4 left-4 flex gap-2">
                   <span className="px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md text-white text-xs font-medium">
@@ -141,7 +184,13 @@ export default async function VehicleDetailPage({
                     key={idx}
                     className="relative aspect-[16/10] rounded-xl overflow-hidden bg-gray-100 border-2 border-transparent hover:border-blue-600 transition cursor-pointer"
                   >
-                    <img src={img} alt="Thumb" className="w-full h-full object-cover" />
+                    <Image
+                      src={img}
+                      alt={`${vehicle.title} thumbnail ${idx + 1}`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
                   </div>
                 ))}
               </div>
@@ -219,7 +268,7 @@ export default async function VehicleDetailPage({
                         Inspected by {inspection.technicianName} ({inspection.technicianTier})
                       </div>
                       <p className="text-emerald-800 leading-relaxed line-clamp-2">
-                        "{inspection.technicianSummary}"
+                        &ldquo;{inspection.technicianSummary}&rdquo;
                       </p>
                       <div className="text-[11px] text-emerald-700 font-medium">
                         Completed on {new Date(inspection.completedDate!).toLocaleDateString()}
@@ -365,24 +414,8 @@ export default async function VehicleDetailPage({
                 </div>
               </div>
 
-              {/* Primary Call to Action: Book Inspection */}
-              <div className="space-y-3">
-                <Link
-                  href={`/buyer/inspections/book/${vehicle.id}`}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-center flex items-center justify-center gap-2 shadow-xs transition"
-                >
-                  <Wrench className="w-4 h-4" />
-                  <span>Request Inspection First</span>
-                </Link>
-
-                <Link
-                  href={`/buyer/messages/${vehicle.id}`}
-                  className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-2xl text-center flex items-center justify-center gap-2 transition"
-                >
-                  <PhoneCall className="w-4 h-4" />
-                  <span>Contact Seller (Masked)</span>
-                </Link>
-              </div>
+              {/* Primary Call to Action & WhatsApp Deep Link */}
+              <VehicleContactActions vehicle={vehicle} />
 
               {/* Seller Profile Mini Card */}
               <div className="pt-5 border-t border-gray-100 space-y-3">

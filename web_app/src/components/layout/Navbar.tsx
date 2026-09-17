@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { RojoLogo } from "@/components/common/RojoLogo";
+import { NavLink } from "@/components/common/NavLink";
 import {
-  User,
   ShoppingBag,
   ChevronDown,
   Menu,
@@ -14,60 +15,132 @@ import {
   ShieldCheck,
   Flame,
   ArrowUpRight,
+  LogOut,
+  Scale,
+  Megaphone,
+  Settings,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 
-interface NavbarProps {
-  onOpenAuth?: (mode: "login" | "signup") => void;
+const emptySubscribe = () => () => {};
+function useIsMounted(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
+export interface NavbarProps {
+  onOpenAuth?: (mode?: "login" | "signup") => void;
   savedCount?: number;
   onOpenSaved?: () => void;
+  floating?: boolean;
 }
 
 export const Navbar = ({
   onOpenAuth,
-  savedCount = 2,
-  onOpenSaved,
+  savedCount,
+  floating = false,
 }: NavbarProps) => {
+  const { user, isAuthenticated, isLoading, logout, openAuthModal } = useAuth();
+  const { savedCount: contextSavedCount } = useSavedVehicles();
+  const effectiveSavedCount = savedCount !== undefined ? savedCount : contextSavedCount;
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const isMounted = useIsMounted();
   const navRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname() || "/";
 
-  // Close dropdown on click outside
+  const isMoreActive =
+    pathname.startsWith("/buyer/compare") ||
+    pathname.startsWith("/buyer/concierge") ||
+    pathname.startsWith("/advertise");
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleAuthTrigger = useCallback(
+    (mode: "login" | "signup") => {
+      if (onOpenAuth) {
+        onOpenAuth(mode);
+      } else {
+        openAuthModal(mode);
+      }
+    },
+    [onOpenAuth, openAuthModal]
+  );
+
+  const portalPath = useMemo(() => {
+    switch (user?.role) {
+      case "admin":
+        return "/admin/dashboard";
+      case "dealer":
+        return "/dealer/dashboard";
+      case "seller":
+        return "/seller/dashboard";
+      case "technician":
+        return "/technician/dashboard";
+      default:
+        return "/buyer/search";
+    }
+  }, [user?.role]);
+
+  // Close dropdowns and menus on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setActiveDropdown(null);
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleDropdown = (name: string) => {
+  const toggleDropdown = useCallback((name: string) => {
     setActiveDropdown((prev) => (prev === name ? null : name));
-  };
+  }, []);
 
   return (
-    <header className="w-full pt-4 md:pt-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto z-40 relative">
+    <header
+      className={`${
+        floating ? "fixed top-0 inset-x-0" : "sticky top-0 w-full"
+      } z-50 pt-3 sm:pt-4 pb-2 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-none transition-all duration-300`}
+    >
       <nav
         ref={navRef}
-        className="bg-[#4a4e51]/90 hover:bg-[#43474a]/95 transition-colors backdrop-blur-xl border border-white/15 rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white shadow-xl flex items-center justify-between"
+        className={`pointer-events-auto transition-all duration-300 backdrop-blur-xl border rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white flex items-center justify-between ${
+          isScrolled
+            ? "bg-[#222528]/95 border-white/20 shadow-2xl"
+            : "bg-[#4a4e51]/90 hover:bg-[#43474a]/95 border-white/15 shadow-xl"
+        }`}
       >
         {/* Left: Brand Logo */}
         <Link
           href="/"
           className="flex items-center gap-2 group transition-transform active:scale-95 shrink-0"
         >
-          <RojoLogo className="h-6 sm:h-6.5 w-auto text-white group-hover:text-gray-200 transition-colors" />
+          <RojoLogo className="h-9 sm:h-10 w-auto text-white group-hover:text-gray-200 transition-colors" />
         </Link>
 
         {/* Center: Desktop Nav Links */}
-        <div className="hidden md:flex items-center space-x-1 lg:space-x-2 text-[13px] lg:text-sm font-medium text-white/90">
+        <div className="hidden lg:flex items-center gap-1.5 xl:gap-3 2xl:gap-4 text-xs xl:text-[13px] 2xl:text-sm font-medium text-white/90 shrink min-w-0">
           {/* Used Cars with Dropdown */}
           <div className="relative">
             <button
               onClick={() => toggleDropdown("used")}
               onMouseEnter={() => setActiveDropdown("used")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
                 activeDropdown === "used"
                   ? "bg-white/15 text-white"
                   : "hover:bg-white/10 hover:text-white"
@@ -155,7 +228,7 @@ export const Navbar = ({
             <button
               onClick={() => toggleDropdown("auctions")}
               onMouseEnter={() => setActiveDropdown("auctions")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
                 activeDropdown === "auctions"
                   ? "bg-white/15 text-white"
                   : "hover:bg-white/10 hover:text-white"
@@ -206,47 +279,117 @@ export const Navbar = ({
             )}
           </div>
 
-          <Link
+          {/* Find Cars */}
+          <NavLink
             href="/buyer/search"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+            activeMatch={(path) =>
+              path === "/buyer/search" ||
+              path.startsWith("/buyer/vehicles") ||
+              path.startsWith("/buyer/cars")
+            }
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
           >
             Find Cars
-          </Link>
+          </NavLink>
 
-          <Link
-            href="/buyer/compare"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-          >
-            Compare
-          </Link>
-
-          <Link
-            href="/buyer/concierge"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-          >
-            Find For Me
-          </Link>
-
-          <Link
+          {/* Sell Car */}
+          <NavLink
             href="/seller/sell"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+            activeMatch={(path) =>
+              path === "/seller/sell" ||
+              path.startsWith("/seller/vehicles/new") ||
+              path.startsWith("/dealer/vehicles/new")
+            }
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
           >
             Sell Car
-          </Link>
+          </NavLink>
 
-          <Link
+          {/* Swap Car */}
+          <NavLink
             href="/swap"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-emerald-400 font-medium"
+            activeMatch={(path) => path === "/swap" || path.startsWith("/buyer/swap")}
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
           >
             Swap Car
-          </Link>
+          </NavLink>
 
-          <Link
-            href="/advertise"
-            className="px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-          >
-            Advertise
-          </Link>
+          {/* More Services Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => toggleDropdown("more")}
+              onMouseEnter={() => setActiveDropdown("more")}
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
+                activeDropdown === "more"
+                  ? "bg-white/15 text-white"
+                  : isMoreActive
+                  ? "text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+                  : "hover:bg-white/10 hover:text-white border border-transparent"
+              }`}
+            >
+              <span>More</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                  activeDropdown === "more" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {activeDropdown === "more" && (
+              <div
+                onMouseLeave={() => setActiveDropdown(null)}
+                className="absolute top-full left-0 mt-2 w-56 bg-[#1f2326] border border-white/10 rounded-xl shadow-2xl p-2 text-xs text-gray-200 animate-in fade-in slide-in-from-top-2 duration-150 z-50"
+              >
+                <div className="space-y-1">
+                  <NavLink
+                    href="/buyer/compare"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
+                  >
+                    <Scale className="w-4 h-4 text-cyan-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Compare Cars</div>
+                      <div className="text-[10px] text-gray-400 truncate">Side-by-side comparison</div>
+                    </div>
+                  </NavLink>
+                  <NavLink
+                    href="/buyer/concierge"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Find For Me</div>
+                      <div className="text-[10px] text-gray-400 truncate">Concierge sourcing request</div>
+                    </div>
+                  </NavLink>
+                  <NavLink
+                    href="/advertise"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
+                  >
+                    <Megaphone className="w-4 h-4 text-emerald-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Advertise on mycarsNg</div>
+                      <div className="text-[10px] text-gray-400 truncate">Promote inventory or brand</div>
+                    </div>
+                  </NavLink>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Dedicated User Portals Dropdown */}
           <div className="relative">
@@ -330,7 +473,7 @@ export const Navbar = ({
                     onClick={() => setActiveDropdown(null)}
                     className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-sky-400 font-medium"
                   >
-                    <span>Advertise on Verza</span>
+                    <span>Advertise on mycarsNg</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -340,32 +483,140 @@ export const Navbar = ({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* User Icon */}
-          <Link
+        <div suppressHydrationWarning className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* User Icon / Garage */}
+          <NavLink
             href="/buyer/garage"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors focus:outline-none relative"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors focus:outline-none relative"
+            activeClassName="text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/15 border border-transparent"
             aria-label="Garage & Saved Cars"
             title="My Garage"
           >
             <ShoppingBag className="w-4 h-4" />
-            {savedCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#4a4e51]" />
+            {isMounted && effectiveSavedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-[#4a4e51]">
+                {effectiveSavedCount}
+              </span>
             )}
-          </Link>
+          </NavLink>
 
-          {/* Sign Up Button */}
-          <button
-            onClick={() => onOpenAuth?.("signup")}
-            className="hidden sm:inline-flex items-center justify-center bg-white text-neutral-900 font-medium text-xs lg:text-sm px-4 lg:px-5 py-2 lg:py-2.2 rounded-lg hover:bg-gray-100 active:scale-95 transition-all shadow-md"
-          >
-            Sign Up Now
-          </button>
+          {isAuthenticated && user ? (
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition text-xs text-white"
+              >
+                <div className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-[11px] ring-1 ring-white/20">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline font-medium max-w-[90px] truncate">
+                  {user.name.split(" ")[0]}
+                </span>
+                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-white/20 text-gray-200">
+                  {user.role}
+                </span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+
+              {userMenuOpen && (
+                <div
+                  onMouseLeave={() => setUserMenuOpen(false)}
+                  className="absolute top-full right-0 mt-2 w-52 bg-[#1f2326] border border-white/10 rounded-xl shadow-2xl p-2 text-xs text-gray-200 animate-in fade-in slide-in-from-top-2 duration-150 z-50"
+                >
+                  <div className="px-3 py-2 border-b border-white/10">
+                    <p className="font-semibold text-white truncate">{user.name}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
+                  </div>
+                  <div className="py-1 space-y-0.5">
+                    <NavLink
+                      href={portalPath}
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-medium"
+                      activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                      inactiveClassName="hover:bg-white/10 text-gray-200"
+                    >
+                      <span>My Portal Hub</span>
+                      <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
+                    </NavLink>
+                    {user.role === "buyer" && (
+                      <NavLink
+                        href="/settings?tab=workspace"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-bold"
+                        activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                        inactiveClassName="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Become a Seller</span>
+                        </span>
+                        <ArrowUpRight className="w-3.5 h-3.5 opacity-80" />
+                      </NavLink>
+                    )}
+                    <NavLink
+                      href="/buyer/garage"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-medium"
+                      activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                      inactiveClassName="hover:bg-white/10 text-gray-200"
+                    >
+                      <span>Saved Vehicles</span>
+                      <ShoppingBag className="w-3.5 h-3.5 opacity-70" />
+                    </NavLink>
+                    <NavLink
+                      href="/settings"
+                      exact
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-medium"
+                      activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                      inactiveClassName="hover:bg-white/10 text-gray-200"
+                    >
+                      <span>Account Settings</span>
+                      <Settings className="w-3.5 h-3.5 opacity-70" />
+                    </NavLink>
+                  </div>
+                  <div className="pt-1 border-t border-white/10">
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-500/20 text-red-400 transition text-xs font-medium cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : !isMounted || isLoading ? (
+            <div className="hidden sm:flex items-center gap-1.5">
+              <div className="w-16 h-7 rounded-lg bg-white/10 animate-pulse" />
+              <div className="w-20 h-7 rounded-lg bg-white/15 animate-pulse" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handleAuthTrigger("login")}
+                className="hidden sm:inline-flex items-center justify-center text-white/90 hover:text-white font-medium text-xs px-3 py-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer whitespace-nowrap"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => handleAuthTrigger("signup")}
+                className="hidden sm:inline-flex items-center justify-center bg-white text-neutral-900 font-medium text-xs lg:text-sm px-3.5 lg:px-4 py-1.5 lg:py-2 rounded-lg hover:bg-gray-100 active:scale-95 transition-all shadow-md cursor-pointer whitespace-nowrap"
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
 
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-white/15 transition"
+            className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-white/15 transition cursor-pointer"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
@@ -379,53 +630,168 @@ export const Navbar = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="pointer-events-auto lg:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150 max-h-[85vh] overflow-y-auto">
           <div className="flex flex-col space-y-1.5">
-            <Link
+            <NavLink
+              href="/buyer/search"
+              activeMatch={(path) =>
+                path === "/buyer/search" ||
+                path.startsWith("/buyer/vehicles") ||
+                path.startsWith("/buyer/cars")
+              }
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              Find Cars
+            </NavLink>
+            <NavLink
               href="#explore"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Used Cars
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="#auctions"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Auctions
-            </Link>
-            <Link
-              href="#new-cars"
+            </NavLink>
+            <NavLink
+              href="/seller/sell"
+              activeMatch={(path) =>
+                path === "/seller/sell" ||
+                path.startsWith("/seller/vehicles/new") ||
+                path.startsWith("/dealer/vehicles/new")
+              }
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
-            >
-              New Cars
-            </Link>
-            <Link
-              href="#sell"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Sell Cars
-            </Link>
-            <Link
-              href="#dealers"
+            </NavLink>
+            <NavLink
+              href="/swap"
+              activeMatch={(path) => path === "/swap" || path.startsWith("/buyer/swap")}
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
-              Local Dealers
-            </Link>
-            <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAuth?.("signup");
-                }}
-                className="w-full bg-white text-black font-semibold text-sm py-2.5 rounded-lg hover:bg-gray-100 transition shadow"
-              >
-                Sign Up Now
-              </button>
+              Car Swap &amp; Trade-In
+            </NavLink>
+            <NavLink
+              href="/buyer/compare"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              Compare Cars
+            </NavLink>
+            <NavLink
+              href="/buyer/concierge"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              Find For Me (Concierge)
+            </NavLink>
+            <NavLink
+              href="/advertise"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              Advertise on mycarsNg
+            </NavLink>
+            <NavLink
+              href="/buyer/garage"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition flex items-center justify-between"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              <span className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                <span>My Garage &amp; Saved Cars</span>
+              </span>
+              {isMounted && effectiveSavedCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
+                  {effectiveSavedCount}
+                </span>
+              )}
+            </NavLink>
+            <div suppressHydrationWarning className="pt-2 border-t border-white/10 flex flex-col gap-2">
+              {isAuthenticated && user ? (
+                <>
+                  <div className="px-3 py-2 bg-white/5 rounded-lg">
+                    <div className="text-xs font-semibold text-white truncate">{user.name}</div>
+                    <div className="text-[11px] text-gray-400 truncate">{user.email}</div>
+                    <div className="text-[10px] uppercase font-bold text-emerald-400 mt-1">{user.role} Account</div>
+                  </div>
+                  {user.role === "buyer" && (
+                    <Link
+                      href="/settings?tab=workspace"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full bg-amber-500/20 text-amber-300 font-semibold text-xs py-2 rounded-lg hover:bg-amber-500/30 transition text-center flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Become a Seller</span>
+                    </Link>
+                  )}
+                  <Link
+                    href={portalPath}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full bg-white text-black font-semibold text-xs py-2 rounded-lg hover:bg-gray-100 transition text-center"
+                  >
+                    Go to Portal Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full bg-red-500/20 text-red-300 font-semibold text-xs py-2 rounded-lg hover:bg-red-500/30 transition text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Log Out</span>
+                  </button>
+                </>
+              ) : !isMounted || isLoading ? (
+                <div className="w-full h-10 rounded-lg bg-white/10 animate-pulse" />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleAuthTrigger("login");
+                    }}
+                    className="w-full bg-white/10 text-white font-medium text-xs py-2 rounded-lg hover:bg-white/20 transition cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleAuthTrigger("signup");
+                    }}
+                    className="w-full bg-white text-black font-semibold text-xs py-2 rounded-lg hover:bg-gray-100 transition shadow cursor-pointer"
+                  >
+                    Sign Up Now
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

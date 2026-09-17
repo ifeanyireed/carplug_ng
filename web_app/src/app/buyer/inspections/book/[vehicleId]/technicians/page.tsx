@@ -3,17 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_VEHICLES, MOCK_TECHNICIANS } from "@/data/mockStore";
+import { fetchVehicleById, fetchTechnicians } from "@/services/api";
 import {
-  Wrench,
   Star,
   MapPin,
-  Clock,
-  ShieldCheck,
   ChevronRight,
-  ArrowRight,
   CheckCircle,
 } from "lucide-react";
+import { DispatchTechnicianButton } from "./DispatchButton";
 
 export default async function ChooseTechnicianPage({
   params,
@@ -26,8 +23,10 @@ export default async function ChooseTechnicianPage({
   const sParams = await searchParams;
   const tier = (sParams.tier as string) || "premium";
 
-  const vehicle = MOCK_VEHICLES.find((v) => v.id === vehicleId);
+  const vehicle = await fetchVehicleById(vehicleId);
   if (!vehicle) notFound();
+
+  const technicians = (await fetchTechnicians()) || [];
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
@@ -65,9 +64,26 @@ export default async function ChooseTechnicianPage({
         </div>
 
         {/* Technicians List */}
-        <div className="space-y-4">
-          {MOCK_TECHNICIANS.map((tech) => (
-            <div
+        {technicians.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 p-8 shadow-xs">
+            <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+            <h3 className="font-bold text-base text-neutral-900">
+              No Verified Technicians Available in this Area Yet
+            </h3>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1 mb-4">
+              We are constantly vetting and onboarding certified inspectors across Nigeria. Please check back shortly or request a custom dispatch.
+            </p>
+            <Link
+              href={`/buyer/vehicles/${vehicle.id}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-neutral-900 text-white rounded-xl text-xs font-semibold hover:bg-neutral-800 transition"
+            >
+              Return to Vehicle
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {technicians.map((tech) => (
+              <div
               key={tech.id}
               className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs hover:shadow-md transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
             >
@@ -100,7 +116,11 @@ export default async function ChooseTechnicianPage({
 
                   <div className="text-xs text-gray-600 pt-1">
                     <span className="text-gray-400 font-medium">Specialties: </span>
-                    <span>{tech.specialties.join(" • ")}</span>
+                    <span>
+                      {Array.isArray(tech.specialties)
+                        ? tech.specialties.join(" • ")
+                        : String(tech.specialties)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -110,17 +130,16 @@ export default async function ChooseTechnicianPage({
                   {tech.availability}
                 </span>
 
-                <Link
-                  href={`/buyer/inspections/insp-001/tracker`}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition"
-                >
-                  <span>Select & Dispatch</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <DispatchTechnicianButton
+                  vehicleId={vehicle.id}
+                  technicianId={tech.id}
+                  tier={tier}
+                />
               </div>
             </div>
           ))}
         </div>
+      )}
       </main>
 
       <Footer />

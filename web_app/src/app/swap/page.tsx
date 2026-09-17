@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { Vehicle } from "@/data/mockStore";
+import { fetchVehicles, createSwap } from "@/services/api";
 import {
   ArrowLeftRight,
   ShieldCheck,
@@ -15,15 +15,13 @@ import {
   Fuel,
   Settings2,
   CarFront,
-  ArrowUpRight,
-  TrendingUp,
   Percent,
-  Calendar,
-  MapPin,
-  Clock,
   ArrowRight,
-  FileCheck,
 } from "lucide-react";
+
+function generateSwapRef(): string {
+  return String(Date.now()).slice(-6);
+}
 
 export default function CarSwapPage() {
   // Trade-In Car State
@@ -34,14 +32,35 @@ export default function CarSwapPage() {
   const [currentMileage, setCurrentMileage] = useState(74000);
   const [mechanicalHealth, setMechanicalHealth] = useState("Good");
 
-  // Selected Upgrade Target Car from Inventory
-  const [selectedTargetId, setSelectedTargetId] = useState<string>(MOCK_VEHICLES[0].id);
+  // Upgrade Target Inventory from Backend
+  const [inventory, setInventory] = useState<Vehicle[]>([]);
+  const [selectedTargetId, setSelectedTargetId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchVehicles().then((data) => {
+      if (isMounted) {
+        const list = data || [];
+        setInventory(list);
+        if (list.length > 0) {
+          setSelectedTargetId(list[0].id);
+        }
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Scheduling State
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [preferredDate, setPreferredDate] = useState("2026-09-10");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [swapSubmitted, setSwapSubmitted] = useState(false);
+  const [swapRef, setSwapRef] = useState("");
 
   // Dynamic Algorithmic Appraisal Calculation for Current Car
   const estimatedAppraisal = useMemo(() => {
@@ -68,13 +87,14 @@ export default function CarSwapPage() {
     if (mechanicalHealth === "Needs Major Work") base *= 0.82;
 
     return Math.round(base / 100000) * 100000;
-  }, [currentYear, currentMake, currentModel, currentCondition, currentMileage, mechanicalHealth]);
+  }, [currentYear, currentMake, currentCondition, currentMileage, mechanicalHealth]);
 
-  const targetCar = MOCK_VEHICLES.find((v) => v.id === selectedTargetId) || MOCK_VEHICLES[0];
+  const targetCar = inventory.find((v) => v.id === selectedTargetId) || inventory[0] || null;
 
-  // 5% Verza Trade-in Discount Incentive
-  const platformDiscount = Math.round(targetCar.price * 0.05);
-  const netDifference = Math.max(0, targetCar.price - estimatedAppraisal - platformDiscount);
+  // 5% mycarsNg Trade-in Discount Incentive
+  const targetCarPrice = targetCar ? targetCar.price : 0;
+  const platformDiscount = Math.round(targetCarPrice * 0.05);
+  const netDifference = Math.max(0, targetCarPrice - estimatedAppraisal - platformDiscount);
 
   const getFuelIcon = (type: string) => {
     switch (type) {
@@ -86,9 +106,35 @@ export default function CarSwapPage() {
     }
   };
 
-  const handleSwapSubmit = (e: React.FormEvent) => {
+  const handleSwapSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSwapSubmitted(true);
+    if (!targetCar) return;
+    setIsSubmitting(true);
+    const ref = generateSwapRef();
+    setSwapRef(ref);
+
+    try {
+      await createSwap({
+        id: `swap-${ref}`,
+        customerName: fullName || "Valued Customer",
+        customerPhone: phone || "+234 800 000 0000",
+        currentCar: `${currentYear} ${currentMake} ${currentModel} (${currentCondition})`,
+        currentCarImage: "/images/cars/car13.jpeg",
+        appraisedEquity: estimatedAppraisal,
+        targetCar: targetCar.title,
+        targetCarPrice: targetCar.price,
+        platformDiscount: platformDiscount,
+        netTopUp: netDifference,
+        status: "Pending Audit",
+        scheduledDate: preferredDate,
+        assignedTech: "Auto-Dispatching Nearest Technician...",
+      });
+    } catch (err) {
+      console.warn("Backend swap request failed, continuing offline:", err);
+    } finally {
+      setIsSubmitting(false);
+      setSwapSubmitted(true);
+    }
   };
 
   return (
@@ -100,13 +146,13 @@ export default function CarSwapPage() {
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
             <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Verza Guaranteed Car Swap &amp; Trade-In Program</span>
+            <span>mycarsNg Guaranteed Car Swap &amp; Trade-In Program</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-medium text-gray-900 tracking-[-0.055em]">
             Swap Your Car for an Upgrade &amp; Pay a Discounted Difference
           </h1>
           <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Trade in your existing vehicle directly for verified showroom inventory. Benefit from an algorithmic fair equity appraisal plus a <strong>5% Verza platform trade-in subsidy</strong> off your new car.
+            Trade in your existing vehicle directly for verified showroom inventory. Benefit from an algorithmic fair equity appraisal plus a <strong>5% mycarsNg platform trade-in subsidy</strong> off your new car.
           </p>
         </div>
 
@@ -121,7 +167,7 @@ export default function CarSwapPage() {
             {
               step: "02",
               title: "Pick Your Verified Upgrade",
-              desc: "Select any inspected vehicle from our verified dealer lots. Get a 5% Verza trade-in discount deducted automatically.",
+              desc: "Select any inspected vehicle from our verified dealer lots. Get a 5% mycarsNg trade-in discount deducted automatically.",
             },
             {
               step: "03",
@@ -276,8 +322,21 @@ export default function CarSwapPage() {
 
           {/* Vehicle Cards Grid using the exact Explore all vehicles styling */}
           <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-7 lg:p-8 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
-              {MOCK_VEHICLES.map((car) => {
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-64 rounded-xl bg-gray-100 animate-pulse" />
+                ))}
+              </div>
+            ) : inventory.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <CarFront className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                <p className="font-semibold text-base text-gray-800">No Vehicles Available for Swap Yet</p>
+                <p className="text-xs text-gray-500 mt-1">Check back once dealerships have listed cars for swap.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
+                {inventory.map((car) => {
                 const isSelected = selectedTargetId === car.id;
                 const badgeText = car.priceRating === "deal" ? "Great Price" : car.trustTier === 5 ? "Platform Verified" : "Inspected";
                 const badgeBg = car.trustTier === 5 ? "bg-blue-600" : "bg-[#16a34a]";
@@ -371,6 +430,7 @@ export default function CarSwapPage() {
                 );
               })}
             </div>
+          )}
           </div>
         </div>
 
@@ -386,7 +446,13 @@ export default function CarSwapPage() {
             </p>
           </div>
 
-          {swapSubmitted ? (
+          {!targetCar ? (
+            <div className="text-center py-12 text-gray-500">
+              <p className="font-medium text-sm text-gray-700">
+                Please select an available vehicle above to view trade-in equity calculation and complete the swap agreement.
+              </p>
+            </div>
+          ) : swapSubmitted ? (
             <div className="text-center py-16 px-4 max-w-lg mx-auto space-y-4">
               <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-7 h-7" />
@@ -396,9 +462,9 @@ export default function CarSwapPage() {
                 Thank you, <strong>{fullName || "Valued Customer"}</strong>. Your request to swap your <strong>{currentYear} {currentMake} {currentModel}</strong> for the <strong>{targetCar.title}</strong> has been routed to our verification team and the dealer lot.
               </p>
               <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-600 text-left space-y-1.5 font-mono">
-                <div>Swap Reference: #SWAP-{Math.floor(100000 + Math.random() * 900000)}</div>
+                <div>Swap Reference: #SWAP-{swapRef || "849201"}</div>
                 <div>Your Trade-In Equity: ₦{(estimatedAppraisal / 1000000).toFixed(1)}M</div>
-                <div>Verza Platform Subsidy (5%): -₦{(platformDiscount / 1000000).toFixed(1)}M</div>
+                <div>mycarsNg Platform Subsidy (5%): -₦{(platformDiscount / 1000000).toFixed(1)}M</div>
                 <div>Discounted Net Top-Up Due: ₦{(netDifference / 1000000).toFixed(1)}M</div>
                 <div>Technician Inspection Scheduled: {preferredDate}</div>
               </div>
@@ -441,7 +507,7 @@ export default function CarSwapPage() {
                   <div className="flex items-center justify-between text-blue-700 font-medium">
                     <div className="flex items-center gap-1">
                       <Percent className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Verza Swap Incentive Discount (5% Platform Subsidy)</span>
+                      <span>mycarsNg Swap Incentive Discount (5% Platform Subsidy)</span>
                     </div>
                     <span className="font-mono font-bold">
                       -₦{platformDiscount.toLocaleString()}
@@ -515,9 +581,10 @@ export default function CarSwapPage() {
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full py-3 bg-neutral-900 hover:bg-black text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-neutral-900 hover:bg-black text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs disabled:opacity-50"
                     >
-                      <span>Submit Car Swap Request</span>
+                      <span>{isSubmitting ? "Submitting Swap Request..." : "Submit Car Swap Request"}</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>

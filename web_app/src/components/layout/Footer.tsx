@@ -121,7 +121,7 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
               </p>
               {subscribed ? (
                 <p className="text-xs text-emerald-700 font-medium py-2.5">
-                  ✓ Thank you for subscribing to Rojo!
+                  ✓ Thank you for subscribing to mycarsNg!
                 </p>
               ) : (
                 <form
@@ -223,7 +223,7 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
           {/* Dividing Line */}
           <div className="border-t border-gray-300/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
             <div>
-              © 2025 Rojo, Inc. All Rights Reserved
+              © 2026 mycarsNg. All Rights Reserved
             </div>
 
             <div className="flex items-center gap-6">
@@ -240,10 +240,9 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
           </div>
         </div>
 
-        {/* Repetitive Pattern Watermark ROJO Brand Graphic (Crisp High-Contrast White) */}
-        <div className="w-full overflow-hidden pointer-events-none select-none opacity-90 mt-8 pb-10 sm:pb-16 flex items-center justify-center gap-8 sm:gap-14 px-4">
-          <RojoLogo className="h-20 sm:h-28 md:h-36 lg:h-44 w-auto text-white shrink-0" />
-          <RojoLogo className="h-20 sm:h-28 md:h-36 lg:h-44 w-auto text-white shrink-0" />
+        {/* Brand Watermark Graphic */}
+        <div className="w-full overflow-hidden pointer-events-none select-none opacity-40 mt-8 pb-10 sm:pb-16 flex items-center justify-center gap-8 sm:gap-14 px-4">
+          <RojoLogo className="h-16 sm:h-24 md:h-28 w-auto text-gray-400 grayscale contrast-125 shrink-0" />
         </div>
       </div>
     </footer>

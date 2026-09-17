@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/ifeanyireed/carplug_ng/backend/config"
+	"github.com/ifeanyireed/carplug_ng/backend/controllers"
 	"github.com/ifeanyireed/carplug_ng/backend/routes"
+	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
 
 func main() {
@@ -28,8 +30,16 @@ func main() {
 		log.Fatalf("[Server] Database initialization failed: %v", err)
 	}
 
-	// 3. Setup Routes
+	// 2.5. Initialize Cloudinary Uploader
+	if err := utils.InitCloudinary(); err != nil {
+		log.Printf("[Cloudinary] Warning: %v (Image uploads will be disabled)\n", err)
+	} else {
+		log.Printf("[Cloudinary] Initialized successfully for cloud: %s\n", cfg.CloudinaryCloudName)
+	}
+
+	// 3. Setup Routes & WebSocket Hub
 	r := routes.SetupRouter(cfg)
+	go controllers.GlobalWSHub.Run()
 
 	// 4. Create HTTP Server
 	serverAddr := ":" + cfg.Port

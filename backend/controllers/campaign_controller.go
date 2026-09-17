@@ -29,6 +29,7 @@ func GetCampaigns(c *gin.Context) {
 
 func CreateCampaign(c *gin.Context) {
 	var camp models.Campaign
+
 	if err := c.ShouldBindJSON(&camp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

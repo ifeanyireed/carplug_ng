@@ -1,11 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
-import { MOCK_LEADS, MOCK_TECHNICIANS, Lead } from "@/data/mockStore";
-import { GitPullRequest, Wrench, Users, Check, ArrowRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Lead } from "@/data/mockStore";
+import { fetchLeads, updateLeadStatus } from "@/services/api";
 
 export default function LeadRoutingBoardPage() {
-  const [leads, setLeads] = useState<Lead[]>(MOCK_LEADS);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchLeads().then((data) => {
+      if (isMounted) {
+        setLeads(data || []);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      await updateLeadStatus(id, newStatus);
+      setLeads((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, status: newStatus as Lead["status"] } : l))
+      );
+    } catch (err) {
+      console.warn("Failed to update status on backend:", err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -16,7 +42,21 @@ export default function LeadRoutingBoardPage() {
         </p>
       </div>
 
-      <div className="space-y-4">
+      {isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-white border border-gray-200 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      ) : leads.length === 0 ? (
+        <div className="text-center py-16 bg-white border border-gray-200 rounded-3xl p-8">
+          <p className="font-semibold text-base text-neutral-800">No Inbound Leads</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Inbound buyer and concierge requests will appear here in real-time.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
         {leads.map((lead) => (
           <div
             key={lead.id}
@@ -27,14 +67,18 @@ export default function LeadRoutingBoardPage() {
                 <span className="font-bold text-sm text-neutral-900">{lead.buyerName}</span>
                 <span className="text-gray-400">•</span>
                 <span className="text-gray-500">{lead.buyerCity}</span>
-                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold uppercase text-[10px]">
-                  {lead.type.replace("_", " ")}
+                <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[10px] ${
+                  lead.type === "concierge"
+                    ? "bg-amber-100 text-amber-900 border border-amber-300 font-black"
+                    : "bg-blue-50 text-blue-700"
+                }`}>
+                  {lead.type === "concierge" ? "★ VIP Concierge" : lead.type.replace("_", " ")}
                 </span>
               </div>
               <div className="text-neutral-800 font-semibold">
                 Target: {lead.vehicleTitle} (₦{(lead.vehiclePrice / 1000000).toFixed(1)}M)
               </div>
-              <p className="text-gray-500 italic">"{lead.note}"</p>
+              <p className="text-gray-500 italic">&ldquo;{lead.note}&rdquo;</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -46,15 +90,21 @@ export default function LeadRoutingBoardPage() {
               </div>
 
               <button
-                onClick={() => alert("Override technician modal opened")}
+                onClick={() =>
+                  handleStatusChange(
+                    lead.id,
+                    lead.status === "new" ? "routed" : "completed"
+                  )
+                }
                 className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold transition"
               >
-                Override Dispatch
+                {lead.status === "new" ? "Dispatch Tech" : "Mark Completed"}
               </button>
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

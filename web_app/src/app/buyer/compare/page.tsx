@@ -1,44 +1,50 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
-import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { Vehicle } from "@/data/mockStore";
+import { fetchVehicles } from "@/services/api";
 import {
-  ArrowLeft,
   X,
   Plus,
-  CheckCircle2,
-  Wrench,
-  Fuel,
-  Gauge,
-  Calendar,
-  ShieldCheck,
   ChevronRight,
 } from "lucide-react";
 
 export default function ComparePage() {
-  // Default compare with 2 cars
-  const [comparedIds, setComparedIds] = useState<string[]>([
-    "v-lexus-rx350-2021",
-    "v-toyota-camry-2020",
-  ]);
+  const [comparedIds, setComparedIds] = useState<string[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const comparedCars = comparedIds
-    .map((id) => MOCK_VEHICLES.find((v) => v.id === id))
-    .filter(Boolean) as Vehicle[];
+  useEffect(() => {
+    let isMounted = true;
+    fetchVehicles().then((data) => {
+      if (isMounted) {
+        const list = data || [];
+        setVehicles(list);
+        if (list.length > 0) {
+          setComparedIds(list.slice(0, 2).map((v) => v.id));
+        }
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const comparedCars = useMemo(() => {
+    return comparedIds
+      .map((id) => vehicles.find((v) => v.id === id))
+      .filter(Boolean) as Vehicle[];
+  }, [comparedIds, vehicles]);
 
   const handleRemove = (id: string) => {
     setComparedIds((prev) => prev.filter((item) => item !== id));
-  };
-
-  const handleAdd = (id: string) => {
-    if (!comparedIds.includes(id) && comparedIds.length < 3) {
-      setComparedIds((prev) => [...prev, id]);
-    }
   };
 
   const formatNaira = (amount: number) => {
@@ -76,7 +82,12 @@ export default function ComparePage() {
           </Link>
         </div>
 
-        {comparedCars.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-20 bg-white border border-gray-200 rounded-3xl p-8 max-w-md mx-auto mt-8 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-3" />
+            <div className="h-3 bg-gray-100 rounded w-3/4 mx-auto" />
+          </div>
+        ) : comparedCars.length === 0 ? (
           <div className="text-center py-16 bg-white border border-gray-200 rounded-3xl p-8 max-w-md mx-auto mt-8">
             <h3 className="font-bold text-base text-neutral-900 mb-1">
               No vehicles selected for comparison
@@ -110,11 +121,13 @@ export default function ComparePage() {
                           >
                             <X className="w-4 h-4" />
                           </button>
-                          <div className="aspect-[16/10] rounded-xl bg-gray-100 overflow-hidden mb-3">
-                            <img
+                          <div className="aspect-[16/10] rounded-xl bg-gray-100 overflow-hidden mb-3 relative">
+                            <Image
                               src={car.images[0] || "/images/cars/car18.jpeg"}
                               alt={car.title}
-                              className="w-full h-full object-cover"
+                              fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                              className="object-cover"
                             />
                           </div>
                           <h3 className="font-bold text-sm text-neutral-900 line-clamp-1">

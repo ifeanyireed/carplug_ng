@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { createCampaign } from "@/services/api";
 import {
   Megaphone,
   CheckCircle2,
@@ -14,12 +14,7 @@ import {
   BarChart3,
   ArrowRight,
   ShieldCheck,
-  Sparkles,
   UploadCloud,
-  Layers,
-  Award,
-  Calendar,
-  DollarSign,
 } from "lucide-react";
 
 interface AdFormat {
@@ -76,6 +71,10 @@ const AD_FORMATS: AdFormat[] = [
   },
 ];
 
+function generateCampaignRef(): string {
+  return String(Date.now()).slice(-6);
+}
+
 export default function AdvertisePage() {
   const [selectedFormat, setSelectedFormat] = useState<string>("sponsored_car");
   const [targetCity, setTargetCity] = useState<string>("all");
@@ -85,7 +84,9 @@ export default function AdvertisePage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [destinationUrl, setDestinationUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [campaignRef, setCampaignRef] = useState("");
 
   const activeFormat = AD_FORMATS.find((f) => f.id === selectedFormat) || AD_FORMATS[0];
 
@@ -95,9 +96,29 @@ export default function AdvertisePage() {
   const discountAmount = rawTotal * discountRate;
   const netTotal = rawTotal - discountAmount;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    const ref = generateCampaignRef();
+    setCampaignRef(ref);
+
+    try {
+      await createCampaign({
+        id: `ad-${ref}`,
+        advertiser: advertiserName || companyName || "Partner Advertiser",
+        placement: activeFormat.name,
+        creativeImage: activeFormat.previewImage,
+        budget: netTotal,
+        dates: `${durationWeeks} Week(s) Flight`,
+        status: "Active",
+        targetCity: targetCity || "Nationwide",
+      });
+    } catch (err) {
+      console.warn("Backend campaign creation failed, continuing offline:", err);
+    } finally {
+      setIsSubmitting(false);
+      setSubmitted(true);
+    }
   };
 
   return (
@@ -109,7 +130,7 @@ export default function AdvertisePage() {
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
             <Megaphone className="w-3.5 h-3.5" />
-            <span>Verza Media &amp; Advertising Network</span>
+            <span>mycarsNg Media &amp; Advertising Network</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-medium text-gray-900 tracking-[-0.055em]">
             Reach High-Intent Car Buyers &amp; Owners Across Nigeria
@@ -228,10 +249,10 @@ export default function AdvertisePage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900">Campaign Submitted for Review!</h3>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Thank you, <strong>{advertiserName || "Partner"}</strong>. Your <strong>{activeFormat.name}</strong> flight has been submitted to the Verza Admin Console. Our ad operations team will review your creative within 2 business hours and activate your flight.
+                Thank you, <strong>{advertiserName || "Partner"}</strong>. Your <strong>{activeFormat.name}</strong> flight has been submitted to the mycarsNg Admin Console. Our ad operations team will review your creative within 2 business hours and activate your flight.
               </p>
               <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-600 text-left space-y-1.5 font-mono">
-                <div>Campaign Ref: #AD-{Math.floor(100000 + Math.random() * 900000)}</div>
+                <div>Campaign Ref: #AD-{campaignRef || "382910"}</div>
                 <div>Format: {activeFormat.name}</div>
                 <div>Duration: {durationWeeks} Week(s)</div>
                 <div>Total Budget: ₦{netTotal.toLocaleString()}</div>
@@ -445,9 +466,10 @@ export default function AdvertisePage() {
                 <div className="space-y-3">
                   <button
                     type="submit"
-                    className="w-full py-3 bg-neutral-900 hover:bg-black text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs"
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-neutral-900 hover:bg-black text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs disabled:opacity-50"
                   >
-                    <span>Proceed to Paystack Checkout</span>
+                    <span>{isSubmitting ? "Submitting Campaign..." : "Proceed to Paystack Checkout"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 

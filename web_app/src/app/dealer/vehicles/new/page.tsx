@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Vehicle } from "@/data/mockStore";
-import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages } from "@/services/api";
+import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages, fetchValuationEstimate, ValuationEstimateResult } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Upload,
@@ -35,6 +35,8 @@ function AddVehicleWizardContent() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [originalVehicle, setOriginalVehicle] = useState<Vehicle | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [priceValuation, setPriceValuation] = useState<ValuationEstimateResult | null>(null);
+  const [isEvaluatingPrice, setIsEvaluatingPrice] = useState(false);
 
   const [formData, setFormData] = useState(() => {
     const qMake = searchParams.get("make");
@@ -152,6 +154,35 @@ function AddVehicleWizardContent() {
       images: prev.images.filter((_, idx) => idx !== indexToRemove),
     }));
   };
+
+  useEffect(() => {
+    if (currentStep !== 7) return;
+
+    let isSubscribed = true;
+    const timer = setTimeout(() => {
+      setIsEvaluatingPrice(true);
+      fetchValuationEstimate({
+        make: formData.make,
+        model: formData.model,
+        year: Number(formData.year) || 2021,
+        condition: formData.condition,
+        mileage: Number(formData.mileage) || 30000,
+        askingPrice: Number(formData.askingPrice) || undefined,
+      })
+        .then((res) => {
+          if (isSubscribed && res) setPriceValuation(res);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isSubscribed) setIsEvaluatingPrice(false);
+        });
+    }, 300);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
+  }, [currentStep, formData.askingPrice, formData.make, formData.model, formData.year, formData.condition, formData.mileage]);
 
   const steps = [
     "Vehicle Identity",
@@ -318,7 +349,7 @@ function AddVehicleWizardContent() {
             </h2>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
               {isEditMode
-                ? `Your modifications to the ${formData.year} ${formData.make} ${formData.model} have been synchronized live with the Carplug marketplace.`
+                ? `Your modifications to the ${formData.year} ${formData.make} ${formData.model} have been synchronized live with the mycarsNg marketplace.`
                 : `Your ${formData.year} ${formData.make} ${formData.model} is now live on the marketplace. Customs documents have been queued for administrative seal, and pre-inspection dispatch has been triggered.`}
             </p>
             <div className="pt-4 flex items-center justify-center gap-3">
@@ -611,11 +642,44 @@ function AddVehicleWizardContent() {
                     type="number"
                     value={formData.askingPrice}
                     onChange={(e) => setFormData({ ...formData, askingPrice: e.target.value })}
+                    placeholder="e.g. 42000000"
                     className="w-full px-3.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base font-extrabold text-neutral-900 focus:bg-white focus:outline-none"
                   />
-                  <span className="block text-[11px] text-emerald-700 font-semibold mt-1">
-                    ✓ Projected Price Rating: 🟢 Fair Market Value (Median ₦40m - ₦44m)
-                  </span>
+
+                  {priceValuation ? (
+                    <div className="mt-3 p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-gray-700">Projected Price Rating:</span>
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                            priceValuation.priceRating === "great"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : priceValuation.priceRating === "high"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {priceValuation.priceRating === "great"
+                            ? "🟢 Great Price"
+                            : priceValuation.priceRating === "high"
+                            ? "🟠 Above Market"
+                            : "🔵 Fair Market Value"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-600 font-medium">
+                        Market Range: ₦{(priceValuation.marketPriceMin / 1000000).toFixed(1)}M – ₦{(priceValuation.marketPriceMax / 1000000).toFixed(1)}M (Median ₦{(priceValuation.medianPrice / 1000000).toFixed(1)}M)
+                      </div>
+                      <p className="text-[11px] text-neutral-700 italic leading-relaxed">
+                        &ldquo;{priceValuation.priceVerdict}&rdquo;
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="block text-[11px] text-gray-500 mt-1.5">
+                      {isEvaluatingPrice
+                        ? "Evaluating live market comps..."
+                        : "✓ Dynamically calibrated against verified Nigerian dealer transactions and customs duties."}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -654,7 +718,7 @@ function AddVehicleWizardContent() {
                       Dispatch an Independent Technician to your Lot
                     </div>
                     <p className="text-blue-800 leading-relaxed">
-                      Pre-inspected dealer vehicles receive 4x more viewings and sell 18 days faster on average. Verza handles technician dispatch automatically.
+                      Pre-inspected dealer vehicles receive 4x more viewings and sell 18 days faster on average. mycarsNg handles technician dispatch automatically.
                     </p>
                     <label className="flex items-center gap-2 pt-2 font-bold text-neutral-900 cursor-pointer">
                       <input

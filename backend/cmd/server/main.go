@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ifeanyireed/carplug_ng/backend/config"
+	"github.com/ifeanyireed/carplug_ng/backend/controllers"
 	"github.com/ifeanyireed/carplug_ng/backend/routes"
 	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
@@ -36,8 +37,9 @@ func main() {
 		log.Printf("[Cloudinary] Initialized successfully for cloud: %s\n", cfg.CloudinaryCloudName)
 	}
 
-	// 3. Setup Routes
+	// 3. Setup Routes & WebSocket Hub
 	r := routes.SetupRouter(cfg)
+	go controllers.GlobalWSHub.Run()
 
 	// 4. Create HTTP Server
 	serverAddr := ":" + cfg.Port

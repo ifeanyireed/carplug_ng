@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
+	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
 
 func GetVehicles(c *gin.Context) {
@@ -176,6 +179,96 @@ func GetVehicleByID(c *gin.Context) {
 	c.JSON(http.StatusOK, vehicle)
 }
 
+// CleanNigerianPhone normalizes Nigerian telephone numbers into international digits without '+' (e.g. 2348035004401)
+func CleanNigerianPhone(phone string) string {
+	digits := ""
+	for _, ch := range phone {
+		if ch >= '0' && ch <= '9' {
+			digits += string(ch)
+		}
+	}
+	if strings.HasPrefix(digits, "0") && len(digits) == 11 {
+		return "234" + digits[1:]
+	}
+	if strings.HasPrefix(digits, "234") {
+		return digits
+	}
+	if len(digits) == 10 {
+		return "234" + digits
+	}
+	if digits == "" {
+		return "2348035004401" // Platform concierge fallback
+	}
+	return digits
+}
+
+// GetVehicleContact resolves direct WhatsApp contact and telemetry for a vehicle
+func GetVehicleContact(c *gin.Context) {
+	id := c.Param("id")
+	db := config.GetDB()
+
+	var vehicle models.Vehicle
+	if err := db.First(&vehicle, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vehicle not found"})
+		return
+	}
+
+	contactPhone := vehicle.SellerPhone
+
+	// If vehicle is from a dealer, look up the verified dealership WhatsApp or phone
+	if vehicle.SellerType == "dealer" || strings.HasPrefix(vehicle.SellerID, "dlr-") {
+		var dealer models.DealerShop
+		if err := db.Where("id = ? OR user_id = ?", vehicle.SellerID, vehicle.SellerID).First(&dealer).Error; err == nil {
+			if dealer.Whatsapp != "" {
+				contactPhone = dealer.Whatsapp
+			} else if dealer.Phone != "" {
+				contactPhone = dealer.Phone
+			}
+		}
+	}
+
+	cleanPhone := CleanNigerianPhone(contactPhone)
+
+	// Format price in NGN
+	formattedPrice := fmt.Sprintf("%.0f", vehicle.Price)
+	prefilledMsg := fmt.Sprintf("Hello %s, I saw your %d %s %s (VIN: %s) listed for ₦%s on Carplug Nigeria. Is it still available for viewing/inspection?",
+		vehicle.SellerName, vehicle.Year, vehicle.Make, vehicle.Model, vehicle.VIN, formattedPrice)
+
+	waURL := fmt.Sprintf("https://wa.me/%s?text=%s", cleanPhone, url.QueryEscape(prefilledMsg))
+
+	// Telemetric lead tracking: record whatsapp inquiry lead asynchronously
+	go func(veh models.Vehicle, phone string) {
+		lead := models.Lead{
+			ID:           "lead-wa-" + strconv.FormatInt(time.Now().UnixNano(), 36),
+			BuyerName:    "WhatsApp Inquirer",
+			BuyerPhone:   "+" + phone,
+			VehicleID:    veh.ID,
+			VehicleTitle: veh.Title,
+			VehiclePrice: veh.Price,
+			Type:         "whatsapp_click",
+			Status:       "new",
+			SellerID:     veh.SellerID,
+			Date:         time.Now().Format("2006-01-02"),
+			Note:         "Direct WhatsApp deep link clicked on Carplug listing.",
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+		db.Create(&lead)
+	}(vehicle, cleanPhone)
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":           "success",
+		"vehicleId":        vehicle.ID,
+		"vehicleTitle":     vehicle.Title,
+		"sellerName":       vehicle.SellerName,
+		"sellerType":       vehicle.SellerType,
+		"phone":            "+" + cleanPhone,
+		"whatsapp":         cleanPhone,
+		"whatsappUrl":      waURL,
+		"prefilledMessage": prefilledMsg,
+	})
+}
+
 func CreateVehicle(c *gin.Context) {
 	userID := c.GetString("userID")
 	userRole := c.GetString("userRole")
@@ -217,6 +310,23 @@ func CreateVehicle(c *gin.Context) {
 			if vehicle.SellerPhone == "" && user.Phone != "" {
 				vehicle.SellerPhone = user.Phone
 			}
+		}
+	}
+
+	// Automated Dynamic Valuation & Fair-Price Comps Intelligence
+	if vehicle.MarketPriceMin == 0 || vehicle.PriceVerdict == "" || vehicle.PriceRating == "" {
+		val := utils.CalculateValuation(db, vehicle.Make, vehicle.Model, vehicle.Year, vehicle.Condition, vehicle.Mileage, vehicle.Price)
+		if vehicle.MarketPriceMin == 0 {
+			vehicle.MarketPriceMin = val.MarketPriceMin
+		}
+		if vehicle.MarketPriceMax == 0 {
+			vehicle.MarketPriceMax = val.MarketPriceMax
+		}
+		if vehicle.PriceRating == "" {
+			vehicle.PriceRating = val.PriceRating
+		}
+		if vehicle.PriceVerdict == "" {
+			vehicle.PriceVerdict = val.PriceVerdict
 		}
 	}
 

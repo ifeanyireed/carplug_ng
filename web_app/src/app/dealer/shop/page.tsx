@@ -2,26 +2,26 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { MOCK_SHOPS, DealerShop } from "@/data/mockStore";
+import { DealerShop } from "@/data/mockStore";
 import { fetchDealerMeShop, updateDealerShop } from "@/services/api";
 import { ShieldCheck, Save, ArrowUpRight, Loader2, AlertCircle } from "lucide-react";
 
 export default function DealerShopSettingsPage() {
-  const [shop, setShop] = useState<DealerShop>(MOCK_SHOPS[0]);
+  const [shop, setShop] = useState<DealerShop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    name: MOCK_SHOPS[0].name,
-    tagline: MOCK_SHOPS[0].tagline,
-    location: MOCK_SHOPS[0].location,
-    address: MOCK_SHOPS[0].address,
-    phone: MOCK_SHOPS[0].phone,
-    whatsapp: MOCK_SHOPS[0].whatsapp,
-    email: MOCK_SHOPS[0].email,
-    operatingHours: MOCK_SHOPS[0].operatingHours,
+    name: "",
+    tagline: "",
+    location: "",
+    address: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    operatingHours: "",
   });
 
   useEffect(() => {
@@ -62,6 +62,7 @@ export default function DealerShopSettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!shop) return;
     setIsSaving(true);
     setErrorMessage(null);
     try {
@@ -94,7 +95,7 @@ export default function DealerShopSettingsPage() {
       <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            {shop.verifiedCAC ? (
+            {shop?.verifiedCAC ? (
               <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>CAC Verified Dealership</span>
@@ -112,13 +113,15 @@ export default function DealerShopSettingsPage() {
           </p>
         </div>
 
-        <Link
-          href={`/shops/${shop.slug}`}
-          className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-neutral-900 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition self-start sm:self-auto"
-        >
-          <span>View Public Storefront</span>
-          <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
+        {shop?.slug && (
+          <Link
+            href={`/shops/${shop.slug}`}
+            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-neutral-900 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition self-start sm:self-auto"
+          >
+            <span>View Public Storefront</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        )}
       </div>
 
       {/* Profile Form */}

@@ -25,78 +25,17 @@ interface SwapRequest {
   assignedTech: string;
 }
 
-const INITIAL_SWAPS: SwapRequest[] = [
-  {
-    id: "swap-101",
-    customerName: "Chukwuma Reed",
-    customerPhone: "+234 803 291 0021",
-    currentCar: "2017 Toyota Camry LE (74k mi)",
-    currentCarImage: "/images/cars/car13.jpeg",
-    appraisedEquity: 15000000,
-    targetCar: "2021 Lexus RX 350 F-Sport",
-    targetCarPrice: 38500000,
-    platformDiscount: 1925000,
-    netTopUp: 21575000,
-    status: "In Audit",
-    scheduledDate: "Sep 08, 2026",
-    assignedTech: "Engr. Tunde Adeleke",
-  },
-  {
-    id: "swap-102",
-    customerName: "Fatima Al-Hassan",
-    customerPhone: "+234 812 884 1932",
-    currentCar: "2018 Toyota Corolla LE (82k mi)",
-    currentCarImage: "/images/cars/car1.jpeg",
-    appraisedEquity: 13500000,
-    targetCar: "2020 Toyota Camry XSE V6",
-    targetCarPrice: 24800000,
-    platformDiscount: 1240000,
-    netTopUp: 10060000,
-    status: "Pending Audit",
-    scheduledDate: "Sep 09, 2026",
-    assignedTech: "Unassigned",
-  },
-  {
-    id: "swap-103",
-    customerName: "Obinna Eze",
-    customerPhone: "+234 901 332 4410",
-    currentCar: "2016 Mercedes-Benz C300 (58k mi)",
-    currentCarImage: "/images/cars/car17.jpeg",
-    appraisedEquity: 22000000,
-    targetCar: "2022 Mercedes-Benz GLE 450",
-    targetCarPrice: 68000000,
-    platformDiscount: 3400000,
-    netTopUp: 42600000,
-    status: "Dealer Accepted",
-    scheduledDate: "Sep 07, 2026",
-    assignedTech: "Engr. Chidi Okafor",
-  },
-  {
-    id: "swap-104",
-    customerName: "David Adeleke",
-    customerPhone: "+234 802 119 7734",
-    currentCar: "2015 Honda Accord EX-L (66k mi)",
-    currentCarImage: "/images/cars/car16.jpeg",
-    appraisedEquity: 14000000,
-    targetCar: "2019 Honda Accord Sport",
-    targetCarPrice: 21500000,
-    platformDiscount: 1075000,
-    netTopUp: 6425000,
-    status: "Completed",
-    scheduledDate: "Sep 03, 2026",
-    assignedTech: "Engr. Tunde Adeleke",
-  },
-];
-
 export default function AdminSwapsPage() {
-  const [swaps, setSwaps] = useState<SwapRequest[]>(INITIAL_SWAPS);
+  const [swaps, setSwaps] = useState<SwapRequest[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "active">("all");
 
   useEffect(() => {
     let isMounted = true;
     fetchSwaps().then((data) => {
-      if (isMounted && data && data.length > 0) {
-        setSwaps(data as SwapRequest[]);
+      if (isMounted) {
+        setSwaps((data as SwapRequest[]) || []);
+        setIsLoading(false);
       }
     });
     return () => {
@@ -132,6 +71,10 @@ export default function AdminSwapsPage() {
     return true;
   });
 
+  const pendingCount = swaps.filter((s) => s.status === "Pending Audit").length;
+  const activeCount = swaps.filter((s) => s.status === "In Audit" || s.status === "Dealer Accepted").length;
+  const totalGmv = swaps.filter((s) => s.status === "Completed").reduce((sum, s) => sum + (s.targetCarPrice || 0), 0);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -154,10 +97,10 @@ export default function AdminSwapsPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Active Swap Flights", value: "3 In Pacing", note: "Dual audits scheduled", icon: ArrowLeftRight },
-          { label: "Pending Approvals", value: "2 Lots", note: "Awaiting appraisal sign-off", icon: Clock },
-          { label: "Exchange GMV (MTD)", value: "₦148.5M", note: "Completed trades", icon: DollarSign },
-          { label: "Avg Trade-In Discount", value: "5.0%", note: "Verza Platform Subsidy", icon: Percent },
+          { label: "Active Swap Flights", value: `${activeCount} In Pacing`, note: "Dual audits scheduled", icon: ArrowLeftRight },
+          { label: "Pending Approvals", value: `${pendingCount} Lots`, note: "Awaiting appraisal sign-off", icon: Clock },
+          { label: "Exchange GMV (MTD)", value: `₦${(totalGmv / 1000000).toFixed(1)}M`, note: "Completed trades", icon: DollarSign },
+          { label: "Avg Trade-In Discount", value: "5.0%", note: "mycarsNg Platform Subsidy", icon: Percent },
         ].map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
@@ -229,9 +172,27 @@ export default function AdminSwapsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-              {filteredSwaps.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50/60 transition">
-                  <td className="py-4 px-4">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-400">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Loading swap records...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredSwaps.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
+                    <ArrowLeftRight className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-semibold text-sm text-neutral-800">No Swap Requests</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Pending car swap and trade-in appraisals will be listed here.</p>
+                  </td>
+                </tr>
+              ) :
+                filteredSwaps.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50/60 transition">
+                    <td className="py-4 px-4">
                     <div className="font-bold text-gray-900 text-sm">{item.customerName}</div>
                     <div className="text-[11px] text-gray-500">{item.customerPhone}</div>
                   </td>

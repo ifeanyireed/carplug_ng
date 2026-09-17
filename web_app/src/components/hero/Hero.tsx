@@ -8,12 +8,10 @@ import { Play } from "lucide-react";
 
 interface HeroProps {
   onSearch?: (filters: SearchFilterState) => void;
-  onOpenAuth?: (mode?: "login" | "signup") => void;
 }
 
 export const Hero = ({
   onSearch,
-  onOpenAuth,
 }: HeroProps) => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 

@@ -1,8 +1,12 @@
 package controllers
 
 import (
+	"fmt"
+	"math"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -136,4 +140,105 @@ func UpdateLeadStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Lead status updated", "id": id, "status": req.Status})
 }
+
+type ConciergeMatchRequest struct {
+	MakeModel   string  `json:"makeModel"`
+	BudgetNaira float64 `json:"budgetNaira"`
+	Condition   string  `json:"condition"`
+	City        string  `json:"city"`
+}
+
+type ConciergeMatchedVehicle struct {
+	models.Vehicle
+	MatchScore  int    `json:"matchScore"`
+	MatchReason string `json:"matchReason"`
+}
+
+// MatchConciergeInventory ranks existing verified inventory against a buyer's concierge brief
+func MatchConciergeInventory(c *gin.Context) {
+	var req ConciergeMatchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
+		return
+	}
+
+	db := config.GetDB()
+	var candidates []models.Vehicle
+	query := db.Model(&models.Vehicle{})
+
+	cleanMM := strings.TrimSpace(req.MakeModel)
+	if cleanMM != "" {
+		tokens := strings.Fields(cleanMM)
+		for _, token := range tokens {
+			like := "%" + strings.ToLower(token) + "%"
+			query = query.Where("LOWER(make) LIKE ? OR LOWER(model) LIKE ? OR LOWER(title) LIKE ?", like, like, like)
+		}
+	}
+
+	if req.BudgetNaira > 0 {
+		minBudget := req.BudgetNaira * 0.65
+		maxBudget := req.BudgetNaira * 1.35
+		query = query.Where("price >= ? AND price <= ?", minBudget, maxBudget)
+	}
+
+	if err := query.Limit(12).Find(&candidates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query matching inventory: " + err.Error()})
+		return
+	}
+
+	var matches []ConciergeMatchedVehicle
+	for _, v := range candidates {
+		score := 70
+		var reasons []string
+
+		// Budget closeness
+		if req.BudgetNaira > 0 {
+			diff := math.Abs(v.Price - req.BudgetNaira)
+			pctDiff := diff / req.BudgetNaira
+			if pctDiff <= 0.05 {
+				score += 20
+				reasons = append(reasons, "Exact budget match (within 5%)")
+			} else if pctDiff <= 0.15 {
+				score += 12
+				reasons = append(reasons, "Close budget match (within 15%)")
+			} else {
+				score += 5
+				reasons = append(reasons, "Within target budget range")
+			}
+		}
+
+		// Condition match
+		if req.Condition != "" && strings.EqualFold(v.Condition, req.Condition) {
+			score += 10
+			reasons = append(reasons, fmt.Sprintf("Matches condition (%s)", v.Condition))
+		}
+
+		// Trust Tier bonus
+		if v.TrustTier >= 4 {
+			score += 5
+			reasons = append(reasons, "150-Point Certified vehicle")
+		}
+
+		if score > 99 {
+			score = 99
+		}
+
+		matches = append(matches, ConciergeMatchedVehicle{
+			Vehicle:     v,
+			MatchScore:  score,
+			MatchReason: strings.Join(reasons, " • "),
+		})
+	}
+
+	// Sort highest match first
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].MatchScore > matches[j].MatchScore
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"count":   len(matches),
+		"matches": matches,
+	})
+}
+
 

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { Vehicle } from "@/data/mockStore";
 import { fetchVehicles } from "@/services/api";
 import {
   ArrowUpRight,
@@ -33,7 +33,8 @@ export default function BuyerSearchPage() {
   const [selectedTier, setSelectedTier] = useState<TierFilter>("all");
   const [selectedPriceRating, setSelectedPriceRating] = useState<PriceRatingFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("featured");
-  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -49,12 +50,17 @@ export default function BuyerSearchPage() {
       .then((data) => {
         if (isMounted) {
           startTransition(() => {
-            setVehicles(data);
+            setVehicles(data || []);
           });
         }
       })
       .catch((err) => {
         console.error("Failed to fetch vehicles from API:", err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       });
 
     return () => {

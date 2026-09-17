@@ -28,83 +28,17 @@ interface CampaignItem {
   targetCity: string;
 }
 
-const INITIAL_CAMPAIGNS: CampaignItem[] = [
-  {
-    id: "camp-01",
-    advertiser: "Leadway Auto Insurance",
-    placement: "Vehicle Health Report Sponsor",
-    creativeImage: "/images/cars/car17.jpeg",
-    budget: 360000,
-    dates: "Sep 01 - Sep 15, 2026",
-    impressionsDelivered: 42300,
-    impressionGoal: 60000,
-    clicks: 1820,
-    status: "Active",
-    targetCity: "Nationwide",
-  },
-  {
-    id: "camp-02",
-    advertiser: "Stanbic IBTC Auto Loans",
-    placement: "Homepage Brand Spotlight",
-    creativeImage: "/images/cars/car15.jpeg",
-    budget: 500000,
-    dates: "Sep 03 - Sep 17, 2026",
-    impressionsDelivered: 112000,
-    impressionGoal: 200000,
-    clicks: 4680,
-    status: "Active",
-    targetCity: "Lagos Island & Abuja",
-  },
-  {
-    id: "camp-03",
-    advertiser: "Mobil 1 Synthetic Oil Nigeria",
-    placement: "Category Header Leaderboard",
-    creativeImage: "/images/cars/car18.jpeg",
-    budget: 240000,
-    dates: "Sep 05 - Sep 19, 2026",
-    impressionsDelivered: 18500,
-    impressionGoal: 100000,
-    clicks: 890,
-    status: "Active",
-    targetCity: "Nationwide",
-  },
-  {
-    id: "camp-04",
-    advertiser: "Crown Continental Autos",
-    placement: "Sponsored Vehicle Listing",
-    creativeImage: "/images/cars/car13.jpeg",
-    budget: 150000,
-    dates: "Sep 06 - Sep 20, 2026",
-    impressionsDelivered: 0,
-    impressionGoal: 50000,
-    clicks: 0,
-    status: "Pending Review",
-    targetCity: "Lagos Mainland",
-  },
-  {
-    id: "camp-05",
-    advertiser: "Autochek Spare Parts",
-    placement: "Category Header Leaderboard",
-    creativeImage: "/images/cars/car16.jpeg",
-    budget: 120000,
-    dates: "Sep 06 - Sep 13, 2026",
-    impressionsDelivered: 0,
-    impressionGoal: 85000,
-    clicks: 0,
-    status: "Pending Review",
-    targetCity: "Lagos & Abuja",
-  },
-];
-
 export default function AdminAdvertisingPage() {
-  const [campaigns, setCampaigns] = useState<CampaignItem[]>(INITIAL_CAMPAIGNS);
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "active">("all");
 
   useEffect(() => {
     let isMounted = true;
     fetchCampaigns().then((data) => {
-      if (isMounted && data && data.length > 0) {
-        setCampaigns(data as CampaignItem[]);
+      if (isMounted) {
+        setCampaigns((data as CampaignItem[]) || []);
+        setIsLoading(false);
       }
     });
     return () => {
@@ -119,14 +53,16 @@ export default function AdminAdvertisingPage() {
     try {
       await updateCampaignStatus(id, "Active");
     } catch (err) {
-      console.warn("Failed to update campaign status on backend:", err);
+      console.warn("Failed to approve campaign on backend:", err);
     }
   };
 
   const handleReject = async (id: string) => {
-    setCampaigns((prev) => prev.filter((c) => c.id !== id));
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: "Paused" } : c))
+    );
     try {
-      await updateCampaignStatus(id, "Rejected");
+      await updateCampaignStatus(id, "Paused");
     } catch (err) {
       console.warn("Failed to reject campaign on backend:", err);
     }
@@ -154,7 +90,12 @@ export default function AdminAdvertisingPage() {
     return true;
   });
 
+  const activeFlights = campaigns.filter((c) => c.status === "Active").length;
   const pendingCount = campaigns.filter((c) => c.status === "Pending Review").length;
+  const deliveredImpressions = campaigns.reduce((sum, c) => sum + (c.impressionsDelivered || 0), 0);
+  const totalRevenue = campaigns
+    .filter((c) => c.status === "Active" || c.status === "Completed")
+    .reduce((sum, c) => sum + (c.budget || 0), 0);
 
   return (
     <div className="space-y-8">
@@ -182,10 +123,10 @@ export default function AdminAdvertisingPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Active Flights", value: campaigns.filter((c) => c.status === "Active").length, note: "Live across platforms", icon: Play },
+          { label: "Active Flights", value: activeFlights, note: "Live across platforms", icon: Play },
           { label: "Pending Approvals", value: pendingCount, note: "Awaiting admin review", icon: AlertCircle },
-          { label: "Delivered Impressions", value: "1,420,000+", note: "MTD Network Traffic", icon: Eye },
-          { label: "Total Ad Revenue", value: "₦4,850,000", note: "MTD Gross Billing", icon: DollarSign },
+          { label: "Delivered Impressions", value: deliveredImpressions.toLocaleString(), note: "Total Network Traffic", icon: Eye },
+          { label: "Total Ad Revenue", value: `₦${totalRevenue.toLocaleString()}`, note: "Gross Billing", icon: DollarSign },
         ].map((stat, idx) => {
           const Icon = stat.icon;
           return (
@@ -305,7 +246,25 @@ export default function AdminAdvertisingPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-              {filteredCampaigns.map((camp) => {
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-400">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Loading advertising campaigns...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredCampaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
+                    <Megaphone className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="font-semibold text-sm text-neutral-800">No Advertising Campaigns Found</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Campaign submissions and active flights will appear here.</p>
+                  </td>
+                </tr>
+              ) :
+                filteredCampaigns.map((camp) => {
                 const ctr = camp.impressionsDelivered > 0 ? ((camp.clicks / camp.impressionsDelivered) * 100).toFixed(1) : "0.0";
                 const progress = camp.impressionGoal > 0 ? Math.min(100, Math.round((camp.impressionsDelivered / camp.impressionGoal) * 100)) : 0;
 

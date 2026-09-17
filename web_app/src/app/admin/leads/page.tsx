@@ -1,17 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { MOCK_LEADS, Lead } from "@/data/mockStore";
+import { Lead } from "@/data/mockStore";
 import { fetchLeads, updateLeadStatus } from "@/services/api";
 
 export default function LeadRoutingBoardPage() {
-  const [leads, setLeads] = useState<Lead[]>(MOCK_LEADS);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     fetchLeads().then((data) => {
-      if (isMounted && data && data.length > 0) {
-        setLeads(data);
+      if (isMounted) {
+        setLeads(data || []);
+        setIsLoading(false);
       }
     });
 
@@ -40,7 +42,21 @@ export default function LeadRoutingBoardPage() {
         </p>
       </div>
 
-      <div className="space-y-4">
+      {isLoading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-white border border-gray-200 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      ) : leads.length === 0 ? (
+        <div className="text-center py-16 bg-white border border-gray-200 rounded-3xl p-8">
+          <p className="font-semibold text-base text-neutral-800">No Inbound Leads</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Inbound buyer and concierge requests will appear here in real-time.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
         {leads.map((lead) => (
           <div
             key={lead.id}
@@ -87,7 +103,8 @@ export default function LeadRoutingBoardPage() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

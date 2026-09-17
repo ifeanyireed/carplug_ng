@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
             Platform Governance Console
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 mt-2">
-            Verza Trust Engine Administration
+            mycarsNg Trust Engine Administration
           </h1>
           <p className="text-xs text-gray-500 mt-1">
             Real-time telemetry across inventory, KYC verification queues, technician dispatches, and financial settlements

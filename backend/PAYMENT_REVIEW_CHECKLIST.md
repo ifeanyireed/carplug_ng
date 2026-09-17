@@ -42,8 +42,8 @@ transaction `"settled"`, or increases something a user can cash out:
   row, looked up by ID, checked for the right status.
 - **Does the credited amount come from that real transaction, or is it a
   hardcoded/derived number the code just decided to use?** A flat fee
-  table is fine for _initial_ pricing (see PAYMENTS*FIXES.md's
-  `InitializePayment` price validation) — it is never fine for \_releasing*
+  table is fine for _initial_ pricing (see `PAYMENTS_FIXES.md`'s
+  `InitializePayment` price validation) — it is never fine for _releasing_
   money, which must always trace back to an amount someone actually paid.
 - **Is it possible to trigger this credit path more than once for the same
   underlying event?** (Submit the same report twice, retry a webhook,

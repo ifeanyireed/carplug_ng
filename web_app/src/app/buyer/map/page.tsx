@@ -7,7 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
-import { MOCK_VEHICLES, Vehicle } from "@/data/mockStore";
+import { Vehicle } from "@/data/mockStore";
 import { fetchVehicles } from "@/services/api";
 import {
   MapPin,
@@ -17,10 +17,10 @@ import {
 } from "lucide-react";
 
 export default function MapDiscoveryPage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeDistrict, setActiveDistrict] = useState<string>("Lekki");
-  const [selectedCar, setSelectedCar] = useState<Vehicle | null>(MOCK_VEHICLES[0]);
+  const [selectedCar, setSelectedCar] = useState<Vehicle | null>(null);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -28,12 +28,15 @@ export default function MapDiscoveryPage() {
       try {
         setLoading(true);
         const data = await fetchVehicles({ pageSize: 50 });
-        if (isSubscribed && data && data.length > 0) {
-          setVehicles(data);
-          const match = data.find((v) =>
-            v.publicLocation.toLowerCase().includes("lekki")
-          );
-          setSelectedCar(match || data[0]);
+        if (isSubscribed) {
+          const list = data || [];
+          setVehicles(list);
+          if (list.length > 0) {
+            const match = list.find((v) =>
+              v.publicLocation.toLowerCase().includes("lekki")
+            );
+            setSelectedCar(match || list[0]);
+          }
         }
       } catch (err) {
         console.warn("Using offline vehicles for map:", err);
@@ -61,7 +64,7 @@ export default function MapDiscoveryPage() {
     ).length;
     return {
       ...d,
-      count: matchedCount > 0 ? matchedCount : (d.name === "Lekki" ? 18 : d.name === "Ikeja" ? 14 : 8),
+      count: matchedCount,
     };
   });
 

@@ -750,7 +750,7 @@ function SettingsPageContent() {
                     <span>Account Expansion &amp; Role Upgrade</span>
                   </div>
                   <h3 className="text-base font-bold text-neutral-900 mt-1">
-                    Want to sell cars or list inventory on CarPlug?
+                    Want to sell cars or list inventory on mycarsNg?
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
                     Upgrade your account in 1-click. You keep the same login email and password, with instant access to seller portals.

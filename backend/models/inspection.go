@@ -8,7 +8,7 @@ type InspectionReport struct {
 	VehicleTitle      string    `gorm:"size:255" json:"vehicleTitle"`
 	VehicleVIN        string    `gorm:"size:50" json:"vehicleVin"`
 	BuyerID             string    `gorm:"size:64;index" json:"buyerId"`
-	EscrowTransactionID string    `gorm:"size:64;index" json:"escrowTransactionId,omitempty"`
+	EscrowTransactionID string    `gorm:"size:64;uniqueIndex" json:"escrowTransactionId,omitempty"`
 	TechnicianID        string    `gorm:"size:64;index" json:"technicianId"`
 
 	TechnicianName    string    `gorm:"size:150" json:"technicianName"`

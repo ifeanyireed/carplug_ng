@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Check, AlertTriangle, X, ArrowRight, ArrowLeft, Loader2, Save } from "lucide-react";
-import { fetchInspectionById } from "@/services/api";
-import { InspectionReport, MOCK_INSPECTIONS } from "@/data/mockStore";
+import { fetchInspectionById, updateInspectionStatus } from "@/services/api";
+import { InspectionReport } from "@/data/mockStore";
 
 interface ChecklistItem {
   category: string;
@@ -52,13 +52,10 @@ export default function TechnicianChecklistPage() {
         if (!isMounted) return;
         if (fetched) {
           setInspection(fetched);
-        } else {
-          setInspection(MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0]);
         }
       } catch (err) {
         if (!isMounted) return;
         console.warn("Failed to load inspection details:", err);
-        setInspection(MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0]);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -93,6 +90,9 @@ export default function TechnicianChecklistPage() {
       localStorage.setItem(`verza_inspection_${id}_checklist`, JSON.stringify(items));
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
+      if (inspection && (inspection.status === "requested" || inspection.status === "assigned")) {
+        updateInspectionStatus(id, "in_progress").catch(() => {});
+      }
     }
   };
 

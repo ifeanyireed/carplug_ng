@@ -6,14 +6,23 @@ Production-ready REST API built with **Go (Golang)**, **GORM**, and **MySQL**.
 
 - **GORM ORM with MySQL**: Configured with connection pooling, automatic migrations, and seeding.
 - **Gin Web Framework**: Fast, scalable HTTP router with CORS middleware.
-- **RESTful Endpoints**: Complete CRUD and query filtering for:
+- **Real-Time WebSockets (Gorilla WebSocket)**: Duplex WebSocket hub (`/api/ws`) with JWT auth, multi-client connection management, typing indicators, and real-time message broadcasts ($< 20\text{ms}$ push latency).
+- **RESTful Endpoints**: Complete CRUD, RBAC, and query filtering for:
+  - User Authentication & Brevo OTP (`/api/auth`)
   - Vehicles & Inventory (`/api/vehicles`)
-  - Dealer Shops (`/api/dealers`)
-  - Certified Technicians (`/api/technicians`)
+  - Buyer-Seller Direct Messaging & Chat (`/api/conversations`)
+  - Real-Time WebSocket Gateway (`/api/ws`)
+  - Dealer Shops & Subscriptions (`/api/dealers`)
+  - Certified Technicians & Payouts (`/api/technicians`)
   - Pre-Purchase Vehicle Inspections (`/api/inspections`)
-  - Buyer Inquiries & Leads (`/api/leads`)
+  - Buyer Inquiries & Concierge Leads (`/api/leads`)
+  - Document Verification & KYC Compliance (`/api/verifications`)
+  - Financial Ledger & Escrow Transactions (`/api/payments`)
+  - Saved Vehicles Garage (`/api/saved-vehicles`)
+  - Cloudinary Image Uploads (`/api/upload/images`)
   - Car Swap & Trade-in Requests (`/api/swaps`)
   - Advertising Campaigns (`/api/campaigns`)
+  - Admin Governance & Listing Moderation (`/api/admin`)
   - System Health & DB Ping (`/api/health`)
 - **Environment Driven**: Configurable via `.env` with fallback defaults.
 

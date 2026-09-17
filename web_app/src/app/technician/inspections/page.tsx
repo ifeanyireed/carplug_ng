@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { InspectionReport, MOCK_INSPECTIONS } from "@/data/mockStore";
+import { InspectionReport } from "@/data/mockStore";
 import { fetchTechnicianMeInspections, fetchInspections } from "@/services/api";
 import { Loader2, RefreshCw } from "lucide-react";
 
@@ -27,15 +27,15 @@ export default function TechnicianInspectionsListPage() {
         if (data && data.length > 0) {
           setInspections(data);
         } else {
-          // Fallback to all inspections or mock
+          // Fallback to all inspections
           const fallback = await fetchInspections();
           if (!isMounted) return;
-          setInspections(fallback && fallback.length > 0 ? fallback : MOCK_INSPECTIONS);
+          setInspections(fallback || []);
         }
       } catch (err) {
         if (!isMounted) return;
-        console.warn("Failed to fetch inspections from API, using cached:", err);
-        setInspections(MOCK_INSPECTIONS);
+        console.warn("Failed to fetch inspections from API:", err);
+        setInspections([]);
       } finally {
         if (isMounted) {
           setIsLoading(false);

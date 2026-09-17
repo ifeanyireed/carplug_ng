@@ -192,7 +192,7 @@ export default function DealerSubscriptionPage() {
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3.5 text-xs text-blue-900 leading-relaxed">
         <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold">Verza 7-Day Grace Period Protection: </span>
+          <span className="font-bold">mycarsNg 7-Day Grace Period Protection: </span>
           If your card payment fails on renewal, your shop enters a 7-day grace period where your inventory remains safe. We notify you 3 days before any auto-charge.
         </div>
       </div>

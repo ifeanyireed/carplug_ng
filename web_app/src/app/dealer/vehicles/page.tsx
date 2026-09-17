@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
-import { Vehicle, MOCK_VEHICLES } from "@/data/mockStore";
+import { Vehicle } from "@/data/mockStore";
 import { fetchDealerInventory, fetchVehicles, deleteVehicle } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -52,19 +52,19 @@ export default function DealerVehiclesPage() {
         if (data && data.length > 0) {
           setVehicles(data);
         } else {
-          // Fallback to general vehicle fetch or mock if database has no records for this dealer
+          // Check general vehicle fetch for listings belonging to this user
           const allVehicles = await fetchVehicles();
           if (!isMounted) return;
           const matched = allVehicles.filter(
-            (v) => v.sellerId === dealerId || v.sellerType === "dealer"
+            (v) => (user?.id && v.sellerId === user.id) || v.sellerId === dealerId
           );
-          setVehicles(matched.length > 0 ? matched : MOCK_VEHICLES);
+          setVehicles(matched);
         }
       } catch (err) {
         if (!isMounted) return;
-        console.warn("Failed to load inventory from API, fallback to mock:", err);
-        setError("Could not synchronize with cloud inventory. Showing local cached listings.");
-        setVehicles(MOCK_VEHICLES);
+        console.warn("Failed to load inventory from API:", err);
+        setError("Could not synchronize with cloud inventory.");
+        setVehicles([]);
       } finally {
         if (isMounted) {
           setIsLoading(false);

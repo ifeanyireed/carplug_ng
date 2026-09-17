@@ -409,12 +409,12 @@ export const AuthModal = ({
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="p-2.5 bg-neutral-900 rounded-lg text-white mb-3 shadow-md">
-            <RojoLogo className="h-5 w-auto" />
+          <div className="mb-3">
+            <RojoLogo className="h-10 w-auto text-neutral-900" />
           </div>
           <h2 className="text-xl font-bold text-gray-900">
-            {mode === "login" && "Welcome Back to CarPlug"}
-            {mode === "signup" && "Join CarPlug Nigeria"}
+            {mode === "login" && "Welcome Back to mycarsNg"}
+            {mode === "signup" && "Join mycarsNg Nigeria"}
             {mode === "verify_otp" && "Verify Your Email"}
             {mode === "forgot_password" && "Recover Your Account"}
             {mode === "reset_password" && "Create New Password"}

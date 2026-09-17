@@ -1,8 +1,8 @@
 import React from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_INSPECTIONS } from "@/data/mockStore";
 import { fetchInspectionById } from "@/services/api";
 import {
   CheckCircle2,
@@ -16,8 +16,11 @@ export default async function InspectionTrackerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const fetchedInspection = await fetchInspectionById(id);
-  const inspection = fetchedInspection || MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0];
+  const inspection = await fetchInspectionById(id);
+
+  if (!inspection) {
+    notFound();
+  }
 
   const steps = [
     { title: "Request Booked & Escrow Funded", status: "completed", time: "10:00 AM" },

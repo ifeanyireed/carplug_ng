@@ -12,6 +12,7 @@ import {
   fetchMessages,
   sendMessage,
   startConversation,
+  getWebSocketUrl,
   Conversation,
   ChatMessage,
 } from "@/services/api";
@@ -43,8 +44,12 @@ export default function BuyerMessagesPage() {
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [pollTrigger, setPollTrigger] = useState(0);
+  const [isWsConnected, setIsWsConnected] = useState(false);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const activeConvId = activeConv?.id;
 
   // Auto-scroll messages container
@@ -134,7 +139,94 @@ export default function BuyerMessagesPage() {
     };
   }, [activeConvId]);
 
-  // 3. Polling for live updates every 5 seconds when thread is active
+  // 3. Real-Time WebSocket Connection & Event Stream
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let isSubscribed = true;
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+
+    function connect() {
+      try {
+        const url = getWebSocketUrl();
+        ws = new WebSocket(url);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          if (isSubscribed) setIsWsConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+          if (!isSubscribed) return;
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "new_message" && data.message) {
+              const newMsg: ChatMessage = data.message;
+              if (data.conversationId === activeConvId) {
+                setMessages((prev) => {
+                  if (prev.some((m) => m.id === newMsg.id)) return prev;
+                  return [...prev, newMsg];
+                });
+              }
+              // Update left sidebar preview
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === data.conversationId
+                    ? {
+                        ...c,
+                        lastMessage: newMsg.body,
+                        lastMessageAt: newMsg.createdAt,
+                        unreadCount: c.id === activeConvId ? 0 : (c.unreadCount || 0) + 1,
+                      }
+                    : c
+                )
+              );
+            } else if (data.type === "user_typing" && data.conversationId === activeConvId) {
+              setTypingUser(data.userName || "Participant");
+              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+              typingTimeoutRef.current = setTimeout(() => {
+                if (isSubscribed) setTypingUser(null);
+              }, 3000);
+            }
+          } catch {
+            // Ignore non-JSON or ping frames
+          }
+        };
+
+        ws.onclose = () => {
+          if (isSubscribed) {
+            setIsWsConnected(false);
+            reconnectTimeout = setTimeout(connect, 3000);
+          }
+        };
+
+        ws.onerror = () => {
+          if (isSubscribed) {
+            setIsWsConnected(false);
+            ws?.close();
+          }
+        };
+      } catch {
+        if (isSubscribed) {
+          reconnectTimeout = setTimeout(connect, 4000);
+        }
+      }
+    }
+
+    connect();
+
+    return () => {
+      isSubscribed = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [isAuthenticated, activeConvId]);
+
+  // 4. Background polling fallback (relaxed to 15s since WebSocket handles real time)
   useEffect(() => {
     if (!activeConvId || !isAuthenticated) return;
     const currentId = activeConvId;
@@ -142,14 +234,30 @@ export default function BuyerMessagesPage() {
     const interval = setInterval(async () => {
       try {
         const msgs = await fetchMessages(currentId);
-        setMessages(msgs);
+        setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
       } catch {
         // Ignore background polling errors
       }
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [activeConvId, isAuthenticated, pollTrigger]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && activeConv) {
+      try {
+        wsRef.current.send(
+          JSON.stringify({
+            type: "typing",
+            conversationId: activeConv.id,
+          })
+        );
+      } catch {
+        // Non-blocking socket write
+      }
+    }
+  };
 
   // Handle Send Message
   const handleSend = async (e: React.FormEvent) => {
@@ -162,7 +270,10 @@ export default function BuyerMessagesPage() {
 
     try {
       const newMsg = await sendMessage(activeConv.id, cleanText);
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
 
       // Update active conversation preview in list
       setConversations((prev) =>
@@ -219,7 +330,7 @@ export default function BuyerMessagesPage() {
             </div>
             <h2 className="text-xl font-bold text-neutral-900">Sign in to Access Direct Messaging</h2>
             <p className="text-xs text-gray-500 max-w-md mx-auto mt-2 mb-6 leading-relaxed">
-              Carplug protects all conversations with end-to-end masked contact routing, verified fraud detection, and direct technician dispatch integrations.
+              mycarsNg protects all conversations with end-to-end masked contact routing, verified fraud detection, and direct technician dispatch integrations.
             </p>
             <button
               onClick={() => openAuthModal("login")}
@@ -386,9 +497,20 @@ export default function BuyerMessagesPage() {
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {isWsConnected ? (
+                        <span className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1.5 font-bold shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Live WebSocket</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-2 py-1 rounded-full flex items-center gap-1 font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                          <span>Standard Polling</span>
+                        </span>
+                      )}
                       <span className="text-[11px] text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-medium shadow-2xs">
                         <Lock className="w-3 h-3 text-blue-600" />
-                        <span>Masked Identity Protection</span>
+                        <span>Masked Identity</span>
                       </span>
                       <Link
                         href={`/buyer/vehicles/${activeConv.vehicleId}`}
@@ -412,7 +534,7 @@ export default function BuyerMessagesPage() {
                     <div className="p-3 bg-blue-50 border border-blue-100 rounded-2xl text-center text-xs text-blue-800 max-w-lg mx-auto leading-relaxed shadow-2xs">
                       <ShieldCheck className="w-4 h-4 text-blue-600 mx-auto mb-1" />
                       <span>
-                        <b>Safety First:</b> Never wire money, make advance deposits, or meet in secluded locations. Always request an independent certified Carplug inspection before payment.
+                        <b>Safety First:</b> Never wire money, make advance deposits, or meet in secluded locations. Always request an independent certified mycarsNg inspection before payment.
                       </span>
                     </div>
 
@@ -461,6 +583,14 @@ export default function BuyerMessagesPage() {
                         );
                       })
                     )}
+
+                    {typingUser && (
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500 italic px-2 py-1 bg-gray-100/70 rounded-full w-fit animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                        <span>{typingUser} is typing...</span>
+                      </div>
+                    )}
+
                     <div ref={messagesEndRef} />
                   </div>
 
@@ -473,7 +603,7 @@ export default function BuyerMessagesPage() {
                       type="text"
                       placeholder="Type your message or viewing schedule request..."
                       value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
+                      onChange={handleInputChange}
                       disabled={isSending}
                       className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition"
                     />

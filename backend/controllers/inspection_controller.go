@@ -6,12 +6,14 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
+	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
 
 
@@ -258,6 +260,10 @@ func CreateInspection(c *gin.Context) {
 	}
 
 	if err := db.Create(&report).Error; err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "duplicate") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "This escrow transaction has already been linked to an inspection"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create inspection: " + err.Error()})
 		return
 	}
@@ -467,4 +473,25 @@ func GetTechnicianMeInspections(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"count": len(reports), "data": reports})
+}
+
+type InspectionAISummaryRequest struct {
+	VehicleTitle string                          `json:"vehicleTitle"`
+	Score        int                             `json:"score"`
+	Items        []utils.InspectionChecklistItem `json:"items"`
+}
+
+// GenerateInspectionAISummary generates an executive, plain-language summary for non-mechanic buyers
+func GenerateInspectionAISummary(c *gin.Context) {
+	var req InspectionAISummaryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
+		return
+	}
+
+	result := utils.GeneratePlainLanguageSummary(req.VehicleTitle, req.Score, req.Items)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    result,
+	})
 }

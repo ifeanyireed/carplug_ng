@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
-import { Vehicle, Lead, DealerShop, MOCK_VEHICLES, MOCK_LEADS, MOCK_SHOPS } from "@/data/mockStore";
+import { Vehicle, Lead, DealerShop } from "@/data/mockStore";
 import { fetchDealerInventory, fetchVehicles, fetchLeads, fetchDealerBySlugOrId } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -22,7 +22,7 @@ export default function DealerDashboardPage() {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [shop, setShop] = useState<DealerShop>(MOCK_SHOPS[0]);
+  const [shop, setShop] = useState<DealerShop | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const dealerId = useMemo(() => {
@@ -56,25 +56,21 @@ export default function DealerDashboardPage() {
           const allVehicles = await fetchVehicles().catch(() => []);
           if (!isMounted) return;
           const filtered = allVehicles.filter(
-            (v) => v.sellerId === dealerId || v.sellerType === "dealer"
+            (v) => (user?.id && v.sellerId === user.id) || v.sellerId === dealerId
           );
-          setVehicles(filtered.length > 0 ? filtered : MOCK_VEHICLES.slice(0, 3));
+          setVehicles(filtered);
         }
 
-        if (leadsData && leadsData.length > 0) {
-          setLeads(leadsData);
-        } else {
-          setLeads(MOCK_LEADS);
-        }
+        setLeads(leadsData || []);
 
         if (shopData) {
           setShop(shopData);
         }
       } catch (err) {
         if (!isMounted) return;
-        console.warn("Failed to load dealer dashboard live data, fallback to mock:", err);
-        setVehicles(MOCK_VEHICLES.slice(0, 3));
-        setLeads(MOCK_LEADS);
+        console.warn("Failed to load dealer dashboard live data:", err);
+        setVehicles([]);
+        setLeads([]);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -98,7 +94,7 @@ export default function DealerDashboardPage() {
       activeListingsCount: vehicles.length,
       verifiedListings,
       totalLeads: leads.length,
-      inspectionRequests: inspectionRequests || 12,
+      inspectionRequests,
       viewingRequests,
     };
   }, [vehicles, leads]);
@@ -110,15 +106,15 @@ export default function DealerDashboardPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
-              {shop.plan}
+              {shop?.plan || "Verified Dealer"}
             </span>
             <span className="text-xs text-gray-500">CAC Verified Dealership</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 mt-2">
-            Welcome back, {user?.name || shop.name}
+            Welcome back, {user?.name || shop?.name || "Dealer"}
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            Lot Location: {shop.address}
+            Lot Location: {shop?.address || "Lagos Showroom"}
           </p>
         </div>
 
@@ -132,7 +128,7 @@ export default function DealerDashboardPage() {
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-neutral-900" : ""}`} />
           </button>
           <Link
-            href={`/shops/${shop.slug || "reed-motors-lagos"}`}
+            href={`/shops/${shop?.slug || "reed-motors-lagos"}`}
             className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-neutral-900 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition"
           >
             <span>Public Storefront</span>
@@ -191,8 +187,8 @@ export default function DealerDashboardPage() {
             <span>Dealership Rating</span>
             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
           </div>
-          <div className="text-2xl font-black text-neutral-900">{shop.rating}</div>
-          <div className="text-[11px] text-gray-500">Based on {shop.reviewCount} customer reviews</div>
+          <div className="text-2xl font-black text-neutral-900">{shop?.rating ?? "—"}</div>
+          <div className="text-[11px] text-gray-500">Based on {shop?.reviewCount ?? 0} customer reviews</div>
         </div>
       </div>
 
@@ -214,6 +210,17 @@ export default function DealerDashboardPage() {
           <div className="p-8 flex items-center justify-center gap-2 text-gray-400 text-xs">
             <Loader2 className="w-4 h-4 animate-spin text-neutral-900" />
             <span>Loading active stock...</span>
+          </div>
+        ) : vehicles.length === 0 ? (
+          <div className="p-10 text-center space-y-2">
+            <Car className="w-8 h-8 text-gray-300 mx-auto" />
+            <div className="text-gray-500 text-xs font-semibold">No active listings in your lot yet</div>
+            <Link
+              href="/dealer/vehicles/new"
+              className="inline-flex items-center gap-1 text-xs text-blue-600 font-bold hover:underline"
+            >
+              + Add your first vehicle →
+            </Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -277,50 +284,56 @@ export default function DealerDashboardPage() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 text-gray-400 uppercase tracking-wider font-bold">
-                <th className="pb-3">Buyer</th>
-                <th className="pb-3">Target Car</th>
-                <th className="pb-3">Inquiry Type</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50/50">
-                  <td className="py-3 font-semibold text-neutral-900">
-                    {lead.buyerName}
-                    <span className="block text-[11px] text-gray-400 font-normal">
-                      {lead.buyerCity}
-                    </span>
-                  </td>
-                  <td className="py-3 font-medium text-gray-700">{lead.vehicleTitle}</td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold text-[11px]">
-                      {lead.type.replace("_", " ")}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-semibold text-[11px]">
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="py-3 text-right">
-                    <Link
-                      href={`/dealer/messages`}
-                      className="text-blue-600 font-bold hover:underline"
-                    >
-                      Respond →
-                    </Link>
-                  </td>
+        {leads.length === 0 ? (
+          <div className="p-8 text-center text-xs text-gray-400">
+            No inbound buyer leads yet. Inquiries will appear here when buyers contact your showroom.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 text-gray-400 uppercase tracking-wider font-bold">
+                  <th className="pb-3">Buyer</th>
+                  <th className="pb-3">Target Car</th>
+                  <th className="pb-3">Inquiry Type</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3 text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {leads.map((lead) => (
+                  <tr key={lead.id} className="hover:bg-gray-50/50">
+                    <td className="py-3 font-semibold text-neutral-900">
+                      {lead.buyerName}
+                      <span className="block text-[11px] text-gray-400 font-normal">
+                        {lead.buyerCity}
+                      </span>
+                    </td>
+                    <td className="py-3 font-medium text-gray-700">{lead.vehicleTitle}</td>
+                    <td className="py-3">
+                      <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold text-[11px]">
+                        {lead.type.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="py-3">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-semibold text-[11px]">
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right">
+                      <Link
+                        href={`/dealer/messages`}
+                        className="text-blue-600 font-bold hover:underline"
+                      >
+                        Respond →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

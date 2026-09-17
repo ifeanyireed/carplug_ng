@@ -1,8 +1,8 @@
 import React from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_INSPECTIONS } from "@/data/mockStore";
 import { fetchInspectionById } from "@/services/api";
 import { Share2, ArrowLeft } from "lucide-react";
 
@@ -12,8 +12,11 @@ export default async function VehicleHealthReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const fetchedReport = await fetchInspectionById(id);
-  const report = fetchedReport || MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0];
+  const report = await fetchInspectionById(id);
+
+  if (!report) {
+    notFound();
+  }
 
   const formatNaira = (amount: number) => {
     return `₦${amount.toLocaleString()}`;

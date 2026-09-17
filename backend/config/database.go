@@ -16,7 +16,7 @@ var DB *gorm.DB
 
 func InitDB(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local&timeout=10s&readTimeout=30s&writeTimeout=30s",
+		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local&tls=preferred&timeout=10s&readTimeout=30s&writeTimeout=30s",
 		cfg.DBUser,
 		cfg.DBPassword,
 		cfg.DBHost,

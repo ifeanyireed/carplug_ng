@@ -28,75 +28,6 @@ export interface ExploreCar {
   bodyType: "Sedan" | "Coupe" | "SUV" | "Hatchback" | "Pickup";
 }
 
-// Fallback catalog matching real records in the MySQL database
-const INITIAL_VEHICLES: ExploreCar[] = [
-  {
-    id: "v-toyota-camry-2020",
-    name: "Toyota Camry XSE V6",
-    year: 2020,
-    image: "/images/cars/car18.jpeg",
-    price: 26500000,
-    originalPrice: 28000000,
-    badge: "Great Price",
-    fuelType: "Petrol",
-    transmission: "Automatic",
-    condition: "Foreign Used (Tokunbo)",
-    bodyType: "Sedan",
-  },
-  {
-    id: "v-mercedes-gle450-2022",
-    name: "Mercedes-Benz GLE 450 4MATIC",
-    year: 2022,
-    image: "/images/cars/car17.jpeg",
-    price: 68000000,
-    originalPrice: 71000000,
-    badge: "Good Deal",
-    fuelType: "Hybrid",
-    transmission: "Automatic",
-    condition: "Foreign Used (Tokunbo)",
-    bodyType: "SUV",
-  },
-  {
-    id: "v-lexus-rx350-2021",
-    name: "Lexus RX 350 F-Sport AWD",
-    year: 2021,
-    image: "/images/cars/car16.jpeg",
-    price: 42000000,
-    originalPrice: 45000000,
-    badge: "Hot Deal",
-    fuelType: "Petrol",
-    transmission: "Automatic",
-    condition: "Foreign Used (Tokunbo)",
-    bodyType: "SUV",
-  },
-  {
-    id: "v-honda-accord-2019",
-    name: "Honda Accord Touring 2.0T",
-    year: 2019,
-    image: "/images/cars/car15.jpeg",
-    price: 19500000,
-    originalPrice: 21000000,
-    badge: "Good Deal",
-    fuelType: "Petrol",
-    transmission: "Automatic",
-    condition: "Nigerian Used",
-    bodyType: "Sedan",
-  },
-  {
-    id: "v-toyota-corolla-2018",
-    name: "Toyota Corolla LE (First Body)",
-    year: 2018,
-    image: "/images/cars/car1.jpeg",
-    price: 13500000,
-    originalPrice: 14000000,
-    badge: "Great Price",
-    fuelType: "Petrol",
-    transmission: "Automatic",
-    condition: "Nigerian Used",
-    bodyType: "Sedan",
-  },
-];
-
 interface ExploreVehiclesSectionProps {
   onSelectCar?: (car: ExploreCar) => void;
   onToggleFavorite?: (carId: string) => void;
@@ -108,50 +39,60 @@ export const ExploreVehiclesSection = ({
 }: ExploreVehiclesSectionProps) => {
   const { isSaved, toggleSave } = useSavedVehicles();
   const [activeTab, setActiveTab] = useState<"all" | "new" | "used">("all");
-  const [vehicles, setVehicles] = useState<ExploreCar[]>(INITIAL_VEHICLES);
+  const [vehicles, setVehicles] = useState<ExploreCar[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Fetch live inventory from backend API
   useEffect(() => {
     let isMounted = true;
     fetchVehicles()
       .then((list) => {
-        if (isMounted && Array.isArray(list) && list.length > 0) {
-          const mapped: ExploreCar[] = list.map((v) => {
-            const rawImg =
-              Array.isArray(v.images) && v.images.length > 0
-                ? v.images[0]
-                : "/images/cars/hero-car.webp";
-            const badge =
-              v.priceRating === "deal"
-                ? "Great Price"
-                : v.priceRating === "fair"
-                ? "Good Deal"
-                : v.featured
-                ? "Hot Deal"
-                : null;
+        if (isMounted) {
+          if (Array.isArray(list) && list.length > 0) {
+            const mapped: ExploreCar[] = list.map((v) => {
+              const rawImg =
+                Array.isArray(v.images) && v.images.length > 0
+                  ? v.images[0]
+                  : "/images/cars/hero-car.webp";
+              const badge =
+                v.priceRating === "deal"
+                  ? "Great Price"
+                  : v.priceRating === "fair"
+                  ? "Good Deal"
+                  : v.featured
+                  ? "Hot Deal"
+                  : null;
 
-            return {
-              id: v.id,
-              name: v.title || `${v.year} ${v.make} ${v.model}`,
-              year: v.year,
-              image: rawImg,
-              price: v.price,
-              originalPrice:
-                v.marketPriceRange && v.marketPriceRange[1] > v.price
-                  ? v.marketPriceRange[1]
-                  : undefined,
-              badge,
-              fuelType: (v.fuelType as ExploreCar["fuelType"]) || "Petrol",
-              transmission: (v.transmission as ExploreCar["transmission"]) || "Automatic",
-              condition: v.condition,
-              bodyType: (v.bodyType as ExploreCar["bodyType"]) || "Sedan",
-            };
-          });
-          setVehicles(mapped);
+              return {
+                id: v.id,
+                name: v.title || `${v.year} ${v.make} ${v.model}`,
+                year: v.year,
+                image: rawImg,
+                price: v.price,
+                originalPrice:
+                  v.marketPriceRange && v.marketPriceRange[1] > v.price
+                    ? v.marketPriceRange[1]
+                    : undefined,
+                badge,
+                fuelType: (v.fuelType as ExploreCar["fuelType"]) || "Petrol",
+                transmission: (v.transmission as ExploreCar["transmission"]) || "Automatic",
+                condition: v.condition,
+                bodyType: (v.bodyType as ExploreCar["bodyType"]) || "Sedan",
+              };
+            });
+            setVehicles(mapped);
+          } else {
+            setVehicles([]);
+          }
+          setIsLoading(false);
         }
       })
       .catch((err) => {
-        console.warn("Using fallback explore vehicles catalog:", err);
+        console.warn("Failed to load explore vehicles:", err);
+        if (isMounted) {
+          setVehicles([]);
+          setIsLoading(false);
+        }
       });
 
     return () => {
@@ -268,7 +209,18 @@ export const ExploreVehiclesSection = ({
 
         {/* Vehicles Grid with Tighter Padding/Gap */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
-          {filteredVehicles.map((car) => {
+          {isLoading ? (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="h-64 rounded-xl bg-gray-100 animate-pulse" />
+            ))
+          ) : filteredVehicles.length === 0 ? (
+            <div className="col-span-full text-center py-16 text-gray-500">
+              <CarFront className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+              <h4 className="font-semibold text-base text-gray-900">No Vehicles Listed Yet</h4>
+              <p className="text-xs text-gray-500 mt-1">Verified vehicles will appear here once published by certified dealers.</p>
+            </div>
+          ) :
+            filteredVehicles.map((car) => {
             const isFav = isSaved(car.id);
             return (
               <div

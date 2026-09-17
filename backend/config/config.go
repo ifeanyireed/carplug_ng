@@ -76,8 +76,8 @@ func LoadConfig() *Config {
 		DBPassword:         getEnv("DB_PASSWORD", ""),
 		DBName:             getEnv("DB_NAME", ""),
 		DBCharset:          getEnv("DB_CHARSET", "utf8mb4"),
-		AutoMigrate:        getEnv("AUTO_MIGRATE", "true") == "true",
-		AutoSeed:           getEnv("AUTO_SEED", "true") == "true",
+		AutoMigrate:        getEnv("AUTO_MIGRATE", "false") == "true",
+		AutoSeed:           getEnv("AUTO_SEED", "false") == "true",
 		JWTSecret:          jwtSecret,
 		JWTExpirationHours: jwtExpHours,
 		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
@@ -105,6 +105,10 @@ func LoadConfig() *Config {
 	// Require strong custom JWT_SECRET in production release mode
 	if AppConfig.GinMode == "release" && (os.Getenv("JWT_SECRET") == "" || AppConfig.JWTSecret == "verza_carplug_dev_jwt_secret_2026_super_secure_key") {
 		log.Fatal("[Config] CRITICAL SECURITY ERROR: Running in production mode (GIN_MODE=release) without a custom JWT_SECRET! You must set a strong, non-default JWT_SECRET in production.")
+	}
+
+	if AppConfig.GinMode == "release" && AppConfig.AutoSeed {
+		log.Fatal("[Config] CRITICAL: AUTO_SEED must never be enabled in production (GIN_MODE=release)")
 	}
 
 	return AppConfig

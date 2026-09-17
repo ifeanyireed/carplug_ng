@@ -11,9 +11,16 @@ import {
   Loader2,
   ShieldCheck,
   AlertCircle,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
-import { fetchInspectionById, submitInspectionReport } from "@/services/api";
-import { InspectionReport, MOCK_INSPECTIONS } from "@/data/mockStore";
+import {
+  fetchInspectionById,
+  submitInspectionReport,
+  generateInspectionAISummary,
+  InspectionAISummaryResponse,
+} from "@/services/api";
+import { InspectionReport } from "@/data/mockStore";
 
 interface ChecklistItem {
   category: string;
@@ -41,6 +48,8 @@ export default function ReportComposerPage() {
   const [overallScore, setOverallScore] = useState(92);
   const [repairLow, setRepairLow] = useState("80000");
   const [repairHigh, setRepairHigh] = useState("140000");
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiResult, setAiResult] = useState<InspectionAISummaryResponse | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -62,13 +71,10 @@ export default function ReportComposerPage() {
             setRepairLow(String(fetched.estimatedRepairCostRange[0]));
             setRepairHigh(String(fetched.estimatedRepairCostRange[1]));
           }
-        } else {
-          setInspection(MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0]);
         }
       } catch (err) {
         if (!isMounted) return;
         console.warn("Failed to load inspection details:", err);
-        setInspection(MOCK_INSPECTIONS.find((i) => i.id === id) || MOCK_INSPECTIONS[0]);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -238,6 +244,34 @@ export default function ReportComposerPage() {
   const title = inspection?.vehicleTitle || "Target Vehicle";
   const vin = inspection?.vehicleVin || "VIN Not Specified";
 
+  const handleGenerateAISummary = async () => {
+    setIsGeneratingAI(true);
+    try {
+      const res = await generateInspectionAISummary({
+        vehicleTitle: title,
+        score: overallScore,
+        items: checklist,
+      });
+      setAiResult(res);
+      if (res.summaryVerdict) {
+        setVerdict(res.summaryVerdict);
+      }
+      if (res.overallScore > 0) {
+        setOverallScore(res.overallScore);
+      }
+      if (res.estimatedRepairMin >= 0) {
+        setRepairLow(String(Math.round(res.estimatedRepairMin)));
+      }
+      if (res.estimatedRepairMax >= 0) {
+        setRepairHigh(String(Math.round(res.estimatedRepairMax)));
+      }
+    } catch (err) {
+      console.error("Failed to generate AI summary:", err);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs">
@@ -331,10 +365,68 @@ export default function ReportComposerPage() {
               </div>
             </div>
 
+            {/* Plain-Language AI Summary Generator Bar */}
+            <div className="p-4 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/70 border border-blue-200/80 rounded-2xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-black text-blue-900 uppercase tracking-wider">
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <span>Plain-Language 150-Point AI Generator</span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Translates technical checklist defects &amp; wear items into an executive summary for non-mechanic buyers with automated repair budget estimation.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateAISummary}
+                  disabled={isGeneratingAI}
+                  className="shrink-0 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Synthesizing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>Auto-Generate AI Summary</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {aiResult && (
+                <div className="pt-2 border-t border-blue-100 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="font-bold text-gray-700">AI Recommendation Tier:</span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
+                      aiResult.buyerRecommendationTier.includes("Strong")
+                        ? "bg-emerald-100 text-emerald-800"
+                        : aiResult.buyerRecommendationTier.includes("Caution")
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {aiResult.buyerRecommendationTier}
+                  </span>
+                  {aiResult.areasOfConcern.length > 0 && (
+                    <span className="text-gray-500 text-[11px]">
+                      • {aiResult.areasOfConcern.length} items flagged for buyer reserve
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Plain-Language Verdict Summary (for non-mechanic buyers)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-gray-700">
+                  Plain-Language Verdict Summary (for non-mechanic buyers)
+                </label>
+                <span className="text-[11px] text-gray-400">Editable before publishing</span>
+              </div>
               <textarea
                 rows={5}
                 required

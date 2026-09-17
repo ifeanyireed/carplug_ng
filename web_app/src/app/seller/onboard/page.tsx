@@ -76,7 +76,7 @@ export default function SellerKYCOnboardPage() {
           Private Seller Identity Verification
         </h1>
         <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-          Carplug requires verified identity for private sellers before listings become discoverable. This eliminates phantom car listings and protects Nigerian automotive buyers.
+          mycarsNg requires verified identity for private sellers before listings become discoverable. This eliminates phantom car listings and protects Nigerian automotive buyers.
         </p>
 
         {errorMsg && (

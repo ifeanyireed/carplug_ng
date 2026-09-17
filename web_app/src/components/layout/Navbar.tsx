@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { RojoLogo } from "@/components/common/RojoLogo";
+import { NavLink } from "@/components/common/NavLink";
 import {
   ShoppingBag,
   ChevronDown,
@@ -51,6 +53,12 @@ export const Navbar = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const isMounted = useIsMounted();
   const navRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname() || "/";
+
+  const isMoreActive =
+    pathname.startsWith("/buyer/compare") ||
+    pathname.startsWith("/buyer/concierge") ||
+    pathname.startsWith("/advertise");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -122,7 +130,7 @@ export const Navbar = ({
           href="/"
           className="flex items-center gap-2 group transition-transform active:scale-95 shrink-0"
         >
-          <RojoLogo className="h-6 sm:h-6.5 w-auto text-white group-hover:text-gray-200 transition-colors" />
+          <RojoLogo className="h-9 sm:h-10 w-auto text-white group-hover:text-gray-200 transition-colors" />
         </Link>
 
         {/* Center: Desktop Nav Links */}
@@ -272,28 +280,45 @@ export const Navbar = ({
           </div>
 
           {/* Find Cars */}
-          <Link
+          <NavLink
             href="/buyer/search"
-            className="px-2.5 xl:px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
+            activeMatch={(path) =>
+              path === "/buyer/search" ||
+              path.startsWith("/buyer/vehicles") ||
+              path.startsWith("/buyer/cars")
+            }
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
           >
             Find Cars
-          </Link>
+          </NavLink>
 
           {/* Sell Car */}
-          <Link
+          <NavLink
             href="/seller/sell"
-            className="px-2.5 xl:px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
+            activeMatch={(path) =>
+              path === "/seller/sell" ||
+              path.startsWith("/seller/vehicles/new") ||
+              path.startsWith("/dealer/vehicles/new")
+            }
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
           >
             Sell Car
-          </Link>
+          </NavLink>
 
           {/* Swap Car */}
-          <Link
+          <NavLink
             href="/swap"
-            className="px-2.5 xl:px-3 py-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors text-emerald-400 font-semibold whitespace-nowrap"
+            activeMatch={(path) => path === "/swap" || path.startsWith("/buyer/swap")}
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
           >
             Swap Car
-          </Link>
+          </NavLink>
 
           {/* More Services Dropdown */}
           <div className="relative">
@@ -303,7 +328,9 @@ export const Navbar = ({
               className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
                 activeDropdown === "more"
                   ? "bg-white/15 text-white"
-                  : "hover:bg-white/10 hover:text-white"
+                  : isMoreActive
+                  ? "text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+                  : "hover:bg-white/10 hover:text-white border border-transparent"
               }`}
             >
               <span>More</span>
@@ -320,39 +347,45 @@ export const Navbar = ({
                 className="absolute top-full left-0 mt-2 w-56 bg-[#1f2326] border border-white/10 rounded-xl shadow-2xl p-2 text-xs text-gray-200 animate-in fade-in slide-in-from-top-2 duration-150 z-50"
               >
                 <div className="space-y-1">
-                  <Link
+                  <NavLink
                     href="/buyer/compare"
                     onClick={() => setActiveDropdown(null)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 transition"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
                   >
                     <Scale className="w-4 h-4 text-cyan-400" />
                     <div className="min-w-0">
                       <div className="font-semibold text-white">Compare Cars</div>
                       <div className="text-[10px] text-gray-400 truncate">Side-by-side comparison</div>
                     </div>
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink
                     href="/buyer/concierge"
                     onClick={() => setActiveDropdown(null)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 transition"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
                   >
                     <Sparkles className="w-4 h-4 text-amber-400" />
                     <div className="min-w-0">
                       <div className="font-semibold text-white">Find For Me</div>
                       <div className="text-[10px] text-gray-400 truncate">Concierge sourcing request</div>
                     </div>
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink
                     href="/advertise"
                     onClick={() => setActiveDropdown(null)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/10 transition"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
                   >
                     <Megaphone className="w-4 h-4 text-emerald-400" />
                     <div className="min-w-0">
-                      <div className="font-semibold text-white">Advertise on Verza</div>
+                      <div className="font-semibold text-white">Advertise on mycarsNg</div>
                       <div className="text-[10px] text-gray-400 truncate">Promote inventory or brand</div>
                     </div>
-                  </Link>
+                  </NavLink>
                 </div>
               </div>
             )}
@@ -440,7 +473,7 @@ export const Navbar = ({
                     onClick={() => setActiveDropdown(null)}
                     className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-sky-400 font-medium"
                   >
-                    <span>Advertise on Verza</span>
+                    <span>Advertise on mycarsNg</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -452,9 +485,11 @@ export const Navbar = ({
         {/* Right: Actions */}
         <div suppressHydrationWarning className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* User Icon / Garage */}
-          <Link
+          <NavLink
             href="/buyer/garage"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors focus:outline-none relative"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors focus:outline-none relative"
+            activeClassName="text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/15 border border-transparent"
             aria-label="Garage & Saved Cars"
             title="My Garage"
           >
@@ -464,7 +499,7 @@ export const Navbar = ({
                 {effectiveSavedCount}
               </span>
             )}
-          </Link>
+          </NavLink>
 
           {isAuthenticated && user ? (
             <div className="relative">
@@ -494,43 +529,52 @@ export const Navbar = ({
                     <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
                   </div>
                   <div className="py-1 space-y-0.5">
-                    <Link
+                    <NavLink
                       href={portalPath}
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-xs font-medium"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-medium"
+                      activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                      inactiveClassName="hover:bg-white/10 text-gray-200"
                     >
                       <span>My Portal Hub</span>
                       <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
-                    </Link>
+                    </NavLink>
                     {user.role === "buyer" && (
-                      <Link
+                      <NavLink
                         href="/settings?tab=workspace"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition text-xs font-bold"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-bold"
+                        activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                        inactiveClassName="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400"
                       >
                         <span className="flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Become a Seller</span>
                         </span>
                         <ArrowUpRight className="w-3.5 h-3.5 opacity-80" />
-                      </Link>
+                      </NavLink>
                     )}
-                    <Link
+                    <NavLink
                       href="/buyer/garage"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-xs font-medium"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-medium"
+                      activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                      inactiveClassName="hover:bg-white/10 text-gray-200"
                     >
                       <span>Saved Vehicles</span>
                       <ShoppingBag className="w-3.5 h-3.5 opacity-70" />
-                    </Link>
-                    <Link
+                    </NavLink>
+                    <NavLink
                       href="/settings"
+                      exact
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 transition text-xs font-medium"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg transition text-xs font-medium"
+                      activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                      inactiveClassName="hover:bg-white/10 text-gray-200"
                     >
                       <span>Account Settings</span>
                       <Settings className="w-3.5 h-3.5 opacity-70" />
-                    </Link>
+                    </NavLink>
                   </div>
                   <div className="pt-1 border-t border-white/10">
                     <button
@@ -588,66 +632,95 @@ export const Navbar = ({
       {mobileMenuOpen && (
         <div className="pointer-events-auto lg:hidden mt-2 bg-[#2d3032]/95 backdrop-blur-xl border border-white/15 rounded-xl p-4 text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-150 max-h-[85vh] overflow-y-auto">
           <div className="flex flex-col space-y-1.5">
-            <Link
+            <NavLink
               href="/buyer/search"
+              activeMatch={(path) =>
+                path === "/buyer/search" ||
+                path.startsWith("/buyer/vehicles") ||
+                path.startsWith("/buyer/cars")
+              }
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Find Cars
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="#explore"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Used Cars
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="#auctions"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Auctions
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/seller/sell"
+              activeMatch={(path) =>
+                path === "/seller/sell" ||
+                path.startsWith("/seller/vehicles/new") ||
+                path.startsWith("/dealer/vehicles/new")
+              }
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Sell Cars
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/swap"
+              activeMatch={(path) => path === "/swap" || path.startsWith("/buyer/swap")}
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium text-emerald-400 transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Car Swap &amp; Trade-In
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/buyer/compare"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Compare Cars
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/buyer/concierge"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Find For Me (Concierge)
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/advertise"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
-              Advertise on Verza
-            </Link>
-            <Link
+              Advertise on mycarsNg
+            </NavLink>
+            <NavLink
               href="/buyer/garage"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-white/10 text-sm font-medium transition flex items-center justify-between"
+              className="px-3 py-2 rounded-lg text-sm font-medium transition flex items-center justify-between"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               <span className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-emerald-400" />
@@ -658,7 +731,7 @@ export const Navbar = ({
                   {effectiveSavedCount}
                 </span>
               )}
-            </Link>
+            </NavLink>
             <div suppressHydrationWarning className="pt-2 border-t border-white/10 flex flex-col gap-2">
               {isAuthenticated && user ? (
                 <>

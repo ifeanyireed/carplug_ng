@@ -7,8 +7,9 @@ import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
-import { MOCK_INSPECTIONS } from "@/data/mockStore";
+import { VehicleContactActions } from "@/components/vehicle/VehicleContactActions";
 import { fetchVehicleById, fetchInspectionById } from "@/services/api";
+import type { Metadata } from "next";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -16,11 +17,45 @@ import {
   MapPin,
   Wrench,
   Award,
-  PhoneCall,
   ArrowRight,
   Share2,
   ChevronRight,
 } from "lucide-react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const vehicle = await fetchVehicleById(id);
+  if (!vehicle) {
+    return {
+      title: "Vehicle Listing",
+      description: "Verified vehicle listing on mycarsNg.",
+    };
+  }
+
+  const title = `${vehicle.year} ${vehicle.make} ${vehicle.model} - ₦${vehicle.price.toLocaleString()}`;
+  const description = `${vehicle.title} in ${vehicle.publicLocation || "Nigeria"}, ${vehicle.condition}. Inspect and buy securely on mycarsNg.`;
+  const ogImage = vehicle.images && vehicle.images.length > 0 ? vehicle.images[0] : "/logo.png";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | mycarsNg`,
+      description,
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | mycarsNg`,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function VehicleDetailPage({
   params,
@@ -34,9 +69,9 @@ export default async function VehicleDetailPage({
     notFound();
   }
 
-  const inspection =
-    (vehicle.latestInspectionId ? await fetchInspectionById(vehicle.latestInspectionId) : undefined) ||
-    MOCK_INSPECTIONS.find((i) => i.vehicleId === vehicle.id);
+  const inspection = vehicle.latestInspectionId
+    ? await fetchInspectionById(vehicle.latestInspectionId)
+    : undefined;
 
   const formatNaira = (amount: number) => {
     return `₦${amount.toLocaleString()}`;
@@ -379,33 +414,8 @@ export default async function VehicleDetailPage({
                 </div>
               </div>
 
-              {/* Primary Call to Action: Book Inspection */}
-              <div className="space-y-3">
-                <Link
-                  href={`/buyer/inspections/book/${vehicle.id}`}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-center flex items-center justify-center gap-2 shadow-xs transition"
-                >
-                  <Wrench className="w-4 h-4" />
-                  <span>Request Inspection First</span>
-                </Link>
-
-                <Link
-                  href={`/buyer/messages/${vehicle.id}`}
-                  className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold rounded-2xl text-center flex items-center justify-center gap-2 transition"
-                >
-                  <PhoneCall className="w-4 h-4" />
-                  <span>Contact Seller (Masked)</span>
-                </Link>
-
-                <SaveVehicleButton
-                  vehicle={vehicle}
-                  className="w-full py-3.5 bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-neutral-800 font-bold rounded-2xl text-center flex items-center justify-center gap-2 transition active:scale-[0.99]"
-                  iconClassName="w-4 h-4 text-neutral-700"
-                  showText={true}
-                  text="Save to Garage"
-                  savedText="Saved in Garage"
-                />
-              </div>
+              {/* Primary Call to Action & WhatsApp Deep Link */}
+              <VehicleContactActions vehicle={vehicle} />
 
               {/* Seller Profile Mini Card */}
               <div className="pt-5 border-t border-gray-100 space-y-3">

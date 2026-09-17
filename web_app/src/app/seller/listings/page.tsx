@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
-import { Vehicle, MOCK_VEHICLES } from "@/data/mockStore";
+import { Vehicle } from "@/data/mockStore";
 import { fetchVehicles } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import { Plus, Loader2, RefreshCw, Car } from "lucide-react";
@@ -33,11 +33,11 @@ export default function MyListingsPage() {
         const userListings = data.filter(
           (v) => (user?.id && v.sellerId === user.id) || v.sellerType === "private"
         );
-        setListings(userListings.length > 0 ? userListings : [MOCK_VEHICLES[3]]);
+        setListings(userListings);
       } catch (err) {
         if (!isMounted) return;
         console.warn("Failed to fetch seller listings from API:", err);
-        setListings([MOCK_VEHICLES[3]]);
+        setListings([]);
       } finally {
         if (isMounted) {
           setIsLoading(false);

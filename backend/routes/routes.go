@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
@@ -52,6 +53,34 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	}
 }
 
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+		c.Writer.Header().Set("X-Frame-Options", "DENY")
+		c.Writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		if config.AppConfig.GinMode == "release" {
+			c.Writer.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+		}
+		c.Next()
+	}
+}
+
+func BodyLimit(max int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !strings.HasPrefix(c.Request.URL.Path, "/api/upload") {
+			if c.Request.ContentLength > max {
+				c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+					"error": "request body too large",
+				})
+				c.Abort()
+				return
+			}
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, max)
+		}
+		c.Next()
+	}
+}
+
 func SetupRouter(cfg *config.Config) *gin.Engine {
 	if cfg.GinMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -60,6 +89,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(SecurityHeaders())
+	r.Use(BodyLimit(1 << 20))
 	r.Use(CORSMiddleware(cfg.AllowedOrigins))
 
 	authMiddleware := middleware.AuthMiddleware(cfg.JWTSecret)
@@ -72,17 +103,17 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		// Authentication (Public & Protected)
 		auth := api.Group("/auth")
 		{
-			auth.POST("/register", controllers.Register)
-			auth.POST("/login", controllers.Login)
+			auth.POST("/register", middleware.RateLimit(3, time.Minute), controllers.Register)
+			auth.POST("/login", middleware.RateLimit(5, time.Minute), controllers.Login)
 			auth.GET("/me", authMiddleware, controllers.GetMe)
 			auth.PUT("/profile", authMiddleware, controllers.UpdateProfile)
 			auth.PUT("/password", authMiddleware, controllers.ChangePassword)
-			auth.PATCH("/role", authMiddleware, controllers.UpgradeRole)
-			auth.POST("/upgrade-role", authMiddleware, controllers.UpgradeRole)
-			auth.POST("/verify-otp", controllers.VerifyOTP)
-			auth.POST("/resend-otp", controllers.ResendOTP)
+			auth.PATCH("/role", authMiddleware, middleware.RequireVerifiedEmail(), controllers.UpgradeRole)
+			auth.POST("/upgrade-role", authMiddleware, middleware.RequireVerifiedEmail(), controllers.UpgradeRole)
+			auth.POST("/verify-otp", middleware.RateLimit(10, time.Minute), controllers.VerifyOTP)
+			auth.POST("/resend-otp", middleware.RateLimit(3, 10*time.Minute), controllers.ResendOTP)
 			auth.POST("/forgot-password", controllers.ForgotPassword)
-			auth.POST("/reset-password", controllers.ResetPassword)
+			auth.POST("/reset-password", middleware.RateLimit(5, 10*time.Minute), controllers.ResetPassword)
 		}
 
 		// Vehicles
@@ -91,11 +122,19 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			// Public discovery
 			vehicles.GET("", controllers.GetVehicles)
 			vehicles.GET("/:id", controllers.GetVehicleByID)
+			vehicles.GET("/:id/contact", controllers.GetVehicleContact)
 
 			// Protected mutations
-			vehicles.POST("", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.CreateVehicle)
+			vehicles.POST("", authMiddleware, middleware.RequireVerifiedEmail(), middleware.RequireRoles("seller", "dealer", "admin"), controllers.CreateVehicle)
 			vehicles.PUT("/:id", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.UpdateVehicle)
 			vehicles.DELETE("/:id", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.DeleteVehicle)
+		}
+
+		// Algorithmic Valuation & Price Intelligence
+		valuation := api.Group("/valuation")
+		{
+			valuation.GET("/estimate", controllers.EstimateValuation)
+			valuation.POST("/estimate", controllers.EstimateValuation)
 		}
 
 		// Dealer Shops
@@ -125,12 +164,13 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		// Inspections
 		inspections := api.Group("/inspections")
 		{
-			// Public lookup
+			// Public lookup & AI summary generator
 			inspections.GET("", controllers.GetInspections)
 			inspections.GET("/:id", controllers.GetInspectionByID)
+			inspections.POST("/ai-summary", controllers.GenerateInspectionAISummary)
 
 			// Protected order & status update
-			inspections.POST("", authMiddleware, middleware.RequireRoles("buyer", "admin"), controllers.CreateInspection)
+			inspections.POST("", authMiddleware, middleware.RequireVerifiedEmail(), middleware.RequireRoles("buyer", "admin"), controllers.CreateInspection)
 			inspections.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.UpdateInspectionStatus)
 			inspections.POST("/:id/report", authMiddleware, middleware.RequireRoles("technician", "admin"), controllers.SubmitInspectionReport)
 		}
@@ -138,8 +178,9 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		// Leads & Inquiries
 		leads := api.Group("/leads")
 		{
-			// Public lead submission
-			leads.POST("", controllers.CreateLead)
+			// Lead submission & concierge matching (Protected by email verification)
+			leads.POST("", authMiddleware, middleware.RequireVerifiedEmail(), controllers.CreateLead)
+			leads.POST("/concierge-match", controllers.MatchConciergeInventory)
 
 			// Protected CRM lead viewing & status routing
 			leads.GET("", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.GetLeads)
@@ -183,12 +224,15 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		upload := api.Group("/upload")
 		upload.Use(authMiddleware)
 		{
-			upload.POST("/images", controllers.UploadImages)
+			upload.POST("/images", middleware.RateLimit(20, time.Minute), controllers.UploadImages)
 		}
 
-		// Conversations & Messaging (Direct Chat - All strictly protected)
+		// Real-Time WebSocket Gateway (Instant buyer-seller messaging)
+		api.GET("/ws", controllers.HandleWebSocket)
+
+		// Conversations & Messaging (Direct Chat - All strictly protected & email verified)
 		conversations := api.Group("/conversations")
-		conversations.Use(authMiddleware)
+		conversations.Use(authMiddleware, middleware.RequireVerifiedEmail())
 		{
 			conversations.POST("", controllers.StartConversation)
 			conversations.GET("", controllers.GetConversations)
@@ -216,7 +260,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			payments.Use(authMiddleware)
 			payments.GET("/transactions", middleware.RequireRoles("admin"), controllers.GetTransactions)
 			payments.GET("/wallet", controllers.GetWallet)
-			payments.POST("/initialize", controllers.InitializePayment)
+			payments.POST("/initialize", middleware.RequireVerifiedEmail(), controllers.InitializePayment)
 			payments.POST("/payout", middleware.RequireRoles("technician", "admin"), controllers.RequestPayout)
 			payments.PATCH("/payouts/:id/status", middleware.RequireRoles("admin"), controllers.UpdatePayoutStatus)
 		}

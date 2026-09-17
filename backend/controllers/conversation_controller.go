@@ -1,4 +1,4 @@
-﻿package controllers
+package controllers
 
 import (
 	"encoding/json"
@@ -81,6 +81,7 @@ func StartConversation(c *gin.Context) {
 				existing.LastMessageAt = &now
 				existing.UpdatedAt = now
 				db.Save(&existing)
+				BroadcastMessageToConversation(existing.ID, existing.BuyerID, existing.SellerID, msg)
 			}
 		}
 
@@ -104,20 +105,18 @@ func StartConversation(c *gin.Context) {
 	conv := models.Conversation{
 		ID:            convID,
 		VehicleID:     vehicle.ID,
-		BuyerID:       userID,
-		SellerID:      vehicle.SellerID,
-		DealerID:      "",
-		LastMessage:   trimmedMsg,
-		LastMessageAt: &now,
 		VehicleTitle:  vehicle.Title,
 		VehicleImage:  firstImage,
 		VehiclePrice:  vehicle.Price,
+		BuyerID:       userID,
 		BuyerName:     buyer.Name,
+		SellerID:      vehicle.SellerID,
 		SellerName:    vehicle.SellerName,
+		LastMessage:   trimmedMsg,
+		LastMessageAt: &now,
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
-
 	if vehicle.SellerType == "dealer" {
 		conv.DealerID = vehicle.SellerID
 	}
@@ -127,7 +126,7 @@ func StartConversation(c *gin.Context) {
 		return
 	}
 
-	// 7. If initial message was supplied, append it
+	// 7. If initial message was supplied, append it and broadcast
 	if trimmedMsg != "" {
 		msgID := "msg_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:16]
 		msg := models.Message{
@@ -140,7 +139,9 @@ func StartConversation(c *gin.Context) {
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		}
-		_ = db.Create(&msg)
+		if err := db.Create(&msg).Error; err == nil {
+			BroadcastMessageToConversation(convID, conv.BuyerID, conv.SellerID, msg)
+		}
 	}
 
 	c.JSON(http.StatusCreated, conv)
@@ -322,6 +323,9 @@ func SendMessage(c *gin.Context) {
 	conv.LastMessageAt = &now
 	conv.UpdatedAt = now
 	db.Save(&conv)
+
+	// 5. Broadcast in real time to WebSocket subscribers
+	BroadcastMessageToConversation(conv.ID, conv.BuyerID, conv.SellerID, msg)
 
 	c.JSON(http.StatusCreated, msg)
 }

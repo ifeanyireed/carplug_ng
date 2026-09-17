@@ -5,10 +5,45 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SavedVehiclesProvider } from "@/context/SavedVehiclesContext";
 import { AuthModal } from "@/components/modals/AuthModal";
 
-// Root layout with dynamic authentication provider and modal
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://mycars.ng";
+
 export const metadata: Metadata = {
-  title: "Verza - Premium Car Marketplace & Verified Auto Network",
-  description: "Explore, buy, sell, and auction certified luxury and everyday vehicles with confidence.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "mycarsNg - Nigeria's #1 Verified Car Marketplace & Auto Network",
+    template: "%s | mycarsNg",
+  },
+  description:
+    "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: SITE_URL,
+    siteName: "mycarsNg",
+    title: "mycarsNg - Nigeria's #1 Verified Car Marketplace & Auto Network",
+    description:
+      "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
+    images: [
+      {
+        url: "/logo.png",
+        width: 800,
+        height: 800,
+        alt: "mycarsNg Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "mycarsNg - Nigeria's #1 Verified Car Marketplace & Auto Network",
+    description:
+      "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

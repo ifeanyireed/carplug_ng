@@ -79,7 +79,7 @@ export default function TechnicianOnboardingPage() {
           Technician Certification &amp; Credentials
         </h1>
         <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-          Carplug technicians are independently vetted mechanical specialists. Upload your trade qualifications and workshop credentials to qualify for 150-point inspection dispatches.
+          mycarsNg technicians are independently vetted mechanical specialists. Upload your trade qualifications and workshop credentials to qualify for 150-point inspection dispatches.
         </p>
 
         {errorMsg && (

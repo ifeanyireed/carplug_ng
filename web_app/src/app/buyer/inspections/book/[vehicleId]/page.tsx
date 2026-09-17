@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MOCK_VEHICLES } from "@/data/mockStore";
 import { fetchVehicleById } from "@/services/api";
 import {
   Check,
@@ -19,8 +18,7 @@ export default async function ChooseInspectionTierPage({
   params: Promise<{ vehicleId: string }>;
 }) {
   const { vehicleId } = await params;
-  const fetchedVehicle = await fetchVehicleById(vehicleId);
-  const vehicle = fetchedVehicle || MOCK_VEHICLES.find((v) => v.id === vehicleId);
+  const vehicle = await fetchVehicleById(vehicleId);
 
   if (!vehicle) {
     notFound();
@@ -169,7 +167,7 @@ export default async function ChooseInspectionTierPage({
           <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
           <div className="text-xs text-gray-600 leading-relaxed">
             <h4 className="font-bold text-neutral-900 text-sm mb-1">
-              Verza Inspection Escrow Guarantee
+              mycarsNg Inspection Escrow Guarantee
             </h4>
             <p>
               Your payment is held in secure platform escrow. Funds are only released to the technician after their completed checklist, photos, and Vehicle Health Report are uploaded and verified on your account.

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/hero/Hero";
 import { SearchFilterState } from "@/components/hero/HeroSearchBox";
@@ -15,17 +15,75 @@ import { BestSellingMakesSection } from "@/components/makes/BestSellingMakesSect
 import { WhatTheySaidSection } from "@/components/stories/WhatTheySaidSection";
 import { NewsAndArticlesSection } from "@/components/news/NewsAndArticlesSection";
 import { Footer } from "@/components/layout/Footer";
-import { CAR_LISTINGS, CarListing } from "@/data/mockCars";
+import { CarListing } from "@/data/mockCars";
+import { Vehicle } from "@/data/mockStore";
+import { fetchVehicles } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
+
+function adaptVehicleToCarListing(v: Vehicle): CarListing {
+  const isNew = v.condition.toLowerCase().includes("brand new");
+  let badge: "Great Price" | "Good Deal" | "Featured" | undefined = undefined;
+  if (v.featured) badge = "Featured";
+  else if (v.trustTier >= 4) badge = "Great Price";
+  else if (v.priceRating === "deal") badge = "Good Deal";
+
+  let fuel: "Gasoline" | "Electric" | "Hybrid" | "Diesel" = "Gasoline";
+  if (v.fuelType === "Electric") fuel = "Electric";
+  else if (v.fuelType === "Hybrid") fuel = "Hybrid";
+  else if (v.fuelType === "Diesel") fuel = "Diesel";
+
+  return {
+    id: v.id,
+    name: v.title,
+    year: v.year,
+    make: v.make,
+    model: v.model,
+    type: v.bodyType || "Sedan",
+    condition: isNew ? "New" : "Used",
+    transmission: v.transmission === "Manual" ? "Manual" : "Automatic",
+    fuelType: fuel,
+    price: v.price,
+    badge,
+    image: v.images && v.images.length > 0 ? v.images[0] : "/images/cars/car1.jpeg",
+    mileage: v.mileage ? `${v.mileage.toLocaleString()} km` : undefined,
+    hasVideo: Boolean(v.featured),
+    isCertified: v.trustTier >= 4,
+    hasWarranty: v.trustTier >= 4,
+    isTrustedDealer: v.sellerType === "dealer" || v.trustTier >= 3,
+  };
+}
 
 export default function HomePage() {
   const { openAuthModal } = useAuth();
+  const [catalog, setCatalog] = useState<CarListing[]>([]);
   const [activeFilters, setActiveFilters] = useState<SearchFilterState | null>(
     null
   );
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<CarListing[] | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchVehicles()
+      .then((vehicles) => {
+        if (isMounted) {
+          if (vehicles && vehicles.length > 0) {
+            const adapted: CarListing[] = vehicles.map(adaptVehicleToCarListing);
+            setCatalog(adapted);
+          } else {
+            setCatalog([]);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to load live vehicles for homepage catalog:", err);
+        if (isMounted) setCatalog([]);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleOpenAuth = (mode?: "login" | "signup") => {
     openAuthModal(mode || "login");
@@ -36,7 +94,7 @@ export default function HomePage() {
     setSelectedBrand(filters.brand !== "All" ? filters.brand : null);
     setSelectedType(filters.type);
 
-    const filtered = CAR_LISTINGS.filter((car) => {
+    const filtered = catalog.filter((car) => {
       // Category filter
       if (filters.category === "new" && car.condition !== "New") return false;
       if (filters.category === "used" && car.condition !== "Used") return false;
@@ -48,7 +106,7 @@ export default function HomePage() {
         !car.make.toLowerCase().includes(filters.brand.toLowerCase()) &&
         !filters.brand.toLowerCase().includes(car.make.toLowerCase())
       ) {
-        // loose match if multiple words
+        return false;
       }
 
       // Options filters
@@ -78,7 +136,7 @@ export default function HomePage() {
     }
 
     setSelectedBrand(brandName);
-    const filtered = CAR_LISTINGS.filter((car) =>
+    const filtered = catalog.filter((car) =>
       car.make.toLowerCase().includes(brandName.toLowerCase()) ||
       brandName.toLowerCase().includes(car.make.toLowerCase())
     );
@@ -98,10 +156,10 @@ export default function HomePage() {
     }
 
     setSelectedType(typeName);
-    const filtered = CAR_LISTINGS.filter(
+    const filtered = catalog.filter(
       (car) => car.type.toLowerCase() === typeName.toLowerCase()
     );
-    setSearchResults(filtered.length > 0 ? filtered : CAR_LISTINGS);
+    setSearchResults(filtered.length > 0 ? filtered : catalog);
 
     const resultsEl = document.getElementById("search-results");
     if (resultsEl) {
@@ -110,7 +168,7 @@ export default function HomePage() {
   };
 
   const handleSelectExploreCar = (car: ExploreCar) => {
-    const matched = CAR_LISTINGS.find((c) =>
+    const matched = catalog.find((c) =>
       c.name.toLowerCase().includes(car.name.toLowerCase())
     );
     if (matched) {
@@ -123,11 +181,11 @@ export default function HomePage() {
   };
 
   const handleSelectFooterModel = (modelName: string) => {
-    const filtered = CAR_LISTINGS.filter((car) =>
+    const filtered = catalog.filter((car) =>
       car.name.toLowerCase().includes(modelName.toLowerCase()) ||
       modelName.toLowerCase().includes(car.make.toLowerCase())
     );
-    setSearchResults(filtered.length > 0 ? filtered : CAR_LISTINGS);
+    setSearchResults(filtered.length > 0 ? filtered : catalog);
 
     const resultsEl = document.getElementById("search-results");
     if (resultsEl) {
@@ -159,7 +217,7 @@ export default function HomePage() {
           case "trustedDealers":
             return "Trusted Dealers";
           case "rojoCertified":
-            return "Verza Certified";
+            return "mycarsNg Certified";
           case "warranty":
             return "Warranty";
           default:
@@ -186,7 +244,6 @@ export default function HomePage() {
         {/* Hero Section with continuous car backdrop and search card */}
         <Hero
           onSearch={handleSearch}
-          onOpenAuth={handleOpenAuth}
         />
 
         {/* Brand Logos Row from public/images/brands */}
@@ -219,7 +276,7 @@ export default function HomePage() {
         {searchResults !== null && (
           <SearchResultsDisplay
             results={searchResults}
-            totalCount={CAR_LISTINGS.length}
+            totalCount={catalog.length}
             filterSummary={getFilterSummary()}
             onClearFilters={handleClearFilters}
           />

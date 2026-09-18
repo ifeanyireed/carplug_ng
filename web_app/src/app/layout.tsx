@@ -16,9 +16,15 @@ export const metadata: Metadata = {
   description:
     "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
   icons: {
-    icon: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
-    shortcut: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
-    apple: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png" },
+    ],
   },
   openGraph: {
     type: "website",

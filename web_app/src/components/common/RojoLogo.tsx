@@ -31,7 +31,7 @@ export const MyCarsNgLogo = ({
     >
       <div className="relative shrink-0 flex items-center justify-center h-full aspect-square">
         <Image
-          src="/image.png"
+          src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679255/carplug/brand/image.png"
           alt="mycarsNg Official Logo"
           width={size}
           height={size}

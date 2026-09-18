@@ -24,7 +24,7 @@ export default function ErrorBoundary({
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative w-8 h-8">
               <Image
-                src="/logo.png"
+                src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png"
                 alt="mycarsNg Logo"
                 fill
                 className="object-contain"

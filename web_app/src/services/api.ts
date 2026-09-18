@@ -274,7 +274,7 @@ export function adaptVehicle(raw: RawVehicle): Vehicle {
     priceVerdict: raw.priceVerdict || "",
     trustTier: (raw.trustTier as Vehicle["trustTier"]) || 3,
     trustTierLabel: raw.trustTierLabel || "Platform Verified",
-    images: images.length > 0 ? images : ["/images/cars/car1.jpeg"],
+    images: images.length > 0 ? images : ["https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"],
     publicLocation: raw.publicLocation || "Lagos, Nigeria",
     exactLocation: raw.exactLocation,
     sellerId: raw.sellerId || "",

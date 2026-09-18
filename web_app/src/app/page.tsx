@@ -44,7 +44,7 @@ function adaptVehicleToCarListing(v: Vehicle): CarListing {
     fuelType: fuel,
     price: v.price,
     badge,
-    image: v.images && v.images.length > 0 ? v.images[0] : "/images/cars/car1.jpeg",
+    image: v.images && v.images.length > 0 ? v.images[0] : "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg",
     mileage: v.mileage ? `${v.mileage.toLocaleString()} km` : undefined,
     hasVideo: Boolean(v.featured),
     isCertified: v.trustTier >= 4,

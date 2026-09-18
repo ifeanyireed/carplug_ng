@@ -185,7 +185,7 @@ export default function MapDiscoveryPage() {
 
                 <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
                   <Image
-                    src={selectedCar.images[0] || "/images/cars/hero-car.webp"}
+                    src={selectedCar.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679253/carplug/brand/hero-car.webp"}
                     alt={selectedCar.title}
                     fill
                     unoptimized

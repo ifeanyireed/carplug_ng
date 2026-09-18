@@ -57,18 +57,18 @@ func GetVehicles(c *gin.Context) {
 		}
 	}
 	if state := c.Query("state"); state != "" {
-		query = query.Where("public_location LIKE ?", "%"+state+"%")
+		query = query.Where("public_location ILIKE ?", "%"+state+"%")
 	}
 	if condition := c.Query("condition"); condition != "" {
 		switch condition {
 		case "tokunbo":
-			query = query.Where("`condition` = ?", "Foreign Used (Tokunbo)")
+			query = query.Where("\"condition\" = ?", "Foreign Used (Tokunbo)")
 		case "nigerian_used":
-			query = query.Where("`condition` = ?", "Nigerian Used")
+			query = query.Where("\"condition\" = ?", "Nigerian Used")
 		case "brand_new":
-			query = query.Where("`condition` = ?", "Brand New")
+			query = query.Where("\"condition\" = ?", "Brand New")
 		default:
-			query = query.Where("`condition` = ?", condition)
+			query = query.Where("\"condition\" = ?", condition)
 		}
 	}
 	if minTierStr := c.Query("minTrustTier"); minTierStr != "" {
@@ -101,7 +101,7 @@ func GetVehicles(c *gin.Context) {
 	}
 	if q := c.Query("q"); q != "" {
 		searchPattern := "%" + q + "%"
-		query = query.Where("title LIKE ? OR make LIKE ? OR model LIKE ? OR public_location LIKE ?", searchPattern, searchPattern, searchPattern, searchPattern)
+		query = query.Where("title ILIKE ? OR make ILIKE ? OR model ILIKE ? OR public_location ILIKE ?", searchPattern, searchPattern, searchPattern, searchPattern)
 	}
 
 	orderClause := "created_at desc"

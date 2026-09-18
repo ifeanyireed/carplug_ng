@@ -53,7 +53,7 @@ export const ExploreVehiclesSection = ({
               const rawImg =
                 Array.isArray(v.images) && v.images.length > 0
                   ? v.images[0]
-                  : "/images/cars/hero-car.webp";
+                  : "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679253/carplug/brand/hero-car.webp";
               const badge =
                 v.priceRating === "deal"
                   ? "Great Price"

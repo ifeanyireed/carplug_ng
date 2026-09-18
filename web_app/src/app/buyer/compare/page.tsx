@@ -123,7 +123,7 @@ export default function ComparePage() {
                           </button>
                           <div className="aspect-[16/10] rounded-xl bg-gray-100 overflow-hidden mb-3 relative">
                             <Image
-                              src={car.images[0] || "/images/cars/car18.jpeg"}
+                              src={car.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
                               alt={car.title}
                               fill
                               sizes="(max-width: 768px) 100vw, 33vw"

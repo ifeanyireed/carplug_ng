@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Vehicle struct {
 	ID                 string    `gorm:"primaryKey;size:64" json:"id"`
@@ -23,7 +27,7 @@ type Vehicle struct {
 	PriceVerdict       string    `gorm:"type:text" json:"priceVerdict"`
 	TrustTier          int       `gorm:"default:1;index" json:"trustTier"`
 	TrustTierLabel     string    `gorm:"size:100" json:"trustTierLabel"`
-	Images             string    `gorm:"type:json" json:"images"` // JSON encoded string slice
+	Images             string    `gorm:"type:json;default:'[]'" json:"images"` // JSON encoded string slice
 	PublicLocation     string    `gorm:"size:150" json:"publicLocation"`
 	ExactLocation      string    `gorm:"size:255" json:"exactLocation,omitempty"`
 	SellerID           string    `gorm:"size:64;index" json:"sellerId"`
@@ -42,4 +46,18 @@ type Vehicle struct {
 	Featured           bool      `gorm:"default:false;index" json:"featured"`
 	CreatedAt          time.Time `json:"createdAt"`
 	UpdatedAt          time.Time `json:"updatedAt"`
+}
+
+func (v *Vehicle) BeforeCreate(tx *gorm.DB) error {
+	if v.Images == "" {
+		v.Images = "[]"
+	}
+	return nil
+}
+
+func (v *Vehicle) BeforeSave(tx *gorm.DB) error {
+	if v.Images == "" {
+		v.Images = "[]"
+	}
+	return nil
 }

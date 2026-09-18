@@ -23,7 +23,7 @@ export const Hero = ({
         {/* Background Image: Clean car1.jpeg edge-to-edge covering hero and area under form */}
         <div className="absolute inset-0 z-0 select-none">
           <Image
-            src="/images/cars/car1.jpeg"
+            src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"
             alt="BMW Sports Coupe Hero"
             fill
             priority

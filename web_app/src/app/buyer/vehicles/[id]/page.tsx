@@ -38,7 +38,7 @@ export async function generateMetadata({
 
   const title = `${vehicle.year} ${vehicle.make} ${vehicle.model} - ₦${vehicle.price.toLocaleString()}`;
   const description = `${vehicle.title} in ${vehicle.publicLocation || "Nigeria"}, ${vehicle.condition}. Inspect and buy securely on mycarsNg.`;
-  const ogImage = vehicle.images && vehicle.images.length > 0 ? vehicle.images[0] : "/logo.png";
+  const ogImage = vehicle.images && vehicle.images.length > 0 ? vehicle.images[0] : "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png";
 
   return {
     title,
@@ -163,7 +163,7 @@ export default async function VehicleDetailPage({
             <div className="bg-white border border-gray-200 rounded-3xl p-3 shadow-xs overflow-hidden">
               <div className="relative aspect-[16/10] rounded-2xl bg-gray-100 overflow-hidden">
                 <Image
-                  src={vehicle.images[0] || "/images/cars/car18.jpeg"}
+                  src={vehicle.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
                   alt={vehicle.title}
                   fill
                   priority

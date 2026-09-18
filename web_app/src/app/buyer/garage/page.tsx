@@ -182,7 +182,7 @@ export default function GaragePage() {
                         {/* Card Image Area */}
                         <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
                           <Image
-                            src={car.images?.[0] || "/images/cars/car18.jpeg"}
+                            src={car.images?.[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
                             alt={`${car.title} (${car.year})`}
                             fill
                             className="object-cover object-center group-hover:scale-105 transition-transform duration-500"

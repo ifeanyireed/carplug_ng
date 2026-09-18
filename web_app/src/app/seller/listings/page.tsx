@@ -117,7 +117,7 @@ export default function MyListingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-12 rounded-xl bg-gray-200 overflow-hidden shrink-0 relative">
                     <Image
-                      src={listing.images?.[0] || "/images/cars/car1.jpeg"}
+                      src={listing.images?.[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"}
                       alt={listing.title}
                       fill
                       unoptimized

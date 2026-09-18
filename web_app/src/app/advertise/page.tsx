@@ -36,7 +36,7 @@ const AD_FORMATS: AdFormat[] = [
     description: "Pinned in top 3 slots across search results with a subtle 'Sponsored' pill. Blends natively into the Explore grid.",
     weeklyPrice: 75000,
     estimatedImpressions: "45,000 - 65,000 / week",
-    previewImage: "/images/cars/car18.jpeg",
+    previewImage: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg",
     specs: "Native Vehicle Card + Destination Link",
   },
   {
@@ -46,7 +46,7 @@ const AD_FORMATS: AdFormat[] = [
     description: "Prominent billboard banner positioned directly above vehicle search results and Vehicle Detail Pages.",
     weeklyPrice: 120000,
     estimatedImpressions: "85,000 - 120,000 / week",
-    previewImage: "/images/cars/car17.jpeg",
+    previewImage: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679188/carplug/cars/car17.jpg",
     specs: "1200 x 240px (Desktop), 600 x 300px (Mobile)",
   },
   {
@@ -56,7 +56,7 @@ const AD_FORMATS: AdFormat[] = [
     description: "Exclusive homepage takeover placement directly beneath the hero search console. Ideal for brand launches & bank auto loans.",
     weeklyPrice: 250000,
     estimatedImpressions: "180,000 - 250,000 / week",
-    previewImage: "/images/cars/car15.jpeg",
+    previewImage: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679186/carplug/cars/car15.jpg",
     specs: "Full-width Interactive Card + Video loop support",
   },
   {
@@ -66,7 +66,7 @@ const AD_FORMATS: AdFormat[] = [
     description: "Exclusive co-branded placement embedded in every downloadable & shareable vehicle inspection report.",
     weeklyPrice: 180000,
     estimatedImpressions: "30,000 High-Intent Buyers / week",
-    previewImage: "/images/cars/car14.jpeg",
+    previewImage: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679185/carplug/cars/car14.jpg",
     specs: "Native CTA Banner + Direct WhatsApp / Web URL",
   },
 ];

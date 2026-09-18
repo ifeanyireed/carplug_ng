@@ -148,9 +148,9 @@ export const MOCK_VEHICLES: Vehicle[] = [
     trustTier: 5,
     trustTierLabel: "Premium Verified",
     images: [
-      "/images/cars/car15.jpeg",
-      "/images/cars/car17.jpeg",
-      "/images/cars/car18.jpeg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679186/carplug/cars/car15.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679188/carplug/cars/car17.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg",
     ],
     publicLocation: "Lekki Phase 1, Lagos",
     exactLocation: "Plot 14 Admiralty Way, Lekki",
@@ -193,8 +193,8 @@ export const MOCK_VEHICLES: Vehicle[] = [
     trustTier: 4,
     trustTierLabel: "Technician Inspected",
     images: [
-      "/images/cars/car13.jpeg",
-      "/images/cars/car16.jpeg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679184/carplug/cars/car13.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679187/carplug/cars/car16.jpg",
     ],
     publicLocation: "Ikeja GRA, Lagos",
     exactLocation: "Isaac John Street, Ikeja",
@@ -235,8 +235,8 @@ export const MOCK_VEHICLES: Vehicle[] = [
     trustTier: 4,
     trustTierLabel: "Technician Inspected",
     images: [
-      "/images/cars/car17.jpeg",
-      "/images/cars/car15.jpeg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679188/carplug/cars/car17.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679186/carplug/cars/car15.jpg",
     ],
     publicLocation: "Victoria Island, Lagos",
     exactLocation: "Ahmadu Bello Way, VI",
@@ -277,8 +277,8 @@ export const MOCK_VEHICLES: Vehicle[] = [
     trustTier: 3,
     trustTierLabel: "Platform Verified",
     images: [
-      "/images/cars/car1.jpeg",
-      "/images/cars/car2.jpeg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679178/carplug/cars/car2.jpg",
     ],
     publicLocation: "Surulere, Lagos",
     sellerId: "seller-babatunde",
@@ -317,8 +317,8 @@ export const MOCK_VEHICLES: Vehicle[] = [
     trustTier: 2,
     trustTierLabel: "Documents Uploaded",
     images: [
-      "/images/cars/car14.jpeg",
-      "/images/cars/car3.jpeg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679185/carplug/cars/car14.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679178/carplug/cars/car3.jpg",
     ],
     publicLocation: "Garki 2, Abuja",
     sellerId: "seller-emeka",
@@ -356,8 +356,8 @@ export const MOCK_VEHICLES: Vehicle[] = [
     trustTier: 5,
     trustTierLabel: "Premium Verified",
     images: [
-      "/images/cars/car16.jpeg",
-      "/images/cars/car18.jpeg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679187/carplug/cars/car16.jpg",
+      "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg",
     ],
     publicLocation: "Port Harcourt, Rivers",
     sellerId: "dealer-crown-autos",
@@ -452,8 +452,8 @@ export const MOCK_INSPECTIONS: InspectionReport[] = [
     technicianSummary: "Exceptional specimen. Engine, transmission, and auxiliary systems tested in top quartile. Front lower control arm bushings show slight superficial wear typical of 28k miles on rough roads — budget approximately ₦80k-₦120k for OEM bushings within the next year. Clean title and Tin Can customs docs confirmed genuine.",
     estimatedRepairCostRange: [80000, 140000],
     media: [
-      { type: "image", url: "/images/cars/car15.jpeg", caption: "Engine bay top-down view" },
-      { type: "image", url: "/images/cars/car16.jpeg", caption: "Undercarriage rail inspection" },
+      { type: "image", url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679186/carplug/cars/car15.jpg", caption: "Engine bay top-down view" },
+      { type: "image", url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679187/carplug/cars/car16.jpg", caption: "Undercarriage rail inspection" },
     ],
   },
   {
@@ -503,7 +503,7 @@ export const MOCK_INSPECTIONS: InspectionReport[] = [
     technicianSummary: "Solid mechanical baseline. Front stabilizer bar links require replacement (budget ₦45,000 for pair). Front bumper was resprayed for cosmetic stone chips, but chassis rails and radiator support are 100% factory original.",
     estimatedRepairCostRange: [45000, 75000],
     media: [
-      { type: "image", url: "/images/cars/car13.jpeg", caption: "Stabilizer link inspection" }
+      { type: "image", url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679184/carplug/cars/car13.jpg", caption: "Stabilizer link inspection" }
     ]
   }
 ];
@@ -515,7 +515,7 @@ export const MOCK_SHOPS: DealerShop[] = [
     name: "Reed Motors Lagos",
     tagline: "Certified Tokunbo & Luxury Vehicles with Independent Trust Scoring",
     logo: "",
-    banner: "/hero-car.webp",
+    banner: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679253/carplug/brand/hero-car.webp",
     location: "Lekki Phase 1, Lagos",
     address: "Plot 14 Admiralty Way, Lekki Phase 1, Lagos State",
     rating: 4.9,
@@ -535,7 +535,7 @@ export const MOCK_SHOPS: DealerShop[] = [
     name: "Crown Continental Autos",
     tagline: "Direct US & Canadian Import Specialist Since 2018",
     logo: "",
-    banner: "/hero-car.webp",
+    banner: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679253/carplug/brand/hero-car.webp",
     location: "Ikeja GRA, Lagos",
     address: "12 Isaac John St, Ikeja GRA, Lagos State",
     rating: 4.7,

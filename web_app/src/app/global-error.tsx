@@ -22,7 +22,7 @@ export default function GlobalError({
           <div className="flex justify-center mb-6">
             <div className="relative w-12 h-12">
               <Image
-                src="/logo.png"
+                src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png"
                 alt="mycarsNg Logo"
                 fill
                 className="object-contain"

@@ -23,7 +23,7 @@ const FEATURED_ARTICLE: ArticleItem = {
     "With EVs becoming more popular, many buyers are torn between electric and gasoline-powered cars. This blog compares cost, maintenance, performance, and environmental impact to help you decide which one suits your lifestyle.",
   date: "Jan 23, 2025",
   readTime: "4 min read",
-  image: "/images/articles/news1.jpeg",
+  image: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679199/carplug/articles/news1.jpg",
   imageAlt: "Woman sitting in open trunk of white electric car while charging",
 };
 
@@ -36,7 +36,7 @@ const SIDE_ARTICLES: ArticleItem[] = [
       "Thinking about upgrading your car? Learn the pros and cons of trading in vs. selling privately, how dealerships determine trade-in value, and which route earns you more money.",
     date: "Jan 20, 2025",
     readTime: "5 min read",
-    image: "/images/articles/news4.jpeg",
+    image: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679202/carplug/articles/news4.jpg",
     imageAlt: "Cars driving on multi-lane highway at sunset",
   },
   {
@@ -47,7 +47,7 @@ const SIDE_ARTICLES: ArticleItem[] = [
       "Financing a car can be overwhelming, but with the right strategy, you can secure the best loan terms. This article covers credit score impacts, pre-approval benefits, and negotiating tricks.",
     date: "Jan 15, 2025",
     readTime: "7 min read",
-    image: "/images/articles/news3.jpeg",
+    image: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679201/carplug/articles/news3.jpg",
     imageAlt: "White car parked on highway bridge overlooking sunset",
   },
   {
@@ -58,7 +58,7 @@ const SIDE_ARTICLES: ArticleItem[] = [
       "Buying a used car can be a great investment, but knowing what to check before making a purchase is crucial. This guide covers key inspection points, vehicle history reports, and test drive must-dos.",
     date: "Jan 10, 2025",
     readTime: "6 min read",
-    image: "/images/articles/news2.jpeg",
+    image: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679200/carplug/articles/news2.jpg",
     imageAlt: "4x4 SUV parked in mountain desert landscape",
   },
 ];

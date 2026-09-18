@@ -155,7 +155,7 @@ export function ContactSellerModal({
         <div className="p-4 mx-5 sm:mx-6 mt-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-3.5">
           <div className="relative w-16 h-12 rounded-xl overflow-hidden bg-gray-200 shrink-0">
             <Image
-              src={vehicle.images[0] || "/images/cars/car1.jpeg"}
+              src={vehicle.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"}
               alt={vehicle.title}
               fill
               unoptimized

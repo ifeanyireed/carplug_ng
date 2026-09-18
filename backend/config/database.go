@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ifeanyireed/carplug_ng/backend/models"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -15,15 +15,24 @@ import (
 var DB *gorm.DB
 
 func InitDB(cfg *Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local&tls=preferred&timeout=10s&readTimeout=30s&writeTimeout=30s",
-		cfg.DBUser,
-		cfg.DBPassword,
-		cfg.DBHost,
-		cfg.DBPort,
-		cfg.DBName,
-		cfg.DBCharset,
-	)
+	var dsn string
+	if cfg.DatabaseURL != "" {
+		dsn = cfg.DatabaseURL
+	} else {
+		sslMode := cfg.DBSSLMode
+		if sslMode == "" {
+			sslMode = "require"
+		}
+		dsn = fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+			cfg.DBHost,
+			cfg.DBUser,
+			cfg.DBPassword,
+			cfg.DBName,
+			cfg.DBPort,
+			sslMode,
+		)
+	}
 
 	logLevel := logger.Info
 	if cfg.GinMode == "release" {
@@ -33,20 +42,24 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	var err error
 	maxRetries := 5
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		log.Printf("[Database] Connecting to MySQL at %s:%s (database: %s) [attempt %d/%d]...\n", cfg.DBHost, cfg.DBPort, cfg.DBName, attempt, maxRetries)
-		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		targetHost := cfg.DBHost
+		if cfg.DatabaseURL != "" {
+			targetHost = "Neon Cloud Postgres"
+		}
+		log.Printf("[Database] Connecting to PostgreSQL at %s [attempt %d/%d]...\n", targetHost, attempt, maxRetries)
+		DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 			Logger: logger.Default.LogMode(logLevel),
 		})
 		if err == nil {
 			var sqlDB *sql.DB
 			sqlDB, err = DB.DB()
 			if err == nil {
-				sqlDB.SetMaxIdleConns(2)
-				sqlDB.SetMaxOpenConns(10)
-				sqlDB.SetConnMaxIdleTime(15 * time.Second)
-				sqlDB.SetConnMaxLifetime(1 * time.Minute)
+				sqlDB.SetMaxIdleConns(5)
+				sqlDB.SetMaxOpenConns(20)
+				sqlDB.SetConnMaxIdleTime(15 * time.Minute)
+				sqlDB.SetConnMaxLifetime(1 * time.Hour)
 				if err = sqlDB.Ping(); err == nil {
-					log.Printf("[Database] Successfully connected to MySQL at %s:%s / %s\n", cfg.DBHost, cfg.DBPort, cfg.DBName)
+					log.Printf("[Database] Successfully connected to PostgreSQL (Neon)\n")
 					break
 				}
 			}
@@ -58,7 +71,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MySQL database after %d attempts: %w", maxRetries, err)
+		return nil, fmt.Errorf("failed to connect to PostgreSQL database after %d attempts: %w", maxRetries, err)
 	}
 
 	// Run AutoMigrations if enabled

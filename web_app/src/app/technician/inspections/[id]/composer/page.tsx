@@ -200,12 +200,12 @@ export default function ReportComposerPage() {
       const media = [
         {
           type: "image",
-          url: "/images/cars/car1.jpeg",
+          url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg",
           caption: "Engine Bay & Structural Aprons Inspection",
         },
         {
           type: "image",
-          url: "/images/cars/car2.jpeg",
+          url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679178/carplug/cars/car2.jpg",
           caption: "OBD-II Live Diagnostic System Scan",
         },
       ];

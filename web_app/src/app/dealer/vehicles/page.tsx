@@ -238,7 +238,7 @@ export default function DealerVehiclesPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-14 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0 relative">
                           <Image
-                            src={car.images?.[0] || "/images/cars/car1.jpeg"}
+                            src={car.images?.[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"}
                             alt={car.title}
                             fill
                             unoptimized

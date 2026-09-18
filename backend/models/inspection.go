@@ -1,14 +1,18 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type InspectionReport struct {
-	ID                string    `gorm:"primaryKey;size:64" json:"id"`
-	VehicleID         string    `gorm:"size:64;index;not null" json:"vehicleId"`
-	VehicleTitle      string    `gorm:"size:255" json:"vehicleTitle"`
-	VehicleVIN        string    `gorm:"size:50" json:"vehicleVin"`
+	ID                  string    `gorm:"primaryKey;size:64" json:"id"`
+	VehicleID           string    `gorm:"size:64;index;not null" json:"vehicleId"`
+	VehicleTitle        string    `gorm:"size:255" json:"vehicleTitle"`
+	VehicleVIN          string    `gorm:"size:50" json:"vehicleVin"`
 	BuyerID             string    `gorm:"size:64;index" json:"buyerId"`
-	EscrowTransactionID string    `gorm:"size:64;uniqueIndex" json:"escrowTransactionId,omitempty"`
+	EscrowTransactionID string    `gorm:"size:64;uniqueIndex:idx_insp_escrow,where:escrow_transaction_id IS NOT NULL AND escrow_transaction_id != ''" json:"escrowTransactionId,omitempty"`
 	TechnicianID        string    `gorm:"size:64;index" json:"technicianId"`
 
 	TechnicianName    string    `gorm:"size:150" json:"technicianName"`
@@ -20,11 +24,31 @@ type InspectionReport struct {
 	ScheduledDate     string    `gorm:"size:50" json:"scheduledDate"`
 	CompletedDate     string    `gorm:"size:50" json:"completedDate,omitempty"`
 	OverallScore      int       `gorm:"default:0" json:"overallScore"`
-	Categories        string    `gorm:"type:json" json:"categories"` // JSON categories breakdown
+	Categories        string    `gorm:"type:json;default:'[]'" json:"categories"` // JSON categories breakdown
 	TechnicianSummary string    `gorm:"type:text" json:"technicianSummary"`
 	RepairCostMin     float64   `gorm:"type:decimal(12,2)" json:"repairCostMin,omitempty"`
 	RepairCostMax     float64   `gorm:"type:decimal(12,2)" json:"repairCostMax,omitempty"`
-	Media             string    `gorm:"type:json" json:"media"` // JSON encoded media items
+	Media             string    `gorm:"type:json;default:'[]'" json:"media"` // JSON encoded media items
 	CreatedAt         time.Time `json:"createdAt"`
 	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
+func (r *InspectionReport) BeforeCreate(tx *gorm.DB) error {
+	if r.Categories == "" {
+		r.Categories = "[]"
+	}
+	if r.Media == "" {
+		r.Media = "[]"
+	}
+	return nil
+}
+
+func (r *InspectionReport) BeforeSave(tx *gorm.DB) error {
+	if r.Categories == "" {
+		r.Categories = "[]"
+	}
+	if r.Media == "" {
+		r.Media = "[]"
+	}
+	return nil
 }

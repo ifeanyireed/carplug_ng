@@ -38,7 +38,7 @@ export async function generateMetadata({
   const description =
     shop.tagline ||
     `Explore verified automotive inventory from ${shop.name} in ${shop.location || "Nigeria"}. Verified dealership on mycarsNg.`;
-  const ogImage = shop.logo || "/logo.png";
+  const ogImage = shop.logo || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png";
 
   return {
     title,
@@ -200,7 +200,7 @@ export default async function PublicShopStorefrontPage({
                     {/* Card Image Area */}
                     <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
                       <Image
-                        src={car.images[0] || "/images/cars/car18.jpeg"}
+                        src={car.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
                         alt={`${car.title} (${car.year})`}
                         fill
                         className="object-cover object-center group-hover:scale-105 transition-transform duration-500"

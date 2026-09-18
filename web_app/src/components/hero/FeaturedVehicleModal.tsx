@@ -60,7 +60,7 @@ export const FeaturedVehicleModal = ({
         {/* Video / Visual Spotlight Area */}
         <div className="relative aspect-video w-full bg-black overflow-hidden group">
           <Image
-            src="/images/cars/car1.jpeg"
+            src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"
             alt="BMW Featured Coupe"
             fill
             sizes="(max-width: 768px) 100vw, 800px"
@@ -153,7 +153,7 @@ export const FeaturedVehicleModal = ({
                   model: "M3 / 3-Series Coupe",
                   year: 2004,
                   price: 38500,
-                  images: ["/images/cars/car1.jpeg"],
+                  images: ["https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg"],
                   transmission: "Manual",
                   fuelType: "Petrol",
                   condition: "Foreign Used (Tokunbo)",

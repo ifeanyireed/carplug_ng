@@ -36,3 +36,4 @@ backend/.env*.local
 web_app/.env*.local
 !.env.example
 !backend/.env.example
+.neon

@@ -287,7 +287,7 @@ export default function ConciergePage() {
                             const imageSrc =
                               Array.isArray(item.images) && item.images.length > 0
                                 ? item.images[0]
-                                : "/images/cars/car1.jpeg";
+                                : "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679177/carplug/cars/car1.jpg";
                             return (
                               <div
                                 key={item.id}

@@ -10,39 +10,40 @@ import (
 )
 
 type Config struct {
-	Port               string
-	GinMode            string
-	AllowedOrigins     []string
-	DBHost             string
-	DBPort             string
-	DBUser             string
-	DBPassword         string
-	DBName             string
-	DBCharset          string
-	AutoMigrate        bool
-	AutoSeed           bool
-	JWTSecret          string
-	JWTExpirationHours int
+	Port                string
+	GinMode             string
+	AllowedOrigins      []string
+	DatabaseURL         string
+	DatabaseURLUnpooled string
+	DBHost              string
+	DBPort              string
+	DBUser              string
+	DBPassword          string
+	DBName              string
+	DBSSLMode           string
+	AutoMigrate         bool
+	AutoSeed            bool
+	JWTSecret           string
+	JWTExpirationHours  int
 	CloudinaryCloudName string
 	CloudinaryAPIKey    string
 	CloudinaryAPISecret string
-	BrevoAPIKey        string
-	BrevoSenderName    string
-	BrevoSenderEmail   string
-	PaystackSecretKey  string
+	BrevoAPIKey         string
+	BrevoSenderName     string
+	BrevoSenderEmail    string
+	PaystackSecretKey   string
 }
 
 var AppConfig *Config
 
 func LoadConfig() *Config {
-	// Try loading from .env file; check candidate locations in order
+	// Try loading from .env and .env.local files; check candidate locations
 	loaded := false
-	for _, envPath := range []string{".env", "backend/.env", "../.env"} {
+	for _, envPath := range []string{".env", "backend/.env", "../.env", ".env.local", "../.env.local", "backend/.env.local"} {
 		if _, err := os.Stat(envPath); err == nil {
 			if err := godotenv.Load(envPath); err == nil {
 				log.Printf("[Config] Successfully loaded environment from: %s\n", envPath)
 				loaded = true
-				break
 			}
 		}
 	}
@@ -66,40 +67,50 @@ func LoadConfig() *Config {
 
 	jwtSecret := getEnv("JWT_SECRET", "verza_carplug_dev_jwt_secret_2026_super_secure_key")
 
+	dbURL := getEnv("DATABASE_URL", "")
+	dbURLUnpooled := getEnv("DATABASE_URL_UNPOOLED", "")
+	if dbURL == "" && dbURLUnpooled != "" {
+		dbURL = dbURLUnpooled
+	}
+
 	AppConfig = &Config{
-		Port:               getEnv("PORT", "8080"),
-		GinMode:            getEnv("GIN_MODE", "debug"),
-		AllowedOrigins:     origins,
-		DBHost:             getEnv("DB_HOST", ""),
-		DBPort:             getEnv("DB_PORT", "3306"),
-		DBUser:             getEnv("DB_USER", ""),
-		DBPassword:         getEnv("DB_PASSWORD", ""),
-		DBName:             getEnv("DB_NAME", ""),
-		DBCharset:          getEnv("DB_CHARSET", "utf8mb4"),
-		AutoMigrate:        getEnv("AUTO_MIGRATE", "false") == "true",
-		AutoSeed:           getEnv("AUTO_SEED", "false") == "true",
-		JWTSecret:          jwtSecret,
-		JWTExpirationHours: jwtExpHours,
+		Port:                getEnv("PORT", "8080"),
+		GinMode:             getEnv("GIN_MODE", "debug"),
+		AllowedOrigins:      origins,
+		DatabaseURL:         dbURL,
+		DatabaseURLUnpooled: dbURLUnpooled,
+		DBHost:              getEnv("DB_HOST", ""),
+		DBPort:              getEnv("DB_PORT", "5432"),
+		DBUser:              getEnv("DB_USER", ""),
+		DBPassword:          getEnv("DB_PASSWORD", ""),
+		DBName:              getEnv("DB_NAME", ""),
+		DBSSLMode:           getEnv("DB_SSLMODE", "require"),
+		AutoMigrate:         getEnv("AUTO_MIGRATE", "false") == "true",
+		AutoSeed:            getEnv("AUTO_SEED", "false") == "true",
+		JWTSecret:           jwtSecret,
+		JWTExpirationHours:  jwtExpHours,
 		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
 		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
 		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
-		BrevoAPIKey:        getEnv("BREVO_API_KEY", ""),
-		BrevoSenderName:    getEnv("BREVO_SENDER_NAME", "CarPlug Nigeria"),
-		BrevoSenderEmail:   getEnv("BREVO_SENDER_EMAIL", "verify@carplug.ng"),
-		PaystackSecretKey:  getEnv("PAYSTACK_SECRET_KEY", ""),
+		BrevoAPIKey:         getEnv("BREVO_API_KEY", ""),
+		BrevoSenderName:     getEnv("BREVO_SENDER_NAME", "CarPlug Nigeria"),
+		BrevoSenderEmail:    getEnv("BREVO_SENDER_EMAIL", "verify@carplug.ng"),
+		PaystackSecretKey:   getEnv("PAYSTACK_SECRET_KEY", ""),
 	}
 
-	if AppConfig.DBPassword == "" {
-		log.Fatal("[Config] DB_PASSWORD environment variable is required and was not set")
-	}
-	if AppConfig.DBHost == "" {
-		log.Fatal("[Config] DB_HOST environment variable is required and was not set")
-	}
-	if AppConfig.DBUser == "" {
-		log.Fatal("[Config] DB_USER environment variable is required and was not set")
-	}
-	if AppConfig.DBName == "" {
-		log.Fatal("[Config] DB_NAME environment variable is required and was not set")
+	if AppConfig.DatabaseURL == "" {
+		if AppConfig.DBPassword == "" {
+			log.Fatal("[Config] DB_PASSWORD or DATABASE_URL environment variable is required and was not set")
+		}
+		if AppConfig.DBHost == "" {
+			log.Fatal("[Config] DB_HOST or DATABASE_URL environment variable is required and was not set")
+		}
+		if AppConfig.DBUser == "" {
+			log.Fatal("[Config] DB_USER or DATABASE_URL environment variable is required and was not set")
+		}
+		if AppConfig.DBName == "" {
+			log.Fatal("[Config] DB_NAME or DATABASE_URL environment variable is required and was not set")
+		}
 	}
 
 	// Require strong custom JWT_SECRET in production release mode

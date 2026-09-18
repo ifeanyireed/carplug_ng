@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   description:
     "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
+    shortcut: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
+    apple: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
   },
   openGraph: {
     type: "website",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
       "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
     images: [
       {
-        url: "/logo.png",
+        url: "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
         width: 800,
         height: 800,
         alt: "mycarsNg Logo",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     title: "mycarsNg - Nigeria's #1 Verified Car Marketplace & Auto Network",
     description:
       "Explore, buy, sell, swap, and inspect certified Tokunbo and Nigerian-used vehicles with confidence on mycarsNg.",
-    images: ["/logo.png"],
+    images: ["https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png"],
   },
 };
 

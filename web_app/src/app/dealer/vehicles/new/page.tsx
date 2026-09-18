@@ -260,7 +260,7 @@ function AddVehicleWizardContent() {
             trustTierLabel: formData.preInspectionOptIn
               ? "Tier 4: Comprehensive Tech Inspected"
               : "Tier 2: Verification In Progress",
-            images: formData.images.length > 0 ? formData.images : ["/images/cars/car18.jpeg"],
+            images: formData.images.length > 0 ? formData.images : ["https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"],
             publicLocation: formData.locationZone,
             exactLocation: formData.exactAddress,
             sellerType: user?.role === "dealer" ? "dealer" : "private",

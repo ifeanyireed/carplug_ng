@@ -1,5 +1,11 @@
 {
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"dev\" ]; then exit 0; else exit 1; fi",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "dev": false
+    }
+  },
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"dev\" ] || [ \"$(git rev-parse --abbrev-ref HEAD 2>/dev/null)\" = \"dev\" ] || [ \"$(git branch --show-current 2>/dev/null)\" = \"dev\" ]; then exit 0; else exit 1; fi",
   "headers": [
     {
       "source": "/(.*)",

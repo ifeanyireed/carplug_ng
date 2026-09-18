@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { MyCarsNgLogo } from "@/components/common/MyCarsNgLogo";
 
 export default function NotFound() {
   return (
@@ -8,19 +8,8 @@ export default function NotFound() {
       {/* Top Brand Bar */}
       <header className="w-full px-6 py-4 border-b border-neutral-200/70 bg-white/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative w-8 h-8">
-              <Image
-                src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png"
-                alt="mycarsNg Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-neutral-900">
-              mycars<span className="text-red-600">Ng</span>
-            </span>
+          <Link href="/" className="flex items-center group">
+            <MyCarsNgLogo className="h-8 w-auto text-neutral-900" />
           </Link>
           <Link
             href="/buyer/search"

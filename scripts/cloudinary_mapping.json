@@ -34,5 +34,7 @@
   "/images/cars/hero-car.webp": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679253/carplug/brand/hero-car.webp",
   "/logo.png": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png",
   "/image.png": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679255/carplug/brand/image.png",
-  "/mycarsng-logo.png": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679256/carplug/brand/mycarsng-logo.png"
+  "/mycarsng-logo.png": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679256/carplug/brand/mycarsng-logo.png",
+  "/logo_white.avif": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789702024/carplug/brand/logo_white.avif",
+  "/logo_color.avif": "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789702513/carplug/brand/logo_color.avif"
 }

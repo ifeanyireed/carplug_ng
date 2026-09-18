@@ -130,7 +130,7 @@ export const Navbar = ({
           href="/"
           className="flex items-center gap-2 group transition-transform active:scale-95 shrink-0"
         >
-          <RojoLogo className="h-9 sm:h-10 w-auto text-white group-hover:text-gray-200 transition-colors" />
+          <RojoLogo variant="white" className="h-5 sm:h-6 w-auto" />
         </Link>
 
         {/* Center: Desktop Nav Links */}

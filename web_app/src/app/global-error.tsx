@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { MyCarsNgLogo } from "@/components/common/MyCarsNgLogo";
 
 export default function GlobalError({
   error,
@@ -20,15 +20,7 @@ export default function GlobalError({
       <body className="min-h-screen bg-[#F7F8FA] text-neutral-900 font-sans flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-8">
           <div className="flex justify-center mb-6">
-            <div className="relative w-12 h-12">
-              <Image
-                src="https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679254/carplug/brand/logo.png"
-                alt="mycarsNg Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
+            <MyCarsNgLogo className="h-10 w-auto text-neutral-900" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
             Application Error

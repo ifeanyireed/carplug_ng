@@ -6,12 +6,25 @@ import {
   Lead,
 } from "@/data/mockStore";
 
-const RAW_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://mycarsng-api-dev.onrender.com";
-const CLEAN_API_URL = RAW_API_URL.replace(/\/$/, "");
-const API_BASE_URL = CLEAN_API_URL.endsWith("/api")
-  ? CLEAN_API_URL
-  : `${CLEAN_API_URL}/api`;
+function resolveApiBaseUrl(): string {
+  let raw = (process.env.NEXT_PUBLIC_API_URL || "").trim();
+
+  // If not set, or pointing to dead/broken vercel backend deployment, or containing localhost, fallback to active Render API
+  if (!raw || raw.includes("mycarsng-backend") || raw.includes("localhost")) {
+    raw = "https://mycarsng-api-dev.onrender.com";
+  }
+
+  // Ensure protocol is present
+  if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
+    raw = `https://${raw}`;
+  }
+
+  const clean = raw.replace(/\/$/, "");
+  return clean.endsWith("/api") ? clean : `${clean}/api`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+const API_TIMEOUT_MS = 25000;
 
 export interface AuthUser {
   id: string;
@@ -470,7 +483,7 @@ export async function fetchVehicles(
 
     const res = await fetch(url.toString(), {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
 
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -490,7 +503,7 @@ export async function fetchVehicleById(id: string): Promise<Vehicle | undefined>
   try {
     const res = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json: RawVehicle = await res.json();
@@ -543,7 +556,7 @@ export function buildWhatsAppDeepLink(phone: string, message: string): string {
 export async function fetchVehicleContact(vehicleId: string): Promise<VehicleContactResponse | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/contact`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -591,7 +604,7 @@ export async function fetchValuationEstimate(params: {
     if (params.askingPrice) url.searchParams.set("askingPrice", String(params.askingPrice));
 
     const res = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
@@ -629,7 +642,7 @@ export async function fetchDealers(): Promise<DealerShop[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/dealers`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -648,7 +661,7 @@ export async function fetchDealerBySlugOrId(
   try {
     const res = await fetch(`${API_BASE_URL}/dealers/${slugOrId}`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();
@@ -664,7 +677,7 @@ export async function fetchDealerInventory(slugOrId: string): Promise<Vehicle[]>
   try {
     const res = await fetch(`${API_BASE_URL}/dealers/${slugOrId}/inventory`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -682,7 +695,7 @@ export async function fetchTechnicians(): Promise<Technician[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/technicians`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -702,7 +715,7 @@ export async function fetchInspectionById(
   try {
     const res = await fetch(`${API_BASE_URL}/inspections/${id}`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json: RawInspectionReport = await res.json();
@@ -745,7 +758,7 @@ export async function fetchLeads(params?: {
     const res = await fetch(url.toString(), {
       headers: { ...getAuthHeaders() },
       next: { revalidate: 30 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -792,7 +805,7 @@ export async function matchConciergeInventory(params: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (res.ok) {
       const json = await res.json();
@@ -904,7 +917,7 @@ export async function fetchDealerMeShop(): Promise<DealerShop | null> {
     const res = await fetch(`${API_BASE_URL}/dealers/me`, {
       headers: { ...getAuthHeaders() },
       next: { revalidate: 15 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     return await res.json();
@@ -941,7 +954,7 @@ export async function fetchDealerSubscription(): Promise<DealerSubscriptionRespo
     const res = await fetch(`${API_BASE_URL}/dealers/me/subscription`, {
       headers: { ...getAuthHeaders() },
       next: { revalidate: 15 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     return await res.json();
@@ -976,7 +989,7 @@ export async function fetchTechnicianById(id: string): Promise<Technician | unde
   try {
     const res = await fetch(`${API_BASE_URL}/technicians/${id}`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const raw: RawTechnician = await res.json();
@@ -1003,7 +1016,7 @@ export async function fetchInspections(params?: {
     }
     const res = await fetch(url.toString(), {
       next: { revalidate: 30 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -1119,7 +1132,7 @@ export async function generateInspectionAISummary(params: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (res.ok) {
       const json = await res.json();
@@ -1236,7 +1249,7 @@ export async function fetchTechnicianMeInspections(params?: {
     const res = await fetch(url.toString(), {
       headers: { ...getAuthHeaders() },
       next: { revalidate: 15 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -1274,7 +1287,7 @@ export async function fetchSwaps(params?: { status?: string }): Promise<SwapRequ
     if (params?.status) url.searchParams.set("status", params.status);
     const res = await fetch(url.toString(), {
       next: { revalidate: 30 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -1339,7 +1352,7 @@ export async function fetchCampaigns(params?: { status?: string }): Promise<Camp
     if (params?.status) url.searchParams.set("status", params.status);
     const res = await fetch(url.toString(), {
       next: { revalidate: 30 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -1392,7 +1405,7 @@ export async function fetchHealth(): Promise<{
 }> {
   const res = await fetch(`${API_BASE_URL}/health`, {
     cache: "no-store",
-    signal: AbortSignal.timeout(4000),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return await res.json();
@@ -1597,7 +1610,7 @@ export async function fetchSavedVehicles(): Promise<Vehicle[]> {
     const res = await fetch(`${API_BASE_URL}/saved-vehicles`, {
       headers: { ...getAuthHeaders() },
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -1620,7 +1633,7 @@ export async function fetchSavedVehicleIds(): Promise<string[]> {
     const res = await fetch(`${API_BASE_URL}/saved-vehicles/ids`, {
       headers: { ...getAuthHeaders() },
       cache: "no-store",
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const json = await res.json();
@@ -1773,7 +1786,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/conversations`, {
       headers: { ...getAuthHeaders() },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return await res.json();

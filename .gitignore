@@ -37,3 +37,7 @@ web_app/.env*.local
 !.env.example
 !backend/.env.example
 .neon
+
+# sensitive seeds & credentials
+seed.md
+*seed.md

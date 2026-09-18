@@ -40,6 +40,7 @@ function adaptVehicleToCarListing(v: Vehicle): CarListing {
     model: v.model,
     type: v.bodyType || "Sedan",
     condition: isNew ? "New" : "Used",
+    rawCondition: v.condition,
     transmission: v.transmission === "Manual" ? "Manual" : "Automatic",
     fuelType: fuel,
     price: v.price,
@@ -91,22 +92,59 @@ export default function HomePage() {
 
   const handleSearch = (filters: SearchFilterState) => {
     setActiveFilters(filters);
-    setSelectedBrand(filters.brand !== "All" ? filters.brand : null);
-    setSelectedType(filters.type);
+    setSelectedBrand(filters.brand !== "All" && filters.brand !== "All Brands" ? filters.brand : null);
+    setSelectedType(filters.type !== "All" && filters.type !== "All Types" ? filters.type : null);
 
     const filtered = catalog.filter((car) => {
       // Category filter
       if (filters.category === "new" && car.condition !== "New") return false;
       if (filters.category === "used" && car.condition !== "Used") return false;
-
-      // Brand filter
       if (
-        filters.brand &&
-        filters.brand !== "All" &&
-        !car.make.toLowerCase().includes(filters.brand.toLowerCase()) &&
-        !filters.brand.toLowerCase().includes(car.make.toLowerCase())
+        filters.category === "tokunbo" &&
+        !(car.rawCondition?.toLowerCase().includes("tokunbo") || car.rawCondition?.toLowerCase().includes("foreign"))
       ) {
         return false;
+      }
+      if (
+        filters.category === "nigerian_used" &&
+        !car.rawCondition?.toLowerCase().includes("nigerian")
+      ) {
+        return false;
+      }
+
+      // Brand filter
+      if (filters.brand && filters.brand !== "All" && filters.brand !== "All Brands") {
+        const normFilterBrand = filters.brand.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const normCarMake = car.make.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!normCarMake.includes(normFilterBrand) && !normFilterBrand.includes(normCarMake)) {
+          return false;
+        }
+      }
+
+      // Body Type filter
+      if (filters.type && filters.type !== "All" && filters.type !== "All Types") {
+        if (car.type.toLowerCase() !== filters.type.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Model filter
+      if (filters.model && filters.model !== "All" && filters.model !== "All Models") {
+        const normFilterModel = filters.model.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const normCarModel = car.model.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const normCarName = car.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!normCarModel.includes(normFilterModel) && !normCarName.includes(normFilterModel)) {
+          return false;
+        }
+      }
+
+      // Price filter (Naira ranges)
+      if (filters.price && filters.price !== "Any Price") {
+        if (filters.price === "Under ₦15M" && car.price > 15000000) return false;
+        if (filters.price === "₦15M - ₦30M" && (car.price < 15000000 || car.price > 30000000)) return false;
+        if (filters.price === "₦30M - ₦60M" && (car.price < 30000000 || car.price > 60000000)) return false;
+        if (filters.price === "₦60M - ₦100M" && (car.price < 60000000 || car.price > 100000000)) return false;
+        if (filters.price === "Above ₦100M" && car.price < 100000000) return false;
       }
 
       // Options filters
@@ -136,10 +174,11 @@ export default function HomePage() {
     }
 
     setSelectedBrand(brandName);
-    const filtered = catalog.filter((car) =>
-      car.make.toLowerCase().includes(brandName.toLowerCase()) ||
-      brandName.toLowerCase().includes(car.make.toLowerCase())
-    );
+    const normBrand = brandName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const filtered = catalog.filter((car) => {
+      const normCarMake = car.make.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return normCarMake.includes(normBrand) || normBrand.includes(normCarMake);
+    });
     setSearchResults(filtered);
 
     const resultsEl = document.getElementById("search-results");
@@ -225,13 +264,25 @@ export default function HomePage() {
         }
       });
 
+    const categoryLabel =
+      activeFilters.category === "new"
+        ? "Brand New"
+        : activeFilters.category === "tokunbo"
+        ? "Tokunbo"
+        : activeFilters.category === "nigerian_used"
+        ? "Nigerian Used"
+        : activeFilters.category === "used"
+        ? "Used Cars"
+        : "All Categories";
+
     const parts = [
-      activeFilters.category !== "all" ? `${activeFilters.category.toUpperCase()} Cars` : "All Categories",
-      activeFilters.brand,
-      activeFilters.type,
-      activeFilters.price,
+      categoryLabel,
+      activeFilters.brand && activeFilters.brand !== "All Brands" && activeFilters.brand !== "All" ? activeFilters.brand : null,
+      activeFilters.type && activeFilters.type !== "All Types" && activeFilters.type !== "All" ? activeFilters.type : null,
+      activeFilters.model && activeFilters.model !== "All Models" && activeFilters.model !== "All" ? activeFilters.model : null,
+      activeFilters.price && activeFilters.price !== "Any Price" ? activeFilters.price : null,
       ...activeOptions,
-    ];
+    ].filter(Boolean);
     return parts.join(" • ");
   };
 

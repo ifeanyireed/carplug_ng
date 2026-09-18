@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useTransition, useMemo } from "react";
+import React, { useState, useEffect, useTransition, useMemo, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Vehicle } from "@/data/mockStore";
@@ -26,10 +27,23 @@ type TierFilter = "all" | "3" | "4" | "5";
 type PriceRatingFilter = "all" | "deal" | "fair";
 type SortByOption = "featured" | "trust" | "price_asc" | "price_desc";
 
-export default function BuyerSearchPage() {
+function BuyerSearchContent() {
+  const searchParams = useSearchParams();
+  const initialCondition = searchParams.get("condition");
+  const initialMake = searchParams.get("make") || searchParams.get("brand");
+  const initialBodyType = searchParams.get("bodyType") || searchParams.get("type");
+  const initialQ = searchParams.get("q");
+
   const { isSaved, toggleSave } = useSavedVehicles();
-  const [activeTab, setActiveTab] = useState<"all" | "tokunbo" | "nigerian_used" | "brand_new">("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "tokunbo" | "nigerian_used" | "brand_new">(() => {
+    if (initialCondition === "tokunbo" || initialCondition === "nigerian_used" || initialCondition === "brand_new") {
+      return initialCondition;
+    }
+    if (initialCondition === "new") return "brand_new";
+    if (initialCondition === "used") return "tokunbo";
+    return "all";
+  });
+  const [searchQuery, setSearchQuery] = useState(() => initialQ || initialMake || "");
   const [selectedTier, setSelectedTier] = useState<TierFilter>("all");
   const [selectedPriceRating, setSelectedPriceRating] = useState<PriceRatingFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("featured");
@@ -42,6 +56,7 @@ export default function BuyerSearchPage() {
 
     fetchVehicles({
       condition: activeTab,
+      bodyType: initialBodyType && initialBodyType !== "all" && initialBodyType !== "All Types" ? initialBodyType : undefined,
       q: searchQuery.trim() || undefined,
       minTrustTier: selectedTier === "all" ? undefined : selectedTier,
       priceRating: selectedPriceRating === "all" ? undefined : selectedPriceRating,
@@ -456,5 +471,19 @@ export default function BuyerSearchPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function BuyerSearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+        </div>
+      }
+    >
+      <BuyerSearchContent />
+    </Suspense>
   );
 }

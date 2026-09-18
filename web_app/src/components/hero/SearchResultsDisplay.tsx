@@ -82,14 +82,24 @@ export const SearchResultsDisplay = ({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onClearFilters}
-          className="flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-black transition tracking-tight group self-start sm:self-auto"
-        >
-          <RotateCcw className="w-4 h-4 stroke-[2] transition-transform group-hover:-rotate-45" />
-          <span>Clear filters</span>
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <Link
+            href="/buyer/search"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black hover:bg-neutral-800 text-white text-xs font-medium transition shadow-xs"
+          >
+            <span>Open Full Catalog</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-700 hover:text-black transition tracking-tight group"
+          >
+            <RotateCcw className="w-3.5 h-3.5 stroke-[2] transition-transform group-hover:-rotate-45" />
+            <span>Clear filters</span>
+          </button>
+        </div>
       </div>
 
       {/* Outer White Card Enclosing the Cars Grid */}

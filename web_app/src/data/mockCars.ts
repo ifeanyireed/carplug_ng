@@ -17,6 +17,7 @@ export interface CarListing {
   isCertified?: boolean;
   hasWarranty?: boolean;
   isTrustedDealer?: boolean;
+  rawCondition?: string;
 }
 
 export const CAR_LISTINGS: CarListing[] = [

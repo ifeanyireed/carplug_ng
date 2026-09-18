@@ -11,7 +11,7 @@ import {
 import { Search, ChevronDown, Check } from "lucide-react";
 
 export interface SearchFilterState {
-  category: "all" | "new" | "used";
+  category: "all" | "new" | "used" | "tokunbo" | "nigerian_used";
   brand: string;
   type: string;
   model: string;
@@ -30,19 +30,24 @@ interface HeroSearchBoxProps {
 }
 
 const BRANDS = [
-  "Mercedes Benz",
-  "BMW",
-  "Audi",
-  "Lexus",
+  "All Brands",
   "Toyota",
+  "Mercedes-Benz",
+  "Lexus",
+  "BMW",
+  "Ford",
+  "Honda",
+  "Audi",
+  "Jeep",
+  "Volkswagen",
+  "Porsche",
   "Mitsubishi",
   "Infiniti",
-  "Ford",
-  "Porsche",
   "Volvo",
 ];
 
 const TYPES = [
+  "All Types",
   "SUV",
   "Sedan",
   "Coupe",
@@ -53,33 +58,38 @@ const TYPES = [
 ];
 
 const MODELS: Record<string, string[]> = {
-  "Mercedes Benz": ["Old Classic", "C-Class", "S-Class", "GLE", "G-Class", "AMG GT", "GLA"],
-  BMW: ["3 Series", "5 Series", "M3 / M4", "X5", "X3", "Z4", "i3"],
-  Audi: ["A4", "A6", "RS5", "Q7", "e-tron GT"],
-  Lexus: ["IS 250", "RX", "ES", "NX", "GX", "LS"],
-  Toyota: ["Camry", "Supra", "Highlander", "Avalon", "4Runner"],
-  Mitsubishi: ["Lancer Evo", "Outlander", "Pajero", "Eclipse Cross"],
-  Infiniti: ["Q50", "Q60", "QX80", "QX60"],
-  Ford: ["Mustang", "F-150", "Explorer", "Escape", "Fusion"],
-  Porsche: ["911 Carrera", "Taycan", "Cayenne", "Panamera"],
-  Volvo: ["S60", "XC90", "V60", "XC60"],
+  "All Brands": ["All Models"],
+  Toyota: ["All Models", "Camry", "Corolla", "Highlander", "Land Cruiser", "4Runner", "RAV4", "Supra"],
+  "Mercedes-Benz": ["All Models", "C-Class", "E-Class", "S-Class", "GLE", "GLC", "G-Class", "AMG GT"],
+  "Mercedes Benz": ["All Models", "C-Class", "E-Class", "S-Class", "GLE", "GLC", "G-Class", "AMG GT"],
+  Lexus: ["All Models", "RX", "ES", "GX", "LX", "IS", "NX"],
+  BMW: ["All Models", "3 Series", "5 Series", "M3 / M4", "X5", "X3", "Z4"],
+  Ford: ["All Models", "Explorer", "F-150", "Mustang", "Edge", "Escape"],
+  Honda: ["All Models", "Accord", "Civic", "CR-V", "Pilot"],
+  Audi: ["All Models", "A4", "A6", "RS5", "Q7", "e-tron GT"],
+  Jeep: ["All Models", "Wrangler", "Grand Cherokee", "Gladiator"],
+  Volkswagen: ["All Models", "Golf", "Tiguan", "Passat", "Touareg"],
+  Porsche: ["All Models", "Cayenne", "Taycan", "911 Carrera", "Panamera"],
+  Mitsubishi: ["All Models", "Pajero", "Outlander", "Lancer Evo"],
+  Infiniti: ["All Models", "Q50", "Q60", "QX80", "QX60"],
+  Volvo: ["All Models", "S60", "XC90", "V60", "XC60"],
 };
 
-const PRICE_RANGES = [
-  { label: ">$1000", value: "gt1000" },
-  { label: "Under $20,000", value: "lt20k" },
-  { label: "$20,000 - $40,000", value: "20k-40k" },
-  { label: "$40,000 - $75,000", value: "40k-75k" },
-  { label: ">$75,000", value: "gt75k" },
+export const PRICE_RANGES = [
   { label: "Any Price", value: "any" },
+  { label: "Under ₦15M", value: "lt15m" },
+  { label: "₦15M - ₦30M", value: "15m-30m" },
+  { label: "₦30M - ₦60M", value: "30m-60m" },
+  { label: "₦60M - ₦100M", value: "60m-100m" },
+  { label: "Above ₦100M", value: "gt100m" },
 ];
 
 export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
-  const [category, setCategory] = useState<"all" | "new" | "used">("all");
-  const [brand, setBrand] = useState("Mercedes Benz");
-  const [type, setType] = useState("SUV");
-  const [model, setModel] = useState("Old Classic");
-  const [price, setPrice] = useState(">$1000");
+  const [category, setCategory] = useState<"all" | "new" | "used" | "tokunbo" | "nigerian_used">("all");
+  const [brand, setBrand] = useState("All Brands");
+  const [type, setType] = useState("All Types");
+  const [model, setModel] = useState("All Models");
+  const [price, setPrice] = useState("Any Price");
 
   const [options, setOptions] = useState({
     hotDeals: false,
@@ -92,7 +102,28 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const toggleOption = (key: keyof typeof options) => {
-    setOptions((prev) => ({ ...prev, [key]: !prev[key] }));
+    const updated = { ...options, [key]: !options[key] };
+    setOptions(updated);
+    onSearch?.({
+      category,
+      brand,
+      type,
+      model,
+      price,
+      options: updated,
+    });
+  };
+
+  const handleCategoryChange = (newCat: SearchFilterState["category"]) => {
+    setCategory(newCat);
+    onSearch?.({
+      category: newCat,
+      brand,
+      type,
+      model,
+      price,
+      options,
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -107,15 +138,17 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
     });
   };
 
+  const availableModels = MODELS[brand] || ["All Models"];
+
   return (
     <div className="w-full bg-white rounded-xl p-5 sm:p-7 md:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.08)] border border-gray-100 relative">
       {/* Category Tabs */}
       <div className="mb-6">
-        <div className="inline-flex p-1 bg-gray-100/90 rounded-lg">
+        <div className="inline-flex p-1 bg-gray-100/90 rounded-lg flex-wrap gap-1">
           <button
             type="button"
-            onClick={() => setCategory("all")}
-            className={`px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
+            onClick={() => handleCategoryChange("all")}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
               category === "all"
                 ? "bg-white text-black shadow-sm"
                 : "text-gray-500 hover:text-black"
@@ -125,25 +158,36 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
           </button>
           <button
             type="button"
-            onClick={() => setCategory("new")}
-            className={`px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
+            onClick={() => handleCategoryChange("new")}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
               category === "new"
                 ? "bg-white text-black shadow-sm"
                 : "text-gray-500 hover:text-black"
             }`}
           >
-            New Cars
+            Brand New
           </button>
           <button
             type="button"
-            onClick={() => setCategory("used")}
-            className={`px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
-              category === "used"
+            onClick={() => handleCategoryChange("tokunbo")}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
+              category === "tokunbo"
                 ? "bg-white text-black shadow-sm"
                 : "text-gray-500 hover:text-black"
             }`}
           >
-            Used Cars
+            Tokunbo
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCategoryChange("nigerian_used")}
+            className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${
+              category === "nigerian_used"
+                ? "bg-white text-black shadow-sm"
+                : "text-gray-500 hover:text-black"
+            }`}
+          >
+            Nigerian Used
           </button>
         </div>
       </div>
@@ -175,10 +219,7 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
                     type="button"
                     onClick={() => {
                       setBrand(item);
-                      const modelList = MODELS[item];
-                      if (modelList && modelList.length > 0) {
-                        setModel(modelList[0]);
-                      }
+                      setModel("All Models");
                       setOpenDropdown(null);
                     }}
                     className="w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-md hover:bg-gray-100 text-gray-700 hover:text-black transition"
@@ -245,24 +286,22 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
 
             {openDropdown === "model" && (
               <div className="absolute top-full left-0 mt-1.5 w-full bg-white border border-gray-200 rounded-lg shadow-xl p-1.5 z-30 max-h-56 overflow-y-auto">
-                {(MODELS[brand] || ["All Models", "Old Classic", "Sport Package"]).map(
-                  (item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => {
-                        setModel(item);
-                        setOpenDropdown(null);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-md hover:bg-gray-100 text-gray-700 hover:text-black transition"
-                    >
-                      <span>{item}</span>
-                      {model === item && (
-                        <Check className="w-3.5 h-3.5 text-black" />
-                      )}
-                    </button>
-                  )
-                )}
+                {availableModels.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      setModel(item);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-md hover:bg-gray-100 text-gray-700 hover:text-black transition"
+                  >
+                    <span>{item}</span>
+                    {model === item && (
+                      <Check className="w-3.5 h-3.5 text-black" />
+                    )}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -270,7 +309,7 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
           {/* 4. Price */}
           <div className="relative">
             <label className="block text-xs font-semibold text-gray-900 mb-1.5 pl-0.5">
-              Price
+              Price Range
             </label>
             <button
               type="button"

@@ -6,15 +6,12 @@ import {
   Lead,
 } from "@/data/mockStore";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production"
-    ? (() => {
-        throw new Error(
-          "NEXT_PUBLIC_API_URL must be set for production builds",
-        );
-      })()
-    : "http://localhost:8080/api");
+const RAW_API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://mycarsng-api-dev.onrender.com";
+const CLEAN_API_URL = RAW_API_URL.replace(/\/$/, "");
+const API_BASE_URL = CLEAN_API_URL.endsWith("/api")
+  ? CLEAN_API_URL
+  : `${CLEAN_API_URL}/api`;
 
 export interface AuthUser {
   id: string;

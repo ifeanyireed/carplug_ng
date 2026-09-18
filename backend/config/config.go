@@ -51,7 +51,7 @@ func LoadConfig() *Config {
 		log.Println("[Config] No .env file found, using system environment or defaults")
 	}
 
-	originsStr := getEnv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+	originsStr := getEnv("ALLOWED_ORIGINS", "*")
 	var origins []string
 	for _, o := range strings.Split(originsStr, ",") {
 		o = strings.TrimSpace(o)

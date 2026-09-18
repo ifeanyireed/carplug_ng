@@ -1,6 +1,8 @@
 const http = require('http');
 const mysql = require('mysql2/promise');
 
+const API_HOST = process.env.API_HOST || 'mycarsng-api-dev.onrender.com';
+
 function request(options, body) {
   return new Promise((resolve, reject) => {
     const req = http.request(options, (res) => {
@@ -29,7 +31,7 @@ async function run() {
   console.log('1. Registering user:', email);
   const reg = await request(
     {
-      hostname: 'localhost',
+      hostname: API_HOST,
       port: 8080,
       path: '/api/auth/register',
       method: 'POST',
@@ -48,7 +50,7 @@ async function run() {
   console.log('\n2. Attempting POST /api/vehicles with unverified account...');
   const createVehicleRes = await request(
     {
-      hostname: 'localhost',
+      hostname: API_HOST,
       port: 8080,
       path: '/api/vehicles',
       method: 'POST',
@@ -95,7 +97,7 @@ async function run() {
   console.log('\n4. Verifying OTP via /api/auth/verify-otp...');
   const verifyRes = await request(
     {
-      hostname: 'localhost',
+      hostname: API_HOST,
       port: 8080,
       path: '/api/auth/verify-otp',
       method: 'POST',
@@ -112,7 +114,7 @@ async function run() {
   console.log('\n5. Retrying POST /api/vehicles with now-verified account...');
   const retryCreateRes = await request(
     {
-      hostname: 'localhost',
+      hostname: API_HOST,
       port: 8080,
       path: '/api/vehicles',
       method: 'POST',

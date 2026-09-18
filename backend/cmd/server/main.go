@@ -53,8 +53,8 @@ func main() {
 
 	// 5. Start Server in Goroutine
 	go func() {
-		log.Printf("[Server] Server listening on http://localhost%s\n", serverAddr)
-		log.Printf("[Server] API endpoints ready at http://localhost%s/api/...\n", serverAddr)
+		log.Printf("[Server] Server listening on %s\n", serverAddr)
+		log.Printf("[Server] API endpoints ready at /api/...\n")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("[Server] Listen failed: %s\n", err)
 		}

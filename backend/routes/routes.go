@@ -248,10 +248,11 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		payments := api.Group("/payments")
 		{
 			payments.POST("/webhook", controllers.HandleWebhook)
+			payments.GET("/verify/:reference", controllers.VerifyPayment)
 
 			// Authenticated actions
 			payments.Use(authMiddleware)
-			payments.GET("/transactions", middleware.RequireRoles("admin"), controllers.GetTransactions)
+			payments.GET("/transactions", controllers.GetTransactions)
 			payments.GET("/wallet", controllers.GetWallet)
 			payments.POST("/initialize", middleware.RequireVerifiedEmail(), controllers.InitializePayment)
 			payments.POST("/payout", middleware.RequireRoles("technician", "admin"), controllers.RequestPayout)

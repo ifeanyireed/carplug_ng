@@ -2077,6 +2077,25 @@ export async function initializePayment(payload: {
 }
 
 /**
+ * Verifies a transaction with the payment gateway (Paystack) and reconciles ledger status.
+ */
+export async function verifyPayment(reference: string): Promise<{
+  status: string;
+  message: string;
+  verified: boolean;
+  transaction: TransactionItem;
+}> {
+  const res = await fetch(`${API_BASE_URL}/payments/verify/${reference}`, {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Payment verification failed");
+  }
+  return await res.json();
+}
+
+/**
  * Technician / Seller payout withdrawal request.
  */
 export async function requestPayout(payload: {

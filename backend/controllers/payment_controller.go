@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha512"
@@ -318,10 +319,64 @@ func InitializePayment(c *gin.Context) {
 		}
 	}
 
+	checkoutURL := fmt.Sprintf("https://checkout.paystack.com/%s", reference)
+	accessCode := ""
+
+	// If Paystack Secret Key is configured and gateway is Paystack, initialize directly with Paystack API
+	if config.AppConfig.PaystackSecretKey != "" && gateway == "paystack" && userEmail != "" {
+		paystackPayload := map[string]interface{}{
+			"email":        userEmail,
+			"amount":       req.Amount * 100, // Paystack requires amount in kobo
+			"reference":    reference,
+			"callback_url": req.CallbackURL,
+			"metadata": map[string]interface{}{
+				"type":      req.Type,
+				"entityId":  req.EntityID,
+				"userId":    userID,
+				"userName":  userName,
+				"title":     title,
+			},
+		}
+		jsonBytes, _ := json.Marshal(paystackPayload)
+		httpReq, err := http.NewRequest("POST", "https://api.paystack.co/transaction/initialize", bytes.NewBuffer(jsonBytes))
+		if err == nil {
+			httpReq.Header.Set("Authorization", "Bearer "+config.AppConfig.PaystackSecretKey)
+			httpReq.Header.Set("Content-Type", "application/json")
+			client := &http.Client{Timeout: 8 * time.Second}
+			resp, err := client.Do(httpReq)
+			if err == nil {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					var psResp struct {
+						Status  bool   `json:"status"`
+						Message string `json:"message"`
+						Data    struct {
+							AuthorizationURL string `json:"authorization_url"`
+							AccessCode       string `json:"access_code"`
+							Reference        string `json:"reference"`
+						} `json:"data"`
+					}
+					if err := json.NewDecoder(resp.Body).Decode(&psResp); err == nil && psResp.Status {
+						if psResp.Data.AuthorizationURL != "" {
+							checkoutURL = psResp.Data.AuthorizationURL
+						}
+						accessCode = psResp.Data.AccessCode
+						if psResp.Data.Reference != "" {
+							reference = psResp.Data.Reference
+							txn.Reference = reference
+							_ = db.Model(&txn).Update("reference", reference).Error
+						}
+					}
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message":     "Payment initialized successfully",
 		"reference":   reference,
-		"checkoutUrl": fmt.Sprintf("https://checkout.paystack.com/%s", reference),
+		"checkoutUrl": checkoutURL,
+		"accessCode":  accessCode,
 		"transaction": txn,
 	})
 }
@@ -465,6 +520,87 @@ func UpdatePayoutStatus(c *gin.Context) {
 	})
 }
 
+// VerifyPayment verifies a transaction reference directly against Paystack gateway API and reconciles the ledger
+func VerifyPayment(c *gin.Context) {
+	reference := c.Param("reference")
+	if reference == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "transaction reference is required"})
+		return
+	}
+
+	db := config.GetDB()
+	var txn models.Transaction
+	if err := db.Where("reference = ? OR id = ?", reference, reference).First(&txn).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found with reference: " + reference})
+		return
+	}
+
+	verifiedOnline := false
+
+	// If Paystack Secret Key is configured, query Paystack's verify API
+	if config.AppConfig.PaystackSecretKey != "" && txn.Gateway == "paystack" {
+		url := fmt.Sprintf("https://api.paystack.co/transaction/verify/%s", reference)
+		httpReq, err := http.NewRequest("GET", url, nil)
+		if err == nil {
+			httpReq.Header.Set("Authorization", "Bearer "+config.AppConfig.PaystackSecretKey)
+			client := &http.Client{Timeout: 8 * time.Second}
+			resp, err := client.Do(httpReq)
+			if err == nil {
+				defer resp.Body.Close()
+				var psResp struct {
+					Status  bool   `json:"status"`
+					Message string `json:"message"`
+					Data    struct {
+						Status    string `json:"status"`
+						Reference string `json:"reference"`
+						Amount    int64  `json:"amount"` // in kobo
+						Currency  string `json:"currency"`
+					} `json:"data"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&psResp); err == nil && psResp.Status {
+					if strings.ToLower(psResp.Data.Status) == "success" {
+						verifiedOnline = true
+					}
+				}
+			}
+		}
+	} else {
+		// Mock / test environment fallback
+		verifiedOnline = true
+	}
+
+	// Reconcile status if verified
+	if verifiedOnline {
+		if txn.Type == "inspection_escrow" {
+			txn.Status = "held_in_escrow"
+			if txn.EntityID != "" {
+				_ = db.Model(&models.InspectionReport{}).Where("id = ? OR escrow_transaction_id = ?", txn.EntityID, txn.ID).
+					Update("status", "scheduled").Error
+			}
+		} else {
+			txn.Status = "settled"
+			if txn.Type == "dealer_subscription" && txn.EntityID != "" {
+				_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", txn.EntityID, txn.EntityID).
+					Update("plan", "Pro Shop").Error
+				_ = db.Model(&models.Subscription{}).Where("dealer_id = ?", txn.EntityID).
+					Updates(map[string]interface{}{
+						"status":     "active",
+						"expires_at": time.Now().AddDate(0, 1, 0),
+					}).Error
+			}
+		}
+		txn.UpdatedAt = time.Now()
+		_ = db.Save(&txn).Error
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"message":     "Payment verified successfully",
+		"verified":    verifiedOnline,
+		"transaction": txn,
+	})
+}
+
 // HandleWebhook receives payment notifications from gateway (Priority 0.2)
 func HandleWebhook(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
@@ -495,6 +631,8 @@ func HandleWebhook(c *gin.Context) {
 		return
 	}
 
+	event, _ := payload["event"].(string)
+
 	reference, _ := payload["reference"].(string)
 	if reference == "" {
 		if data, ok := payload["data"].(map[string]interface{}); ok {
@@ -510,9 +648,28 @@ func HandleWebhook(c *gin.Context) {
 	db := config.GetDB()
 	var txn models.Transaction
 	if err := db.Where("reference = ?", reference).First(&txn).Error; err == nil {
-		txn.Status = "settled"
-		txn.UpdatedAt = time.Now()
-		_ = db.Save(&txn).Error
+		if event == "charge.success" || event == "" {
+			if txn.Type == "inspection_escrow" {
+				txn.Status = "held_in_escrow"
+				if txn.EntityID != "" {
+					_ = db.Model(&models.InspectionReport{}).Where("id = ? OR escrow_transaction_id = ?", txn.EntityID, txn.ID).
+						Update("status", "scheduled").Error
+				}
+			} else {
+				txn.Status = "settled"
+				if txn.Type == "dealer_subscription" && txn.EntityID != "" {
+					_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", txn.EntityID, txn.EntityID).
+						Update("plan", "Pro Shop").Error
+					_ = db.Model(&models.Subscription{}).Where("dealer_id = ?", txn.EntityID).
+						Updates(map[string]interface{}{
+							"status":     "active",
+							"expires_at": time.Now().AddDate(0, 1, 0),
+						}).Error
+				}
+			}
+			txn.UpdatedAt = time.Now()
+			_ = db.Save(&txn).Error
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

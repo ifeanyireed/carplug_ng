@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -269,37 +270,138 @@ func GetVehicleContact(c *gin.Context) {
 	})
 }
 
+type CreateVehicleInput struct {
+	ID                 string   `json:"id"`
+	Title              string   `json:"title"`
+	Year               int      `json:"year"`
+	Make               string   `json:"make"`
+	Model              string   `json:"model"`
+	Trim               string   `json:"trim"`
+	BodyType           string   `json:"bodyType"`
+	Condition          string   `json:"condition"`
+	Mileage            int      `json:"mileage"`
+	Transmission       string   `json:"transmission"`
+	FuelType           string   `json:"fuelType"`
+	EngineSize         string   `json:"engineSize"`
+	VIN                string   `json:"vin"`
+	Price              float64  `json:"price"`
+	MarketPriceMin     float64  `json:"marketPriceMin"`
+	MarketPriceMax     float64  `json:"marketPriceMax"`
+	PriceRating        string   `json:"priceRating"`
+	PriceVerdict       string   `json:"priceVerdict"`
+	TrustTier          int      `json:"trustTier"`
+	TrustTierLabel     string   `json:"trustTierLabel"`
+	Images             any      `json:"images"`
+	PublicLocation     string   `json:"publicLocation"`
+	ExactLocation      string   `json:"exactLocation"`
+	SellerID           string   `json:"sellerId"`
+	SellerType         string   `json:"sellerType"`
+	SellerName         string   `json:"sellerName"`
+	SellerPhone        string   `json:"sellerPhone"`
+	SellerRating       float64  `json:"sellerRating"`
+	CustomsStatus      string   `json:"customsStatus"`
+	CustomsDoc         bool     `json:"customsDoc"`
+	RegistrationDoc    bool     `json:"registrationDoc"`
+	Roadworthiness     bool     `json:"roadworthiness"`
+	TintPermit         bool     `json:"tintPermit"`
+	PoliceExtracted    bool     `json:"policeExtracted"`
+	HealthScore        int      `json:"healthScore"`
+	LatestInspectionID string   `json:"latestInspectionId"`
+	Featured           bool     `json:"featured"`
+}
+
 func CreateVehicle(c *gin.Context) {
 	userID := c.GetString("userID")
 	userRole := c.GetString("userRole")
 
-	var vehicle models.Vehicle
-	if err := c.ShouldBindJSON(&vehicle); err != nil {
+	var req CreateVehicleInput
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	imagesJSON := "[]"
+	if req.Images != nil {
+		if str, ok := req.Images.(string); ok {
+			if str != "" {
+				imagesJSON = str
+			}
+		} else if b, err := json.Marshal(req.Images); err == nil {
+			imagesJSON = string(b)
+		}
+	}
+
+	vehicle := models.Vehicle{
+		ID:                 req.ID,
+		Title:              req.Title,
+		Year:               req.Year,
+		Make:               req.Make,
+		Model:              req.Model,
+		Trim:               req.Trim,
+		BodyType:           req.BodyType,
+		Condition:          req.Condition,
+		Mileage:            req.Mileage,
+		Transmission:       req.Transmission,
+		FuelType:           req.FuelType,
+		EngineSize:         req.EngineSize,
+		VIN:                req.VIN,
+		Price:              req.Price,
+		MarketPriceMin:     req.MarketPriceMin,
+		MarketPriceMax:     req.MarketPriceMax,
+		PriceRating:        req.PriceRating,
+		PriceVerdict:       req.PriceVerdict,
+		TrustTier:          req.TrustTier,
+		TrustTierLabel:     req.TrustTierLabel,
+		Images:             imagesJSON,
+		PublicLocation:     req.PublicLocation,
+		ExactLocation:      req.ExactLocation,
+		SellerID:           req.SellerID,
+		SellerType:         req.SellerType,
+		SellerName:         req.SellerName,
+		SellerPhone:        req.SellerPhone,
+		SellerRating:       req.SellerRating,
+		CustomsStatus:      req.CustomsStatus,
+		CustomsDoc:         req.CustomsDoc,
+		RegistrationDoc:    req.RegistrationDoc,
+		Roadworthiness:     req.Roadworthiness,
+		TintPermit:         req.TintPermit,
+		PoliceExtracted:    req.PoliceExtracted,
+		HealthScore:        req.HealthScore,
+		LatestInspectionID: req.LatestInspectionID,
+		Featured:           req.Featured,
 	}
 
 	if vehicle.ID == "" {
 		vehicle.ID = "v-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	}
-	if vehicle.Images == "" {
-		vehicle.Images = "[]"
-	}
 
-	// Attribution: non-admins cannot impersonate other seller IDs
-	if userRole != "admin" || vehicle.SellerID == "" {
-		vehicle.SellerID = userID
-	}
+	db := config.GetDB()
 
-	if vehicle.SellerType == "" {
-		if userRole == "dealer" {
-			vehicle.SellerType = "dealer"
-		} else {
+	if userRole == "dealer" {
+		vehicle.SellerType = "dealer"
+		var shop models.DealerShop
+		if err := db.Where("user_id = ? OR id = ?", userID, userID).First(&shop).Error; err == nil {
+			if vehicle.SellerID == "" || userRole != "admin" {
+				vehicle.SellerID = shop.ID
+			}
+			if vehicle.SellerName == "" {
+				vehicle.SellerName = shop.Name
+			}
+			if vehicle.SellerPhone == "" && shop.Phone != "" {
+				vehicle.SellerPhone = shop.Phone
+			}
+		} else if userRole != "admin" || vehicle.SellerID == "" {
+			vehicle.SellerID = userID
+		}
+	} else {
+		if vehicle.SellerType == "" {
 			vehicle.SellerType = "private"
+		}
+		if userRole != "admin" || vehicle.SellerID == "" {
+			vehicle.SellerID = userID
 		}
 	}
 
-	db := config.GetDB()
 	// Optionally populate seller name / phone from user profile if not provided
 	if vehicle.SellerName == "" || vehicle.SellerPhone == "" {
 		var user models.User

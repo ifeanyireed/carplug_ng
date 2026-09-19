@@ -31,7 +31,9 @@ export default function MyListingsPage() {
         if (!isMounted) return;
         // Filter for seller's vehicles or private seller listings
         const userListings = data.filter(
-          (v) => (user?.id && v.sellerId === user.id) || v.sellerType === "private"
+          (v) =>
+            (user?.id && (v.sellerId === user.id || v.sellerId === user.id.replace("usr-", ""))) ||
+            v.sellerType === "private"
         );
         setListings(userListings);
       } catch (err) {

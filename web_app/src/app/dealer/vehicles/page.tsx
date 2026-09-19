@@ -56,7 +56,10 @@ export default function DealerVehiclesPage() {
           const allVehicles = await fetchVehicles();
           if (!isMounted) return;
           const matched = allVehicles.filter(
-            (v) => (user?.id && v.sellerId === user.id) || v.sellerId === dealerId
+            (v) =>
+              (user?.id && (v.sellerId === user.id || v.sellerId === user.id.replace("usr-", ""))) ||
+              v.sellerId === dealerId ||
+              (user?.name && v.sellerName.toLowerCase().includes(user.name.toLowerCase().split(" ")[0]))
           );
           setVehicles(matched);
         }

@@ -20,6 +20,7 @@ import {
   EyeOff,
   RotateCcw,
   KeyRound,
+  Sparkles,
 } from "lucide-react";
 import { RojoLogo } from "@/components/common/RojoLogo";
 import { useAuth, AuthModalMode } from "@/context/AuthContext";
@@ -625,6 +626,45 @@ export const AuthModal = ({
                     </button>
                   </div>
                 </div>
+
+                {/* 1-Click Demo Accounts Selector */}
+                {mode === "login" && (
+                  <div className="pt-2.5 pb-1 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-semibold text-gray-600 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>Demo Quick-Fill:</span>
+                      </span>
+                      <span className="text-[10px] text-gray-400">Password: Carplug2026!</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: "Admin", email: "admin@mycars.ng", color: "hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300" },
+                        { label: "Reed (Dealer)", email: "dealer.reed@mycars.ng", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
+                        { label: "Crown (Dealer)", email: "dealer.crown@mycars.ng", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
+                        { label: "Apex (Dealer)", email: "dealer.apex@mycars.ng", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
+                        { label: "Babatunde (Seller)", email: "seller.babatunde@mycars.ng", color: "hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300" },
+                        { label: "Musa (Tech)", email: "tech.musa@mycars.ng", color: "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300" },
+                        { label: "Chidi (Buyer)", email: "buyer.chidi@mycars.ng", color: "hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300" },
+                      ].map((item) => (
+                        <button
+                          key={item.email}
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              email: item.email,
+                              password: "Carplug2026!",
+                            }));
+                          }}
+                          className={`text-[11px] font-medium px-2 py-1 rounded-md border border-gray-200 bg-white text-gray-700 transition cursor-pointer ${item.color}`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Submit Button */}
                 <button

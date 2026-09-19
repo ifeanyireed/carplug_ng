@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SavedVehiclesProvider } from "@/context/SavedVehiclesContext";
 import { AuthModal } from "@/components/modals/AuthModal";
+import { DemoRoleSwitcher } from "@/components/common/DemoRoleSwitcher";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://mycars.ng";
 
@@ -68,6 +69,7 @@ export default function RootLayout({
           <SavedVehiclesProvider>
             {children}
             <AuthModal />
+            <DemoRoleSwitcher />
           </SavedVehiclesProvider>
         </AuthProvider>
       </body>

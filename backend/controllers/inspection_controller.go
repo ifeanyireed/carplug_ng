@@ -329,7 +329,9 @@ func SubmitInspectionReport(c *gin.Context) {
 
 	// Ownership validation: Authenticated technician must be assigned to this dispatch, or admin
 	if userRole != "admin" {
-		if report.TechnicianID != "" && report.TechnicianID != userID {
+		cleanReportTech := strings.TrimPrefix(report.TechnicianID, "usr-")
+		cleanUser := strings.TrimPrefix(userID, "usr-")
+		if report.TechnicianID != "" && report.TechnicianID != userID && cleanReportTech != cleanUser {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: You are not assigned to this inspection dispatch"})
 			return
 		}
@@ -388,11 +390,14 @@ func SubmitInspectionReport(c *gin.Context) {
 			return err
 		}
 
-		// 3. Create settled technician earning transaction with escrowTxn.Amount (REAL amount, no fabrication)
+		payoutUserID := userID
+		if payoutUserID == "" {
+			payoutUserID = report.TechnicianID
+		}
 		feeTxn = models.Transaction{
 			ID:        "txn-" + strconv.FormatInt(time.Now().UnixNano(), 36),
 			Reference: fmt.Sprintf("CP-EARN-%d-%s", time.Now().Unix(), report.ID),
-			UserID:    report.TechnicianID,
+			UserID:    payoutUserID,
 			UserName:  report.TechnicianName,
 			UserRole:  "technician",
 			Type:      "inspection_earning",
@@ -457,9 +462,11 @@ func GetTechnicianMeInspections(c *gin.Context) {
 	query := db.Model(&models.InspectionReport{})
 
 	if userRole != "admin" {
-		query = query.Where("technician_id = ?", userID)
+		cleanID := strings.TrimPrefix(userID, "usr-")
+		query = query.Where("technician_id IN ?", []string{userID, cleanID, "usr-" + cleanID})
 	} else if techId := c.Query("technicianId"); techId != "" {
-		query = query.Where("technician_id = ?", techId)
+		cleanID := strings.TrimPrefix(techId, "usr-")
+		query = query.Where("technician_id IN ?", []string{techId, cleanID, "usr-" + cleanID})
 	}
 
 	if status := c.Query("status"); status != "" {

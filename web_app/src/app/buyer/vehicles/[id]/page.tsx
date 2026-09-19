@@ -250,7 +250,7 @@ export default async function VehicleDetailPage({
                     href={`/buyer/inspections/${inspection.id}/report`}
                     className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                   >
-                    <span>Full 60-Point Report</span>
+                    <span>Full 150-Point Report</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}

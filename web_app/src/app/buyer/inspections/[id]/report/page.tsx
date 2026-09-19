@@ -76,7 +76,7 @@ export default async function VehicleHealthReportPage({
                     Grade A Condition
                   </span>
                   <span className="text-xs text-gray-500">
-                    Inspected {new Date(report.completedDate!).toLocaleDateString()}
+                    Inspected {report.completedDate ? (isNaN(new Date(report.completedDate).getTime()) ? report.completedDate : new Date(report.completedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })) : "Recently"}
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-neutral-900">{report.vehicleTitle}</h2>

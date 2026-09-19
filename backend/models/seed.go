@@ -169,7 +169,7 @@ func SeedInitialData(db *gorm.DB) {
 	// 3. Seed Technicians
 	techs := []Technician{
 		{
-			ID:              "tech-musa",
+			ID:              "usr-tech-musa",
 			Name:            "Musa Danladi, ASE-Cert",
 			Badge:           "Preferred Master",
 			Avatar:          "",

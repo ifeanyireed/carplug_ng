@@ -110,17 +110,19 @@ func GetWallet(c *gin.Context) {
 	userID, _ := userIDVal.(string)
 
 	db := config.GetDB()
+	cleanID := strings.TrimPrefix(userID, "usr-")
+	userIDs := []string{userID, cleanID, "usr-" + cleanID}
 
 	// 1. Total settled earnings (inflows)
 	var totalEarned int64
 	db.Model(&models.Transaction{}).
-		Where("user_id = ? AND type != ? AND status = ?", userID, "tech_payout", "settled").
+		Where("user_id IN ? AND type != ? AND status = ?", userIDs, "tech_payout", "settled").
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalEarned)
 
 	// 2. Prior payouts (settled or pending)
 	var totalPayouts int64
 	db.Model(&models.Transaction{}).
-		Where("user_id = ? AND type = ? AND status IN ?", userID, "tech_payout", []string{"settled", "pending"}).
+		Where("user_id IN ? AND type = ? AND status IN ?", userIDs, "tech_payout", []string{"settled", "pending"}).
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalPayouts)
 
 	availableBalance := totalEarned - totalPayouts
@@ -131,12 +133,12 @@ func GetWallet(c *gin.Context) {
 	// 3. Pending escrow
 	var pendingEscrow int64
 	db.Model(&models.Transaction{}).
-		Where("user_id = ? AND type = ? AND status = ?", userID, "inspection_escrow", "held_in_escrow").
+		Where("user_id IN ? AND type = ? AND status = ?", userIDs, "inspection_escrow", "held_in_escrow").
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&pendingEscrow)
 
 	// Fetch recent 50 transactions for display list
 	var txns []models.Transaction
-	if err := db.Where("user_id = ?", userID).Order("created_at desc").Limit(50).Find(&txns).Error; err != nil {
+	if err := db.Where("user_id IN ?", userIDs).Order("created_at desc").Limit(50).Find(&txns).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query wallet: " + err.Error()})
 		return
 	}
@@ -343,16 +345,18 @@ func RequestPayout(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+	cleanID := strings.TrimPrefix(userID, "usr-")
+	userIDs := []string{userID, cleanID, "usr-" + cleanID}
 
 	// 1. Compute technician's actual available balance server-side using DB aggregate (Priority 0.1)
 	var totalEarned int64
 	db.Model(&models.Transaction{}).
-		Where("user_id = ? AND type != ? AND status = ?", userID, "tech_payout", "settled").
+		Where("user_id IN ? AND type != ? AND status = ?", userIDs, "tech_payout", "settled").
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalEarned)
 
 	var priorPayouts int64
 	db.Model(&models.Transaction{}).
-		Where("user_id = ? AND type = ? AND status IN ?", userID, "tech_payout", []string{"settled", "pending"}).
+		Where("user_id IN ? AND type = ? AND status IN ?", userIDs, "tech_payout", []string{"settled", "pending"}).
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&priorPayouts)
 
 	availableBalance := totalEarned - priorPayouts

@@ -1,23 +1,18 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { fetchDealerBySlugOrId, fetchDealerInventory, buildWhatsAppDeepLink } from "@/services/api";
-import { WhatsAppIcon } from "@/components/vehicle/ContactSellerModal";
-import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
+import { fetchDealerBySlugOrId, fetchDealerInventory } from "@/services/api";
+import { CACVerifiedBadge } from "@/components/dealer/CACVerifiedBadge";
+import { DealerWhatsAppButton } from "@/components/dealer/DealerWhatsAppButton";
+import { ShopInventoryFilter } from "@/components/dealer/ShopInventoryFilter";
 import type { Metadata } from "next";
 import {
   ShieldCheck,
   Star,
   MapPin,
   Clock,
-  ArrowUpRight,
-  Zap,
-  Fuel,
-  Settings2,
-  CarFront,
 } from "lucide-react";
 
 export async function generateMetadata({
@@ -69,20 +64,6 @@ export default async function PublicShopStorefrontPage({
   }
   const shopVehicles = (await fetchDealerInventory(shop.id)) || [];
 
-  const formatNaira = (amount: number) => {
-    return `₦${(amount / 1000000).toFixed(1)}M`;
-  };
-
-  const getFuelIcon = (type: string) => {
-    switch (type) {
-      case "Electric":
-      case "Hybrid":
-        return <Zap className="w-3.5 h-3.5 text-black stroke-[2]" />;
-      default:
-        return <Fuel className="w-3.5 h-3.5 text-black stroke-[2]" />;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
       <Navbar />
@@ -97,16 +78,16 @@ export default async function PublicShopStorefrontPage({
               </div>
 
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">
                     {shop.name}
                   </h1>
-                  {shop.verifiedCAC && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>CAC Certified</span>
-                    </span>
-                  )}
+                  <CACVerifiedBadge
+                    verifiedCAC={shop.verifiedCAC}
+                    cacRegistrationNumber={shop.cacRegistrationNumber}
+                    dealerName={shop.name}
+                    size="md"
+                  />
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 font-normal">{shop.tagline}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-500 pt-1">
@@ -123,18 +104,13 @@ export default async function PublicShopStorefrontPage({
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
-              <a
-                href={buildWhatsAppDeepLink(
-                  shop.whatsapp || shop.phone || "2348035004401",
-                  `Hello ${shop.name}, I am browsing your verified showroom on mycarsNg and would like to inquire about your inventory.`
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2"
-              >
-                <WhatsAppIcon className="w-4 h-4 fill-white" />
-                <span>Chat on WhatsApp</span>
-              </a>
+              <DealerWhatsAppButton
+                phone={shop.whatsapp || shop.phone}
+                dealerId={shop.id}
+                dealerName={shop.name}
+                label="Chat on WhatsApp"
+                size="md"
+              />
 
               <Link
                 href="/buyer/concierge"
@@ -161,7 +137,7 @@ export default async function PublicShopStorefrontPage({
           </div>
         </div>
 
-        {/* Storefront Active Inventory with Explore Vehicles styling */}
+        {/* Storefront Active Inventory with In-Store Filtering */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -173,116 +149,13 @@ export default async function PublicShopStorefrontPage({
               </p>
             </div>
 
-            <div className="text-xs text-gray-500 font-medium">
+            <div className="text-xs text-gray-500 font-medium hidden sm:block">
               Verified by mycarsNg Inspection Engine
             </div>
           </div>
 
-          {/* Outer White Card Enclosing Grid */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-7 lg:p-8 shadow-sm">
-            {shopVehicles.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <CarFront className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                <h4 className="font-semibold text-base text-gray-900">No Vehicles Listed Yet</h4>
-                <p className="text-xs text-gray-500 mt-1">This showroom does not have any active inventory listed at the moment.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
-                {shopVehicles.map((car) => {
-                const badgeText = car.priceRating === "deal" ? "Great Price" : car.trustTier === 5 ? "Platform Verified" : "Inspected";
-                const badgeBg = car.trustTier === 5 ? "bg-blue-600" : "bg-[#16a34a]";
-
-                return (
-                  <div
-                    key={car.id}
-                    className="group bg-white rounded-xl overflow-hidden border border-gray-200/80 hover:border-gray-300 hover:shadow-md transition-all duration-300 flex flex-col cursor-pointer"
-                  >
-                    {/* Card Image Area */}
-                    <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
-                      <Image
-                        src={car.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
-                        alt={`${car.title} (${car.year})`}
-                        fill
-                        className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                      />
-
-                      {/* Top Badge (Fully Rounded Corners) */}
-                      <div className="absolute top-3 left-3 z-10">
-                        <span className={`inline-block px-3 py-1 text-[11px] font-medium text-white ${badgeBg} rounded-full tracking-tight shadow-sm`}>
-                          {badgeText}
-                        </span>
-                      </div>
-
-                      {/* Favorite Heart Button */}
-                      <SaveVehicleButton vehicle={car} />
-
-                      {/* Carousel Pagination Dots */}
-                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-4 sm:p-4.5 flex-1 flex flex-col justify-between">
-                      <div>
-                        {/* Car Title & Year */}
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-[-0.04em] group-hover:text-black">
-                          {car.title} ({car.year})
-                        </h3>
-
-                        {/* Specs Pill Row (Black color and font-medium) */}
-                        <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 mt-2.5 text-xs sm:text-[13px] font-medium text-black">
-                          <div className="flex items-center gap-1 text-black">
-                            {getFuelIcon(car.fuelType)}
-                            <span className="text-black">{car.fuelType}</span>
-                          </div>
-                          <span className="text-gray-300 font-normal">•</span>
-                          <div className="flex items-center gap-1 text-black">
-                            <Settings2 className="w-3.5 h-3.5 text-black stroke-[2]" />
-                            <span className="text-black">{car.transmission}</span>
-                          </div>
-                          <span className="text-gray-300 font-normal">•</span>
-                          <div className="flex items-center gap-1 text-black">
-                            <CarFront className="w-3.5 h-3.5 text-black stroke-[2]" />
-                            <span className="text-black">
-                              {car.condition === "Foreign Used (Tokunbo)" ? "Tokunbo" : car.condition}
-                            </span>
-                          </div>
-                          <span className="text-gray-300 font-normal">•</span>
-                          <span className="text-black">{car.bodyType}</span>
-                        </div>
-                      </div>
-
-                      {/* Pricing & CTA Divider */}
-                      <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between">
-                        <div className="flex items-baseline gap-2">
-                          {car.marketPriceRange && (
-                            <span className="text-sm sm:text-base text-rose-500 line-through font-medium">
-                              ₦{(car.marketPriceRange[1] / 1000000).toFixed(1)}M
-                            </span>
-                          )}
-                          <span className="text-sm sm:text-base font-medium text-gray-900 tracking-tight">
-                            {formatNaira(car.price)}
-                          </span>
-                        </div>
-
-                        <Link
-                          href={`/buyer/vehicles/${car.id}`}
-                          className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black transition"
-                        >
-                          <span>See Details</span>
-                          <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          </div>
+          {/* Dynamic Filter & Grid Component */}
+          <ShopInventoryFilter vehicles={shopVehicles} shop={shop} />
         </div>
       </main>
 

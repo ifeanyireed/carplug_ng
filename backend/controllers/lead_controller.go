@@ -18,8 +18,28 @@ func GetLeads(c *gin.Context) {
 	db := config.GetDB()
 	query := db.Model(&models.Lead{})
 
-	if sellerId := c.Query("sellerId"); sellerId != "" {
-		query = query.Where("seller_id = ?", sellerId)
+	sellerId := c.Query("sellerId")
+	userIDVal, _ := c.Get("userID")
+	userRoleVal, _ := c.Get("userRole")
+	userID, _ := userIDVal.(string)
+	userRole, _ := userRoleVal.(string)
+
+	if sellerId != "" {
+		var dealer models.DealerShop
+		if err := db.Where("id = ? OR user_id = ? OR slug = ?", sellerId, sellerId, sellerId).First(&dealer).Error; err == nil {
+			query = query.Where("seller_id = ? OR seller_id = ?", dealer.ID, dealer.UserID)
+		} else {
+			query = query.Where("seller_id = ?", sellerId)
+		}
+	} else if userRole == "dealer" {
+		var dealer models.DealerShop
+		if err := db.Where("user_id = ? OR id = ?", userID, userID).First(&dealer).Error; err == nil {
+			query = query.Where("seller_id = ? OR seller_id = ?", dealer.ID, dealer.UserID)
+		} else {
+			query = query.Where("seller_id = ?", userID)
+		}
+	} else if userRole == "seller" {
+		query = query.Where("seller_id = ?", userID)
 	}
 	if status := c.Query("status"); status != "" {
 		query = query.Where("status = ?", status)
@@ -76,6 +96,30 @@ func CreateLead(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+
+	// Normalize seller ID and auto-fill vehicle details if provided
+	if lead.VehicleID != "" && (lead.SellerID == "" || lead.VehicleTitle == "" || lead.VehiclePrice == 0) {
+		var veh models.Vehicle
+		if err := db.First(&veh, "id = ?", lead.VehicleID).Error; err == nil {
+			if lead.SellerID == "" {
+				lead.SellerID = veh.SellerID
+			}
+			if lead.VehicleTitle == "" {
+				lead.VehicleTitle = veh.Title
+			}
+			if lead.VehiclePrice == 0 {
+				lead.VehiclePrice = veh.Price
+			}
+		}
+	}
+
+	if lead.SellerID != "" {
+		var dealer models.DealerShop
+		if err := db.Where("slug = ? OR id = ? OR user_id = ?", lead.SellerID, lead.SellerID, lead.SellerID).First(&dealer).Error; err == nil {
+			lead.SellerID = dealer.ID
+		}
+	}
+
 	if err := db.Create(&lead).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create lead: " + err.Error()})
 		return

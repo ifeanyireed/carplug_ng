@@ -33,6 +33,7 @@ export default function DealerLeadsPage() {
     if (activeFilter === "inspection") return l.type === "inspection_request";
     if (activeFilter === "viewing") return l.type === "viewing_schedule";
     if (activeFilter === "tradein") return l.type === "car_swap_tradein";
+    if (activeFilter === "whatsapp") return l.type === "whatsapp_inquiry" || l.type === "direct_inquiry";
     return true;
   });
 
@@ -47,7 +48,7 @@ export default function DealerLeadsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           <button
             onClick={() => setActiveFilter("all")}
             className={`px-3 py-1.5 rounded-lg font-semibold transition ${
@@ -57,6 +58,16 @@ export default function DealerLeadsPage() {
             }`}
           >
             All Leads ({leads.length})
+          </button>
+          <button
+            onClick={() => setActiveFilter("whatsapp")}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+              activeFilter === "whatsapp"
+                ? "bg-neutral-900 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            WhatsApp & Direct
           </button>
           <button
             onClick={() => setActiveFilter("tradein")}

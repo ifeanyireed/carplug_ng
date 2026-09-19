@@ -171,8 +171,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		// Leads & Inquiries
 		leads := api.Group("/leads")
 		{
-			// Lead submission & concierge matching (Protected by email verification)
-			leads.POST("", authMiddleware, middleware.RequireVerifiedEmail(), controllers.CreateLead)
+			// Lead submission & concierge matching (Optional Auth for guest & logged-in buyers, rate-limited)
+			leads.POST("", middleware.OptionalAuthMiddleware(cfg.JWTSecret), middleware.RateLimit(30, time.Minute), controllers.CreateLead)
 			leads.POST("/concierge-match", controllers.MatchConciergeInventory)
 
 			// Protected CRM lead viewing & status routing

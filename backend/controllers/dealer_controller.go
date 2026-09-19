@@ -20,6 +20,16 @@ func GetDealers(c *gin.Context) {
 		return
 	}
 
+	for i := range dealers {
+		var cnt int64
+		sellerIDs := []string{dealers[i].ID}
+		if dealers[i].UserID != "" {
+			sellerIDs = append(sellerIDs, dealers[i].UserID)
+		}
+		db.Model(&models.Vehicle{}).Where("seller_id IN ?", sellerIDs).Count(&cnt)
+		dealers[i].ActiveListingsCount = int(cnt)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"count": len(dealers), "data": dealers})
 }
 
@@ -31,10 +41,18 @@ func GetDealerBySlugOrID(c *gin.Context) {
 	db := config.GetDB()
 
 	var dealer models.DealerShop
-	if err := db.Where("slug = ? OR id = ?", identifier, identifier).First(&dealer).Error; err != nil {
+	if err := db.Where("slug = ? OR id = ? OR user_id = ?", identifier, identifier, identifier).First(&dealer).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dealer not found"})
 		return
 	}
+
+	var cnt int64
+	sellerIDs := []string{dealer.ID}
+	if dealer.UserID != "" {
+		sellerIDs = append(sellerIDs, dealer.UserID)
+	}
+	db.Model(&models.Vehicle{}).Where("seller_id IN ?", sellerIDs).Count(&cnt)
+	dealer.ActiveListingsCount = int(cnt)
 
 	c.JSON(http.StatusOK, dealer)
 }

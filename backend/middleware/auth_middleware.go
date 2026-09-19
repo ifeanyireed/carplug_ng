@@ -43,6 +43,25 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
+// OptionalAuthMiddleware inspects Authorization header if present, populates user context, but does not abort if missing.
+func OptionalAuthMiddleware(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+				tokenString := strings.TrimSpace(parts[1])
+				if claims, err := utils.ValidateToken(tokenString, secret); err == nil {
+					c.Set("userID", claims.UserID)
+					c.Set("userEmail", claims.Email)
+					c.Set("userRole", claims.Role)
+				}
+			}
+		}
+		c.Next()
+	}
+}
+
 // RequireRoles restricts access to users possessing at least one of the specified roles.
 func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 	allowed := make(map[string]bool, len(allowedRoles))

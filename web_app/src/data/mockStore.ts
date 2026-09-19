@@ -84,6 +84,7 @@ export interface DealerShop {
   rating: number;
   reviewCount: number;
   verifiedCAC: boolean;
+  cacRegistrationNumber?: string;
   plan: "Basic Shop" | "Pro Shop" | "Premium Shop";
   activeListingsCount: number;
   phone: string;

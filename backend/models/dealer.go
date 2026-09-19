@@ -15,6 +15,7 @@ type DealerShop struct {
 	Rating              float64   `gorm:"type:decimal(3,2);default:5.0" json:"rating"`
 	ReviewCount         int       `gorm:"default:0" json:"reviewCount"`
 	VerifiedCAC         bool      `gorm:"default:false" json:"verifiedCAC"`
+	CACRegistrationNumber string  `gorm:"size:100" json:"cacRegistrationNumber,omitempty"`
 	Plan                string    `gorm:"size:50;default:'Basic Shop'" json:"plan"`
 	ActiveListingsCount int       `gorm:"default:0" json:"activeListingsCount"`
 	Phone               string    `gorm:"size:50" json:"phone"`

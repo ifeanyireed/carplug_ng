@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -48,6 +49,29 @@ func CreateSwap(c *gin.Context) {
 	if err := db.Create(&swap).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create swap request: " + err.Error()})
 		return
+	}
+
+	// Auto-route CRM Trade-in lead to dealer/seller if target vehicle is found
+	if swap.TargetCar != "" {
+		var targetVeh models.Vehicle
+		if err := db.Where("title = ? OR title ILIKE ?", swap.TargetCar, "%"+swap.TargetCar+"%").First(&targetVeh).Error; err == nil {
+			tradeLead := models.Lead{
+				ID:           "lead-swap-" + strconv.FormatInt(time.Now().UnixNano(), 36),
+				BuyerName:    swap.CustomerName,
+				BuyerPhone:   swap.CustomerPhone,
+				VehicleID:    targetVeh.ID,
+				VehicleTitle: targetVeh.Title,
+				VehiclePrice: targetVeh.Price,
+				Type:         "car_swap_tradein",
+				Status:       "new",
+				SellerID:     targetVeh.SellerID,
+				Date:         time.Now().Format("2006-01-02"),
+				Note:         fmt.Sprintf("Trade-in offer: %s (Appraised Equity: ₦%.0f, Net Top-Up: ₦%.0f)", swap.CurrentCar, swap.AppraisedEquity, swap.NetTopUp),
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+			_ = db.Create(&tradeLead).Error
+		}
 	}
 
 	c.JSON(http.StatusCreated, swap)

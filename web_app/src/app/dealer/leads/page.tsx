@@ -32,6 +32,7 @@ export default function DealerLeadsPage() {
   const filtered = leads.filter((l) => {
     if (activeFilter === "inspection") return l.type === "inspection_request";
     if (activeFilter === "viewing") return l.type === "viewing_schedule";
+    if (activeFilter === "tradein") return l.type === "car_swap_tradein";
     return true;
   });
 
@@ -56,6 +57,16 @@ export default function DealerLeadsPage() {
             }`}
           >
             All Leads ({leads.length})
+          </button>
+          <button
+            onClick={() => setActiveFilter("tradein")}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+              activeFilter === "tradein"
+                ? "bg-neutral-900 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Trade-in Swaps
           </button>
           <button
             onClick={() => setActiveFilter("inspection")}

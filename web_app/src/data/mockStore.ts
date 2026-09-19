@@ -116,7 +116,7 @@ export interface Lead {
   vehicleId: string;
   vehicleTitle: string;
   vehiclePrice: number;
-  type: "inspection_request" | "viewing_schedule" | "direct_inquiry" | "concierge";
+  type: "inspection_request" | "viewing_schedule" | "direct_inquiry" | "concierge" | "car_swap_tradein" | "whatsapp_click" | string;
   status: "new" | "routed" | "contacted" | "completed" | "cancelled";
   sellerId: string;
   technicianId?: string;

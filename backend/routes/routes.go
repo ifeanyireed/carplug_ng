@@ -22,7 +22,12 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		isAllowed := allowed[origin] || allowed[strings.TrimRight(origin, "/")]
 
 		if !isAllowed && origin != "" {
-			if allowed["*"] {
+			if allowed["*"] ||
+				strings.HasPrefix(origin, "http://localhost:") ||
+				origin == "http://localhost" ||
+				strings.HasPrefix(origin, "http://127.0.0.1:") ||
+				origin == "http://127.0.0.1" ||
+				strings.HasSuffix(origin, ".vercel.app") {
 				isAllowed = true
 			}
 		}

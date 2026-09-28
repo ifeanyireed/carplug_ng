@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api-proxy/:path*",
+        destination: "https://mycarsng-api-dev.onrender.com/api/:path*",
+      },
+    ];
+  },
   async headers() {
     return [
       {

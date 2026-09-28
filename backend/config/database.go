@@ -42,12 +42,19 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	var err error
 	maxRetries := 5
 	for attempt := 1; attempt <= maxRetries; attempt++ {
+		currentDSN := dsn
 		targetHost := cfg.DBHost
-		if cfg.DatabaseURL != "" {
+		if currentDSN != "" {
 			targetHost = "Neon Cloud Postgres"
 		}
+		// If initial connection attempts fail and unpooled URL is provided, fallback to unpooled direct connection
+		if attempt > 2 && cfg.DatabaseURLUnpooled != "" && currentDSN != cfg.DatabaseURLUnpooled {
+			log.Printf("[Database] Attempt %d: Falling back to direct unpooled connection...\n", attempt)
+			currentDSN = cfg.DatabaseURLUnpooled
+		}
+
 		log.Printf("[Database] Connecting to PostgreSQL at %s [attempt %d/%d]...\n", targetHost, attempt, maxRetries)
-		DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DB, err = gorm.Open(postgres.Open(currentDSN), &gorm.Config{
 			Logger: logger.Default.LogMode(logLevel),
 		})
 		if err == nil {

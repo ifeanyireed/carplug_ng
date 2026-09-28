@@ -9,8 +9,22 @@ import {
 function resolveApiBaseUrl(): string {
   let raw = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 
-  // If not set, or pointing to dead/broken vercel backend deployment, or containing localhost, fallback to active Render API
-  if (!raw || raw.includes("mycarsng-backend") || raw.includes("localhost")) {
+  // If explicitly pointed to local backend (e.g. port 8080)
+  if (raw && (raw.includes("localhost:8080") || raw.includes("127.0.0.1:8080"))) {
+    const clean = raw.replace(/\/$/, "");
+    return clean.endsWith("/api") ? clean : `${clean}/api`;
+  }
+
+  // In the browser during local dev against remote backend, use Next.js /api-proxy rewrite to eliminate CORS
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin;
+    if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+      return `${origin}/api-proxy`;
+    }
+  }
+
+  // If not set or pointing to dead/broken vercel backend deployment, fallback to active Render API
+  if (!raw || raw.includes("mycarsng-backend")) {
     raw = "https://mycarsng-api-dev.onrender.com";
   }
 
@@ -24,7 +38,7 @@ function resolveApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
-const API_TIMEOUT_MS = 25000;
+const API_TIMEOUT_MS = 60000;
 
 export interface AuthUser {
   id: string;
@@ -159,9 +173,21 @@ export async function parseApiError(
  */
 export function getWebSocketUrl(): string {
   const token = getAuthToken();
-  const apiUrl = API_BASE_URL;
-  const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
-  const host = apiUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const raw = (process.env.NEXT_PUBLIC_API_URL || "").trim();
+
+  let host = "mycarsng-api-dev.onrender.com/api";
+  let wsProtocol = "wss";
+
+  if (raw && (raw.includes("localhost:8080") || raw.includes("127.0.0.1:8080"))) {
+    host = "localhost:8080/api";
+    wsProtocol = "ws";
+  } else if (API_BASE_URL.startsWith("https://") || API_BASE_URL.startsWith("http://")) {
+    if (!API_BASE_URL.includes("api-proxy")) {
+      wsProtocol = API_BASE_URL.startsWith("https") ? "wss" : "ws";
+      host = API_BASE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    }
+  }
+
   return `${wsProtocol}://${host}/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
 }
 

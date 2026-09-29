@@ -100,6 +100,9 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			&models.Verification{},
 			&models.Transaction{},
 			&models.OTPVerification{},
+			&models.BlogCategory{},
+			&models.BlogTag{},
+			&models.BlogPost{},
 		)
 		if err != nil {
 			return nil, fmt.Errorf("auto-migration failed: %w", err)
@@ -163,7 +166,18 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 				log.Println("[Database] inspection_reports table updated.")
 			}
 		}
+		if !DB.Migrator().HasTable(&models.BlogCategory{}) || !DB.Migrator().HasTable(&models.BlogTag{}) || !DB.Migrator().HasTable(&models.BlogPost{}) {
+			log.Println("[Database] Initializing Blog tables (BlogCategory, BlogTag, BlogPost)...")
+			if migErr := DB.AutoMigrate(&models.BlogCategory{}, &models.BlogTag{}, &models.BlogPost{}); migErr != nil {
+				log.Printf("[Database] Warning: auto-migrating blog tables: %v\n", migErr)
+			} else {
+				log.Println("[Database] Blog tables verified/migrated.")
+			}
+		}
 	}
+
+	// Always ensure seed blog data is present if table is empty
+	models.SeedBlogData(DB)
 
 	// Auto seed initial data if enabled
 	if cfg.AutoSeed {

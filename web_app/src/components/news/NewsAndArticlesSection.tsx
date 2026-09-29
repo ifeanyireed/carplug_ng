@@ -1,11 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { fetchBlogPosts, BlogPost } from "@/services/api";
 
 export interface ArticleItem {
   id: string;
+  slug: string;
   category: string;
   title: string;
   excerpt: string;
@@ -15,8 +18,9 @@ export interface ArticleItem {
   imageAlt: string;
 }
 
-const FEATURED_ARTICLE: ArticleItem = {
+const FALLBACK_FEATURED_ARTICLE: ArticleItem = {
   id: "featured-ev-vs-gas",
+  slug: "electric-vs-gas-cars-which-one-should-you-buy",
   category: "Tips and Tricks",
   title: "Electric vs. Gas Cars: Which One Should You Buy?",
   excerpt:
@@ -27,9 +31,10 @@ const FEATURED_ARTICLE: ArticleItem = {
   imageAlt: "Woman sitting in open trunk of white electric car while charging",
 };
 
-const SIDE_ARTICLES: ArticleItem[] = [
+const FALLBACK_SIDE_ARTICLES: ArticleItem[] = [
   {
     id: "news-trade-in",
+    slug: "trade-in-or-sell-whats-the-best-option-for-your-car",
     category: "News",
     title: "Trade-In or Sell? What's the Best Option for Your Car?",
     excerpt:
@@ -41,6 +46,7 @@ const SIDE_ARTICLES: ArticleItem[] = [
   },
   {
     id: "news-car-loan",
+    slug: "5-tips-to-get-the-best-car-loan-deal",
     category: "News",
     title: "5 Tips to Get the Best Car Loan Deal",
     excerpt:
@@ -52,6 +58,7 @@ const SIDE_ARTICLES: ArticleItem[] = [
   },
   {
     id: "news-used-car-guide",
+    slug: "the-ultimate-guide-to-buying-a-used-car",
     category: "News",
     title: "The Ultimate Guide to Buying a Used Car: What to Look For",
     excerpt:
@@ -63,6 +70,26 @@ const SIDE_ARTICLES: ArticleItem[] = [
   },
 ];
 
+function mapPostToArticleItem(post: BlogPost): ArticleItem {
+  return {
+    id: post.id,
+    slug: post.slug,
+    category: post.category?.name || "Editorial",
+    title: post.title,
+    excerpt: post.excerpt,
+    date: post.publishedAt
+      ? new Date(post.publishedAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "Recently",
+    readTime: post.readTime || "5 min read",
+    image: post.coverImage,
+    imageAlt: post.coverImageAlt || post.title,
+  };
+}
+
 interface NewsAndArticlesSectionProps {
   onSelectArticle?: (article: ArticleItem) => void;
 }
@@ -70,35 +97,63 @@ interface NewsAndArticlesSectionProps {
 export const NewsAndArticlesSection = ({
   onSelectArticle,
 }: NewsAndArticlesSectionProps) => {
+  const [featuredArticle, setFeaturedArticle] = useState<ArticleItem>(FALLBACK_FEATURED_ARTICLE);
+  const [sideArticles, setSideArticles] = useState<ArticleItem[]>(FALLBACK_SIDE_ARTICLES);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadLatestArticles() {
+      try {
+        const res = await fetchBlogPosts({ limit: 4 });
+        if (isMounted && res.data && res.data.length > 0) {
+          const featuredPost = res.data.find((p) => p.featured) || res.data[0];
+          setFeaturedArticle(mapPostToArticleItem(featuredPost));
+
+          const otherPosts = res.data.filter((p) => p.id !== featuredPost.id).slice(0, 3);
+          if (otherPosts.length > 0) {
+            setSideArticles(otherPosts.map(mapPostToArticleItem));
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load blog posts dynamically:", err);
+      }
+    }
+    loadLatestArticles();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
-    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 font-sans">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium text-gray-900 tracking-[-0.055em]">
           News and Articles
         </h2>
 
-        <button
-          type="button"
-          className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-black transition tracking-tight group"
+        <Link
+          href="/blog"
+          className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-emerald-700 transition tracking-tight group"
         >
           <span>View All</span>
           <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </button>
+        </Link>
       </div>
 
-      {/* 2-Column Grid Layout with Equal Symmetrical Gaps */}
+      {/* 2-Column Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Left Column: Large Featured Article */}
-        <div
-          onClick={() => onSelectArticle?.(FEATURED_ARTICLE)}
+        <Link
+          href={`/blog/${featuredArticle.slug}`}
+          onClick={() => onSelectArticle?.(featuredArticle)}
           className="lg:col-span-6 flex flex-col group cursor-pointer"
         >
-          {/* Main Image with Reduced Corner Radius (rounded-xl) */}
+          {/* Main Image */}
           <div className="relative w-full aspect-[16/11] rounded-xl overflow-hidden bg-gray-100 mb-4 shadow-sm">
             <Image
-              src={FEATURED_ARTICLE.image}
-              alt={FEATURED_ARTICLE.imageAlt}
+              src={featuredArticle.image}
+              alt={featuredArticle.imageAlt}
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
@@ -108,33 +163,33 @@ export const NewsAndArticlesSection = ({
           {/* Article Info */}
           <div>
             <span className="text-xs font-semibold text-emerald-700 tracking-wide uppercase">
-              {FEATURED_ARTICLE.category}
+              {featuredArticle.category}
             </span>
 
-            {/* Title with Reduced Font Weight (font-medium) */}
-            <h3 className="text-xl sm:text-2xl lg:text-[25px] font-medium text-gray-900 tracking-[-0.04em] mt-1.5 group-hover:text-black transition leading-snug">
-              {FEATURED_ARTICLE.title}
+            <h3 className="text-xl sm:text-2xl lg:text-[25px] font-medium text-gray-900 tracking-[-0.04em] mt-1.5 group-hover:text-emerald-800 transition leading-snug">
+              {featuredArticle.title}
             </h3>
 
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2 line-clamp-3">
-              {FEATURED_ARTICLE.excerpt}
+              {featuredArticle.excerpt}
             </p>
 
             <div className="text-xs text-gray-500 font-normal mt-3">
-              {FEATURED_ARTICLE.date} • {FEATURED_ARTICLE.readTime}
+              {featuredArticle.date} • {featuredArticle.readTime}
             </div>
           </div>
-        </div>
+        </Link>
 
-        {/* Right Column: 3 Stacked Articles with Equal Padding / Gap */}
+        {/* Right Column: 3 Stacked Articles */}
         <div className="lg:col-span-6 flex flex-col gap-6">
-          {SIDE_ARTICLES.map((article) => (
-            <div
+          {sideArticles.map((article) => (
+            <Link
               key={article.id}
+              href={`/blog/${article.slug}`}
               onClick={() => onSelectArticle?.(article)}
               className="flex items-center gap-4 sm:gap-5 group cursor-pointer"
             >
-              {/* Thumbnail Image: Perfect Square (equal width and height) + rounded-xl */}
+              {/* Thumbnail Image */}
               <div className="relative w-28 sm:w-32 md:w-36 h-28 sm:h-32 md:h-36 aspect-square rounded-xl overflow-hidden bg-gray-100 shrink-0 shadow-sm">
                 <Image
                   src={article.image}
@@ -151,8 +206,7 @@ export const NewsAndArticlesSection = ({
                   {article.category}
                 </span>
 
-                {/* Title with Reduced Font Weight (font-medium) */}
-                <h3 className="text-sm sm:text-base font-medium text-gray-900 tracking-[-0.03em] mt-1 group-hover:text-black transition leading-snug">
+                <h3 className="text-sm sm:text-base font-medium text-gray-900 tracking-[-0.03em] mt-1 group-hover:text-emerald-800 transition leading-snug">
                   {article.title}
                 </h3>
 
@@ -164,7 +218,7 @@ export const NewsAndArticlesSection = ({
                   {article.date} • {article.readTime}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

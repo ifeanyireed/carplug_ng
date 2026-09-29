@@ -2292,5 +2292,327 @@ export async function upgradeUserRole(
   return data;
 }
 
+// ---------------------------------------------------------------------------
+// Blog & Editorial CMS API
+// ---------------------------------------------------------------------------
+
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  postCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BlogTag {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  coverImageAlt?: string;
+  categoryId: string;
+  category?: BlogCategory;
+  tags?: BlogTag[];
+  authorId?: string;
+  authorName: string;
+  authorRole: string;
+  authorAvatar?: string;
+  status: "draft" | "published" | "archived";
+  featured: boolean;
+  readTime: string;
+  viewsCount: number;
+  publishedAt?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlogPostInput {
+  title: string;
+  slug?: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  coverImageAlt?: string;
+  categoryId: string;
+  tagIds?: string[];
+  authorName?: string;
+  authorRole?: string;
+  status?: "draft" | "published" | "archived";
+  featured?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+}
+
+export async function fetchBlogPosts(params?: {
+  category?: string;
+  tag?: string;
+  search?: string;
+  featured?: boolean;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: BlogPost[]; total: number; page: number; limit: number }> {
+  const query = new URLSearchParams();
+  if (params?.category) query.set("category", params.category);
+  if (params?.tag) query.set("tag", params.tag);
+  if (params?.search) query.set("search", params.search);
+  if (params?.featured !== undefined) query.set("featured", String(params.featured));
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+
+  const qs = query.toString();
+  const url = `${API_BASE_URL}/blog/posts${qs ? `?${qs}` : ""}`;
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw await parseApiError(res, "Failed to load blog posts");
+    }
+    const json = await res.json();
+    return {
+      data: json.data || [],
+      total: json.total || 0,
+      page: json.page || 1,
+      limit: json.limit || 10,
+    };
+  } catch (err) {
+    console.warn("fetchBlogPosts error:", err);
+    return { data: [], total: 0, page: 1, limit: 10 };
+  }
+}
+
+export async function fetchBlogPostBySlug(
+  slugOrId: string
+): Promise<{ data: BlogPost | null; related: BlogPost[] }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/blog/posts/${encodeURIComponent(slugOrId)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      if (res.status === 404) return { data: null, related: [] };
+      throw await parseApiError(res, "Failed to load blog post");
+    }
+    const json = await res.json();
+    return {
+      data: json.data || null,
+      related: json.related || [],
+    };
+  } catch (err) {
+    console.warn("fetchBlogPostBySlug error:", err);
+    return { data: null, related: [] };
+  }
+}
+
+export async function fetchBlogCategories(): Promise<BlogCategory[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/blog/categories`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchBlogTags(): Promise<BlogTag[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/blog/tags`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data || [];
+  } catch {
+    return [];
+  }
+}
+
+// Admin Blog CMS endpoints
+export async function fetchAdminBlogPosts(params?: {
+  status?: string;
+  categoryId?: string;
+  search?: string;
+}): Promise<{ data: BlogPost[]; total: number }> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.categoryId) query.set("categoryId", params.categoryId);
+  if (params?.search) query.set("search", params.search);
+
+  const qs = query.toString();
+  const url = `${API_BASE_URL}/admin/blog/posts${qs ? `?${qs}` : ""}`;
+
+  const res = await fetch(url, {
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to fetch admin blog posts");
+  }
+  const json = await res.json();
+  return {
+    data: json.data || [],
+    total: json.total || 0,
+  };
+}
+
+export async function createBlogPost(payload: BlogPostInput): Promise<BlogPost> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to create article");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function updateBlogPost(id: string, payload: BlogPostInput): Promise<BlogPost> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to update article");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function deleteBlogPost(id: string): Promise<{ success: boolean; id: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/posts/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to delete article");
+  }
+  const json = await res.json();
+  return { success: true, id: json.id };
+}
+
+export async function createBlogCategory(payload: {
+  name: string;
+  slug?: string;
+  description?: string;
+}): Promise<BlogCategory> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/categories`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to create category");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function updateBlogCategory(
+  id: string,
+  payload: { name: string; slug?: string; description?: string }
+): Promise<BlogCategory> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/categories/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to update category");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function deleteBlogCategory(id: string): Promise<{ success: boolean; id: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/categories/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to delete category");
+  }
+  const json = await res.json();
+  return { success: true, id: json.id };
+}
+
+export async function createBlogTag(payload: { name: string; slug?: string }): Promise<BlogTag> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/tags`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to create tag");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function updateBlogTag(
+  id: string,
+  payload: { name: string; slug?: string }
+): Promise<BlogTag> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/tags/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to update tag");
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function deleteBlogTag(id: string): Promise<{ success: boolean; id: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/blog/tags/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to delete tag");
+  }
+  const json = await res.json();
+  return { success: true, id: json.id };
+}
+
 
 

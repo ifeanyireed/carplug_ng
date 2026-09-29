@@ -11,6 +11,7 @@ import {
   CreditCard,
   Megaphone,
   ArrowLeftRight,
+  Newspaper,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -20,6 +21,7 @@ export default function AdminLayout({
 }) {
   const adminNavItems: NavItem[] = [
     { label: "Overview Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Blog & Editorial CMS", href: "/admin/blog", icon: Newspaper },
     { label: "Verification Queue", href: "/admin/verifications", icon: FileCheck, badge: "3 Pending" },
     { label: "Lead Routing Board", href: "/admin/leads", icon: GitPullRequest },
     { label: "Listings Moderation", href: "/admin/listings", icon: ShieldAlert },

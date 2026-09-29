@@ -264,6 +264,15 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			payments.PATCH("/payouts/:id/status", middleware.RequireRoles("admin"), controllers.UpdatePayoutStatus)
 		}
 
+		// Editorial & Blog Engine (Public discovery)
+		blog := api.Group("/blog")
+		{
+			blog.GET("/posts", controllers.GetBlogPosts)
+			blog.GET("/posts/:slug", controllers.GetBlogPostBySlug)
+			blog.GET("/categories", controllers.GetBlogCategories)
+			blog.GET("/tags", controllers.GetBlogTags)
+		}
+
 		// Admin Governance & Moderation (Protected - Admin only)
 		admin := api.Group("/admin")
 		admin.Use(authMiddleware, middleware.RequireRoles("admin"))
@@ -271,6 +280,23 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			admin.GET("/metrics", controllers.GetAdminMetrics)
 			admin.GET("/flagged-listings", controllers.GetFlaggedListings)
 			admin.PATCH("/listings/:id/status", controllers.ModerateListingStatus)
+
+			// Blog CMS & Editorial Management
+			adminBlog := admin.Group("/blog")
+			{
+				adminBlog.GET("/posts", controllers.GetAdminBlogPosts)
+				adminBlog.POST("/posts", controllers.CreateBlogPost)
+				adminBlog.PUT("/posts/:id", controllers.UpdateBlogPost)
+				adminBlog.DELETE("/posts/:id", controllers.DeleteBlogPost)
+
+				adminBlog.POST("/categories", controllers.CreateBlogCategory)
+				adminBlog.PUT("/categories/:id", controllers.UpdateBlogCategory)
+				adminBlog.DELETE("/categories/:id", controllers.DeleteBlogCategory)
+
+				adminBlog.POST("/tags", controllers.CreateBlogTag)
+				adminBlog.PUT("/tags/:id", controllers.UpdateBlogTag)
+				adminBlog.DELETE("/tags/:id", controllers.DeleteBlogTag)
+			}
 		}
 	}
 

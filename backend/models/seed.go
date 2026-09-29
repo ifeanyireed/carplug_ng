@@ -2,6 +2,7 @@ package models
 
 import (
 	"log"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -965,4 +966,179 @@ func SeedInitialData(db *gorm.DB) {
 			db.FirstOrCreate(&t, Transaction{ID: t.ID})
 		}
 	}
+}
+
+// SeedBlogData initializes default categories, tags, and persistent editorial articles
+func SeedBlogData(db *gorm.DB) {
+	var count int64
+	db.Model(&BlogCategory{}).Count(&count)
+	if count > 0 {
+		return
+	}
+
+	log.Println("[Database] Seeding initial Blog categories, tags, and articles...")
+
+	now := time.Now()
+
+	categories := []BlogCategory{
+		{
+			ID:          "cat-tips-tricks",
+			Name:        "Tips and Tricks",
+			Slug:        "tips-and-tricks",
+			Description: "Practical advice on car maintenance, driving best practices, and automotive know-how.",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			ID:          "cat-news",
+			Name:        "News",
+			Slug:        "news",
+			Description: "Latest automotive industry updates, regulatory shifts, and marketplace releases in Nigeria.",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			ID:          "cat-buying-guides",
+			Name:        "Buying Guides",
+			Slug:        "buying-guides",
+			Description: "Comprehensive purchasing guides, inspection check-sheets, and dealer vetting frameworks.",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+		{
+			ID:          "cat-market-trends",
+			Name:        "Market Trends",
+			Slug:        "market-trends",
+			Description: "Depreciation rates, import pricing trends, and resale value analytics in the Nigerian car market.",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
+	}
+
+	for _, cat := range categories {
+		db.FirstOrCreate(&cat, BlogCategory{ID: cat.ID})
+	}
+
+	tags := []BlogTag{
+		{ID: "tag-ev", Name: "Electric Vehicles", Slug: "ev", CreatedAt: now, UpdatedAt: now},
+		{ID: "tag-maintenance", Name: "Maintenance", Slug: "maintenance", CreatedAt: now, UpdatedAt: now},
+		{ID: "tag-car-loans", Name: "Car Loans", Slug: "car-loans", CreatedAt: now, UpdatedAt: now},
+		{ID: "tag-inspection", Name: "Inspection", Slug: "inspection", CreatedAt: now, UpdatedAt: now},
+		{ID: "tag-trade-in", Name: "Trade-In", Slug: "trade-in", CreatedAt: now, UpdatedAt: now},
+		{ID: "tag-used-cars", Name: "Used Cars", Slug: "used-cars", CreatedAt: now, UpdatedAt: now},
+	}
+
+	for _, tag := range tags {
+		db.FirstOrCreate(&tag, BlogTag{ID: tag.ID})
+	}
+
+	pubDate := now.Add(-48 * time.Hour)
+
+	posts := []BlogPost{
+		{
+			ID:            "post-ev-vs-gas",
+			Title:         "Electric vs. Gas Cars: Which One Should You Buy?",
+			Slug:          "electric-vs-gas-cars-which-one-should-you-buy",
+			Excerpt:       "With EVs becoming more popular, many buyers are torn between electric and gasoline-powered cars. This blog compares cost, maintenance, performance, and environmental impact to help you decide which one suits your lifestyle.",
+			Content:       `<h2>Navigating the Transition: Electric vs Gasoline</h2><p>With electric vehicle (EV) charging stations gradually cropping up across urban hubs in Nigeria and fuel costs fluctuating, car buyers are actively evaluating whether to take the EV leap or remain with trusted internal combustion engines (ICE).</p><h3>1. Total Cost of Ownership</h3><p>While the upfront purchase cost of electric vehicles remains higher than comparable gasoline sedans, the ongoing operating expenses tell a very different story. With no oil changes, spark plugs, or catalytic converters to replace, maintenance costs for an EV drop by nearly 40% annually.</p><blockquote>"The key calculation in Nigeria boils down to your charging infrastructure—solar installation at home versus grid availability versus traditional fueling."</blockquote><h3>2. Infrastructure and Driving Range</h3><p>Range anxiety remains the foremost concern for inter-state highway travel. A typical modern EV offers between 320km to 480km on a full charge. For city commuters in Lagos or Abuja, overnight charging delivers plenty of weekly range. However, for cross-country haulage across states with scarce public fast chargers, hybrid or efficient petrol vehicles still dominate practicality.</p><h3>The Verdict</h3><p>If you primarily commute within metropolitan corridors and have reliable home solar or backup power, an EV offers unmatched comfort, silence, and long-term fuel savings. For high-mileage interstate travellers, a modern hybrid vehicle delivers the sweet spot.</p>`,
+			CoverImage:    "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679199/carplug/articles/news1.jpg",
+			CoverImageAlt: "Woman sitting in open trunk of white electric car while charging",
+			CategoryID:    "cat-tips-tricks",
+			AuthorID:      "usr-admin",
+			AuthorName:    "Carplug Editorial Board",
+			AuthorRole:    "Automotive Analysts",
+			Status:        StatusPublished,
+			Featured:      true,
+			ReadTime:      "4 min read",
+			ViewsCount:    184,
+			PublishedAt:   &pubDate,
+			MetaTitle:     "Electric vs. Gas Cars: Which One Should You Buy in Nigeria?",
+			MetaDescription: "Compare the costs, maintenance, and range feasibility of electric vs petrol cars in the Nigerian auto market.",
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		},
+		{
+			ID:            "post-trade-in",
+			Title:         "Trade-In or Sell? What's the Best Option for Your Car?",
+			Slug:          "trade-in-or-sell-whats-the-best-option-for-your-car",
+			Excerpt:       "Thinking about upgrading your car? Learn the pros and cons of trading in vs. selling privately, how dealerships determine trade-in value, and which route earns you more money.",
+			Content:       `<h2>Maximizing Your Car's Resale or Swap Value</h2><p>When the time comes to change your ride, you face a pivotal fork in the road: should you trade your current car directly with a verified dealership or take on the task of listing and selling it privately?</p><h3>The Trade-In Route: Speed and Security</h3><p>Trading in your vehicle directly with a verified dealer on Carplug eliminates weeks of fielding inquiries, dodging fraudulent escrow requests, and hosting stranger test drives. The agreed value is directly subtracted from the upgrade vehicle's price, and paperwork transfers in a single afternoon.</p><h3>The Private Sale Route: Maximizing Gross Profit</h3><p>If your sole goal is squeezing every single Naira out of the transaction, selling privately almost always yields 10% to 20% higher returns. However, it requires deep patience, active marketing, and rigid diligence in verifying buyer bank drafts before releasing vehicle titles.</p>`,
+			CoverImage:    "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679202/carplug/articles/news4.jpg",
+			CoverImageAlt: "Cars driving on multi-lane highway at sunset",
+			CategoryID:    "cat-news",
+			AuthorID:      "usr-admin",
+			AuthorName:    "Chukwudi Okafor",
+			AuthorRole:    "Market Valuation Specialist",
+			Status:        StatusPublished,
+			Featured:      false,
+			ReadTime:      "5 min read",
+			ViewsCount:    128,
+			PublishedAt:   &pubDate,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		},
+		{
+			ID:            "post-car-loan",
+			Title:         "5 Tips to Get the Best Car Loan Deal",
+			Slug:          "5-tips-to-get-the-best-car-loan-deal",
+			Excerpt:       "Financing a car can be overwhelming, but with the right strategy, you can secure the best loan terms. This article covers credit score impacts, pre-approval benefits, and negotiating tricks.",
+			Content:       `<h2>Securing Favorable Automotive Financing</h2><p>Auto financing in high-interest rate environments requires strategic preparation. Follow these 5 proven guidelines before stepping into any commercial bank or auto-financing partnership:</p><ol><li><strong>Check Your Credit Bureau Record First:</strong> Obtain your CreditRegistry or CRC score to ensure no stale overdrafts drag down your rating.</li><li><strong>Save for a 30% Down Payment:</strong> A larger equity contribution protects you against negative equity as the vehicle depreciates.</li><li><strong>Secure Pre-Approval:</strong> Walking into a dealership with bank pre-approval gives you cash-buyer negotiating power.</li><li><strong>Watch Hidden Facility Fees:</strong> Scrutinize management fees, insurance requirements, and pre-payment penalties.</li><li><strong>Keep Tenor Under 36 Months:</strong> Stretching a car loan to 60 months significantly inflates the overall interest paid.</li></ol>`,
+			CoverImage:    "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679201/carplug/articles/news3.jpg",
+			CoverImageAlt: "White car parked on highway bridge overlooking sunset",
+			CategoryID:    "cat-news",
+			AuthorID:      "usr-admin",
+			AuthorName:    "Carplug Editorial Board",
+			AuthorRole:    "Finance Desk",
+			Status:        StatusPublished,
+			Featured:      false,
+			ReadTime:      "7 min read",
+			ViewsCount:    94,
+			PublishedAt:   &pubDate,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		},
+		{
+			ID:            "post-used-car-guide",
+			Title:         "The Ultimate Guide to Buying a Used Car: What to Look For",
+			Slug:          "the-ultimate-guide-to-buying-a-used-car",
+			Excerpt:       "Buying a used car can be a great investment, but knowing what to check before making a purchase is crucial. This guide covers key inspection points, vehicle history reports, and test drive must-dos.",
+			Content:       `<h2>Protecting Your Hard-Earned Capital When Buying Pre-Owned</h2><p>Pre-owned vehicles (both Foreign Used 'Tokunbo' and Nigerian Used) represent over 80% of vehicle sales in the country. To avoid purchasing a flooded, accident-repaired, or mechanically distressed car, follow this foolproof inspection protocol.</p><h3>1. Comprehensive Pre-Purchase Inspection</h3><p>Never rely solely on visual exterior appearance. Commission an ASE-certified technician to run a 150-point diagnostic scan, checking ECM error logs, compression, transmission shifting smoothness, and undercarriage rust.</p><h3>2. Customs & Document Verification</h3><p>Ensure the VIN matches the chassis stamping, windscreen tag, and single goods declaration (SGD) customs document. A vehicle without genuine customs clearance is vulnerable to impoundment.</p>`,
+			CoverImage:    "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679200/carplug/articles/news2.jpg",
+			CoverImageAlt: "4x4 SUV parked in mountain desert landscape",
+			CategoryID:    "cat-news",
+			AuthorID:      "usr-admin",
+			AuthorName:    "Engr. Danladi Musa",
+			AuthorRole:    "Technical Director",
+			Status:        StatusPublished,
+			Featured:      false,
+			ReadTime:      "6 min read",
+			ViewsCount:    310,
+			PublishedAt:   &pubDate,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		},
+	}
+
+	for _, post := range posts {
+		db.FirstOrCreate(&post, BlogPost{ID: post.ID})
+	}
+
+	// Link tags to posts
+	var p1 BlogPost
+	if err := db.Where("id = ?", "post-ev-vs-gas").First(&p1).Error; err == nil {
+		var evTag, mtTag BlogTag
+		db.Where("id = ?", "tag-ev").First(&evTag)
+		db.Where("id = ?", "tag-maintenance").First(&mtTag)
+		db.Model(&p1).Association("Tags").Append(&evTag, &mtTag)
+	}
+
+	var p4 BlogPost
+	if err := db.Where("id = ?", "post-used-car-guide").First(&p4).Error; err == nil {
+		var ucTag, inspTag BlogTag
+		db.Where("id = ?", "tag-used-cars").First(&ucTag)
+		db.Where("id = ?", "tag-inspection").First(&inspTag)
+		db.Model(&p4).Association("Tags").Append(&ucTag, &inspTag)
+	}
+
+	log.Println("[Database] Initial blog seeding completed.")
 }

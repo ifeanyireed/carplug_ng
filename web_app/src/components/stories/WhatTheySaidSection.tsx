@@ -209,7 +209,7 @@ export const WhatTheySaidSection = () => {
       </div>
 
       {/* 3 Story Cards Grid with Reduced Gap */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 sm:gap-2">
         {STORIES.map((story, index) => (
           <StoryCard key={story.id} story={story} index={index} />
         ))}

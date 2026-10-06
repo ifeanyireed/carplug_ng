@@ -208,7 +208,7 @@ export const ExploreVehiclesSection = ({
         </div>
 
         {/* Vehicles Grid with Tighter Padding/Gap */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2">
           {isLoading ? (
             [1, 2, 3].map((i) => (
               <div key={i} className="h-64 rounded-xl bg-gray-100 animate-pulse" />

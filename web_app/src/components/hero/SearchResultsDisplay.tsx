@@ -105,7 +105,7 @@ export const SearchResultsDisplay = ({
       {/* Outer White Card Enclosing the Cars Grid */}
       <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-7 lg:p-8 shadow-sm">
         {/* Vehicles Grid with Tighter Padding/Gap */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2">
           {results.map((car) => {
             return (
               <div

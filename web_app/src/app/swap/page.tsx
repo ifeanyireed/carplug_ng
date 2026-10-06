@@ -335,7 +335,7 @@ export default function CarSwapPage() {
                 <p className="text-xs text-gray-500 mt-1">Check back once dealerships have listed cars for swap.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 lg:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2">
                 {inventory.map((car) => {
                 const isSelected = selectedTargetId === car.id;
                 const badgeText = car.priceRating === "deal" ? "Great Price" : car.trustTier === 5 ? "Platform Verified" : "Inspected";

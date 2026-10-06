@@ -111,7 +111,7 @@ export const BrowseByType = ({
       </div>
 
       {/* 5 Vertical Cards Grid with Reduced Gap */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 sm:gap-2 lg:gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 sm:gap-1.5 lg:gap-2">
         {BODY_TYPES.map((item) => {
           const isSelected = selectedType === item.name;
           return (

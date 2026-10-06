@@ -105,7 +105,7 @@ export default function SellerDashboardPage() {
               </Link>
             )}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-neutral-900">Private Seller Portal</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 tracking-tight">Private Seller Portal</h1>
           <p className="text-xs text-gray-500 mt-1">
             Manage your personal vehicle listings, respond to verified buyers, and review market inquiries
           </p>
@@ -175,7 +175,7 @@ export default function SellerDashboardPage() {
       {/* Current Active Listing */}
       <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-base text-neutral-900">
+          <h2 className="font-semibold text-base text-neutral-900">
             Your Active Vehicle Listing
           </h2>
           <Link

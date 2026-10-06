@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { RojoLogo } from "@/components/common/RojoLogo";
 import { NavLink } from "@/components/common/NavLink";
 import {
   ShoppingBag,
@@ -122,7 +122,7 @@ export const Navbar = ({
     >
       <nav
         ref={navRef}
-        className={`pointer-events-auto transition-all duration-300 backdrop-blur-xl border rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white flex items-center justify-between ${
+        className={`pointer-events-auto transition-all duration-300 backdrop-blur-xl border rounded-xl px-4 sm:px-6 py-2 sm:py-2.5 text-white flex items-center justify-between ${
           isScrolled
             ? "bg-[#222528]/95 border-white/20 shadow-2xl"
             : "bg-[#4a4e51]/90 hover:bg-[#43474a]/95 border-white/15 shadow-xl"
@@ -133,7 +133,14 @@ export const Navbar = ({
           href="/"
           className="flex items-center gap-2 group transition-transform active:scale-95 shrink-0"
         >
-          <RojoLogo variant="white" className="h-5 sm:h-6 w-auto" />
+          <Image
+            src="/mycarNG-white.png"
+            alt="mycarsNg"
+            width={64}
+            height={64}
+            priority
+            className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 object-contain transition-transform group-hover:scale-105"
+          />
         </Link>
 
         {/* Center: Desktop Nav Links */}

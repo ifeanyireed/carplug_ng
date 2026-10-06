@@ -11,27 +11,25 @@ export interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
   priority?: boolean;
 }
 
-const CLOUDINARY_LOGO_WHITE_URL =
-  "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789702024/carplug/brand/logo_white.avif";
-const CLOUDINARY_LOGO_COLOR_URL =
-  "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789702513/carplug/brand/logo_color.avif";
+const LOGO_WHITE_PATH = "/mycarNG-white.png";
+const LOGO_BLACK_PATH = "/mycarNG-black.png";
+const LOGO_COLOR_PATH = "/mycarNG-color.png";
 
 /**
  * mycarsNg Official Brand Logo Component
- * Standalone AVIF master asset with integrated brand emblem and name.
- * - variant="white": Pure white for dark headers/navbars.
- * - variant="black" / "dark": Solid black (via brightness-0) for light backgrounds and watermarks.
- * - variant="color": Original full-color brand asset (blue emblem + "mycars" and red "Ng").
+ * - variant="white": Pure white (/mycarNG-white.png) for dark headers/navbars.
+ * - variant="black" / "dark": Solid black (/mycarNG-black.png) for light backgrounds and watermarks.
+ * - variant="color": Original full-color brand asset (/mycarNG-color.png).
  */
 export const MyCarsNgLogo = ({
-  className = "h-5 sm:h-6 w-auto",
+  className = "h-9 sm:h-10 w-auto",
   imageClassName = "",
   variant = "auto",
   priority = true,
   // Accepted for backwards compatibility
   showText,
   textClassName,
-  size,
+  size = 40,
   ...props
 }: LogoProps) => {
   const isWhite =
@@ -47,26 +45,26 @@ export const MyCarsNgLogo = ({
         className.includes("text-neutral-800") ||
         className.includes("text-black")));
 
-  const isColor = variant === "color" || (!isWhite && !isDark && variant === "auto");
-
-  const logoSrc = isColor ? CLOUDINARY_LOGO_COLOR_URL : CLOUDINARY_LOGO_WHITE_URL;
+  const logoSrc = isWhite
+    ? LOGO_WHITE_PATH
+    : isDark
+    ? LOGO_BLACK_PATH
+    : LOGO_COLOR_PATH;
 
   return (
     <div
       className={`inline-flex items-center select-none shrink-0 ${className}`}
       {...props}
     >
-      <div className="relative shrink-0 flex items-center justify-center h-full w-auto">
+      <div className="relative shrink-0 flex items-center justify-center h-full aspect-square">
         <Image
           src={logoSrc}
           alt="mycarsNg"
-          width={320}
-          height={67}
+          width={size || 40}
+          height={size || 40}
           unoptimized={true}
           priority={priority}
-          className={`h-full w-auto aspect-[3200/672] object-contain transition-all duration-200 group-hover:opacity-90 ${
-            isDark ? "brightness-0" : ""
-          } ${imageClassName}`}
+          className={`h-full w-auto aspect-square object-contain transition-all duration-200 group-hover:scale-105 ${imageClassName}`}
           style={{ imageRendering: "auto" }}
         />
       </div>

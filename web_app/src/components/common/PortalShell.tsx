@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { RojoLogo } from "@/components/common/RojoLogo";
+import Image from "next/image";
 import { NavLink } from "@/components/common/NavLink";
 import {
   Menu,
@@ -46,10 +46,34 @@ export const PortalShell = ({
     admin: "bg-red-500/10 text-red-700 border-red-200",
   };
 
+  const roleActiveStyles = {
+    buyer: "bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-600 rounded-l-none rounded-r-xl shadow-xs",
+    dealer: "bg-amber-50 text-amber-800 font-medium border-l-4 border-amber-600 rounded-l-none rounded-r-xl shadow-xs",
+    seller: "bg-purple-50 text-purple-700 font-medium border-l-4 border-purple-600 rounded-l-none rounded-r-xl shadow-xs",
+    technician: "bg-emerald-50 text-emerald-700 font-medium border-l-4 border-emerald-600 rounded-l-none rounded-r-xl shadow-xs",
+    admin: "bg-red-50 text-red-700 font-medium border-l-4 border-red-600 rounded-l-none rounded-r-xl shadow-xs",
+  };
+
+  const roleActiveIconColor = {
+    buyer: "text-blue-600",
+    dealer: "text-amber-600",
+    seller: "text-purple-600",
+    technician: "text-emerald-600",
+    admin: "text-red-600",
+  };
+
+  const roleActiveBadgeStyles = {
+    buyer: "bg-blue-100 text-blue-800",
+    dealer: "bg-amber-100 text-amber-800",
+    seller: "bg-purple-100 text-purple-800",
+    technician: "bg-emerald-100 text-emerald-800",
+    admin: "bg-red-100 text-red-800",
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
       {/* Top Bar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -59,8 +83,15 @@ export const PortalShell = ({
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          <Link href="/" className="flex items-center gap-2">
-            <RojoLogo className="h-8 sm:h-9 w-auto text-neutral-900" />
+          <Link href="/" className="flex items-center gap-2 group">
+            <Image
+              src="/mycarNG-black.png"
+              alt="mycarsNg"
+              width={48}
+              height={48}
+              priority
+              className="h-10 w-10 sm:h-12 sm:w-12 object-contain transition-transform group-hover:scale-105"
+            />
           </Link>
 
           <span className="hidden sm:inline-block text-gray-300">/</span>
@@ -157,10 +188,11 @@ export const PortalShell = ({
         </div>
       </header>
 
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex w-full">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:block w-64 border-r border-gray-200 bg-white p-4 shrink-0">
-          <div className="space-y-1">
+        <aside className="hidden md:flex flex-col justify-between w-72 border-r border-gray-200 bg-white p-4 shrink-0 sticky top-16 h-[calc(100dvh-4rem)] overflow-y-auto">
+          <div>
+            <div className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -173,25 +205,31 @@ export const PortalShell = ({
                       p.startsWith(item.href) &&
                       item.href !== `/${roleType}`)
                   }
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition"
-                  activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                  className={({ isActive }) =>
+                    `flex items-center justify-between px-3.5 py-3 text-[15px] font-normal transition ${
+                      isActive
+                        ? "rounded-r-xl rounded-l-none"
+                        : "rounded-xl border-l-4 border-transparent"
+                    }`
+                  }
+                  activeClassName={roleActiveStyles[roleType]}
                   inactiveClassName="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 >
                   {({ isActive }) => (
                     <>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3.5">
                         <Icon
-                          className={`w-4 h-4 ${
-                            isActive ? "text-emerald-600" : "text-gray-500"
+                          className={`w-6 h-6 shrink-0 ${
+                            isActive ? roleActiveIconColor[roleType] : "text-gray-500"
                           }`}
                         />
-                        <span>{item.label}</span>
+                        <span className="leading-snug">{item.label}</span>
                       </div>
                       {item.badge && (
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${
                             isActive
-                              ? "bg-emerald-100 text-emerald-800"
+                              ? roleActiveBadgeStyles[roleType]
                               : "bg-blue-100 text-blue-800"
                           }`}
                         >
@@ -208,34 +246,69 @@ export const PortalShell = ({
               <NavLink
                 href="/settings"
                 exact
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition"
-                activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                className={({ isActive }) =>
+                  `flex items-center gap-3.5 px-3.5 py-3 text-[15px] font-normal transition ${
+                    isActive
+                      ? "rounded-r-xl rounded-l-none"
+                      : "rounded-xl border-l-4 border-transparent"
+                  }`
+                }
+                activeClassName={roleActiveStyles[roleType]}
                 inactiveClassName="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               >
                 {({ isActive }) => (
                   <>
                     <Settings
-                      className={`w-4 h-4 ${
-                        isActive ? "text-emerald-600" : "text-gray-500"
+                      className={`w-6 h-6 shrink-0 ${
+                        isActive ? roleActiveIconColor[roleType] : "text-gray-500"
                       }`}
                     />
-                    <span>Account Settings</span>
+                    <span className="leading-snug">Account Settings</span>
                   </>
                 )}
               </NavLink>
             </div>
           </div>
+        </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200 px-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-              mycarsNg Trust Engine
-            </div>
-            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 leading-relaxed">
-              <p className="font-semibold mb-1">Independent Verification</p>
-              <p className="text-blue-700">
-                All platform leads and inspections are logged and protected under the Trust Tier ladder.
-              </p>
-            </div>
+        <div className="mt-8 pt-6 border-t border-gray-200 px-3">
+            {roleType === "admin" ? (
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
+                  <span>System Telemetry</span>
+                  <span className="flex items-center gap-1.5 text-emerald-600 text-[10px] font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE
+                  </span>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/80 text-xs text-gray-700 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-500">Core Services</span>
+                    <span className="font-semibold text-emerald-600">Operational</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-500">Escrow Node</span>
+                    <span className="font-semibold text-neutral-900">Synchronized</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-500">Governance</span>
+                    <span className="font-mono text-gray-600">v2.4-prod</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                  mycarsNg Trust Engine
+                </div>
+                <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-900 leading-relaxed">
+                  <p className="font-semibold mb-1">Independent Verification</p>
+                  <p className="text-blue-700">
+                    All platform leads and inspections are logged and protected under the Trust Tier ladder.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -249,7 +322,16 @@ export const PortalShell = ({
             <div className="relative w-4/5 max-w-xs bg-white h-full p-4 flex flex-col justify-between z-10 shadow-2xl">
               <div>
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
-                  <RojoLogo className="h-7 w-auto text-neutral-900" />
+                  <Link href="/" className="flex items-center gap-2">
+                    <Image
+                      src="/mycarNG-black.png"
+                      alt="mycarsNg"
+                      width={32}
+                      height={32}
+                      priority
+                      className="h-8 w-8 object-contain"
+                    />
+                  </Link>
                   <button
                     onClick={() => setMobileOpen(false)}
                     className="p-2 rounded-lg hover:bg-gray-100"
@@ -272,25 +354,31 @@ export const PortalShell = ({
                             item.href !== `/${roleType}`)
                         }
                         onClick={() => setMobileOpen(false)}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition"
-                        activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                        className={({ isActive }) =>
+                          `flex items-center justify-between px-3.5 py-3 text-[15px] font-normal transition ${
+                            isActive
+                              ? "rounded-r-xl rounded-l-none"
+                              : "rounded-xl border-l-4 border-transparent"
+                          }`
+                        }
+                        activeClassName={roleActiveStyles[roleType]}
                         inactiveClassName="text-gray-700 hover:bg-gray-100"
                       >
                         {({ isActive }) => (
                           <>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3.5">
                               <Icon
-                                className={`w-4 h-4 ${
-                                  isActive ? "text-emerald-600" : "text-gray-500"
+                                className={`w-6 h-6 shrink-0 ${
+                                  isActive ? roleActiveIconColor[roleType] : "text-gray-500"
                                 }`}
                               />
-                              <span>{item.label}</span>
+                              <span className="leading-snug">{item.label}</span>
                             </div>
                             {item.badge && (
                               <span
-                                className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${
                                   isActive
-                                    ? "bg-emerald-100 text-emerald-800"
+                                    ? roleActiveBadgeStyles[roleType]
                                     : "bg-blue-100 text-blue-800"
                                 }`}
                               >
@@ -308,18 +396,24 @@ export const PortalShell = ({
                       href="/settings"
                       exact
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition"
-                      activeClassName="bg-emerald-50 text-emerald-700 font-bold border-l-4 border-emerald-600 shadow-xs"
+                      className={({ isActive }) =>
+                        `flex items-center gap-3.5 px-3.5 py-3 text-[15px] font-normal transition ${
+                          isActive
+                            ? "rounded-r-xl rounded-l-none"
+                            : "rounded-xl border-l-4 border-transparent"
+                        }`
+                      }
+                      activeClassName={roleActiveStyles[roleType]}
                       inactiveClassName="text-gray-700 hover:bg-gray-100"
                     >
                       {({ isActive }) => (
                         <>
                           <Settings
-                            className={`w-4 h-4 ${
-                              isActive ? "text-emerald-600" : "text-gray-500"
+                            className={`w-6 h-6 shrink-0 ${
+                              isActive ? roleActiveIconColor[roleType] : "text-gray-500"
                             }`}
                           />
-                          <span>Account Settings</span>
+                          <span className="leading-snug">Account Settings</span>
                         </>
                       )}
                     </NavLink>
@@ -352,7 +446,11 @@ export const PortalShell = ({
         )}
 
         {/* Main Workspace Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+          <div className="max-w-7xl mx-auto w-full">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

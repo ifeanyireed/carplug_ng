@@ -110,7 +110,7 @@ export default function DealerDashboardPage() {
             </span>
             <span className="text-xs text-gray-500">CAC Verified Dealership</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 mt-2">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 mt-2 tracking-tight">
             Welcome back, {user?.name || shop?.name || "Dealer"}
           </h1>
           <p className="text-xs text-gray-500 mt-1">
@@ -195,7 +195,7 @@ export default function DealerDashboardPage() {
       {/* Active Inventory Snapshot */}
       <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-          <h2 className="font-bold text-base text-neutral-900">
+          <h2 className="font-semibold text-base text-neutral-900">
             Active Showroom Inventory
           </h2>
           <Link
@@ -273,7 +273,7 @@ export default function DealerDashboardPage() {
       {/* Inbound Leads Table */}
       <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-          <h2 className="font-bold text-base text-neutral-900">
+          <h2 className="font-semibold text-base text-neutral-900">
             Recent Inbound Buyer Leads
           </h2>
           <Link

@@ -966,13 +966,16 @@ func SeedInitialData(db *gorm.DB) {
 			db.FirstOrCreate(&t, Transaction{ID: t.ID})
 		}
 	}
+
+	// 8. Seed Blog & Editorial Content
+	SeedBlogData(db)
 }
 
 // SeedBlogData initializes default categories, tags, and persistent editorial articles
 func SeedBlogData(db *gorm.DB) {
-	var count int64
-	db.Model(&BlogCategory{}).Count(&count)
-	if count > 0 {
+	var postCount int64
+	db.Model(&BlogPost{}).Count(&postCount)
+	if postCount > 0 {
 		return
 	}
 
@@ -1130,6 +1133,21 @@ func SeedBlogData(db *gorm.DB) {
 		db.Where("id = ?", "tag-ev").First(&evTag)
 		db.Where("id = ?", "tag-maintenance").First(&mtTag)
 		db.Model(&p1).Association("Tags").Append(&evTag, &mtTag)
+	}
+
+	var p2 BlogPost
+	if err := db.Where("id = ?", "post-trade-in").First(&p2).Error; err == nil {
+		var tiTag, ucTag BlogTag
+		db.Where("id = ?", "tag-trade-in").First(&tiTag)
+		db.Where("id = ?", "tag-used-cars").First(&ucTag)
+		db.Model(&p2).Association("Tags").Append(&tiTag, &ucTag)
+	}
+
+	var p3 BlogPost
+	if err := db.Where("id = ?", "post-car-loan").First(&p3).Error; err == nil {
+		var clTag BlogTag
+		db.Where("id = ?", "tag-car-loans").First(&clTag)
+		db.Model(&p3).Association("Tags").Append(&clTag)
 	}
 
 	var p4 BlogPost

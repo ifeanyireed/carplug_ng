@@ -37,6 +37,9 @@ func main() {
 		&models.Verification{},
 		&models.Transaction{},
 		&models.OTPVerification{},
+		&models.BlogCategory{},
+		&models.BlogTag{},
+		&models.BlogPost{},
 	}
 
 	log.Printf("[Migrate] Verifying tables exist in PostgreSQL...")

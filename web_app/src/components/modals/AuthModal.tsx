@@ -639,8 +639,8 @@ export const AuthModal = ({
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {[
-                        { label: "Admin", email: "admin@mycars.ng", color: "hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300" },
-                        { label: "Reed (Dealer)", email: "dealer.reed@mycars.ng", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
+                        { label: "Admin", email: "mycarsnigeria@gmail.com", color: "hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300" },
+                        { label: "Dew Autos (Dealer)", email: "carsplug0@gmail.com", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
                         { label: "Crown (Dealer)", email: "dealer.crown@mycars.ng", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
                         { label: "Apex (Dealer)", email: "dealer.apex@mycars.ng", color: "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" },
                         { label: "Babatunde (Seller)", email: "seller.babatunde@mycars.ng", color: "hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300" },

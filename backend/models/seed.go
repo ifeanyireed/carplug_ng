@@ -16,7 +16,7 @@ func SeedInitialData(db *gorm.DB) {
 		{
 			ID:           "usr-admin",
 			Name:         "Super Admin",
-			Email:        "admin@mycars.ng",
+			Email:        "mycarsnigeria@gmail.com",
 			Phone:        "+2348000000001",
 			PasswordHash: testPasswordHash,
 			Role:         string(RoleAdmin),
@@ -24,8 +24,8 @@ func SeedInitialData(db *gorm.DB) {
 		},
 		{
 			ID:           "usr-dealer-reed",
-			Name:         "Reed Motors Lagos",
-			Email:        "dealer.reed@mycars.ng",
+			Name:         "Dew Autos",
+			Email:        "carsplug0@gmail.com",
 			Phone:        "+2348035004401",
 			PasswordHash: testPasswordHash,
 			Role:         string(RoleDealer),
@@ -81,12 +81,13 @@ func SeedInitialData(db *gorm.DB) {
 	log.Println("[Seed] Upserting platform test users...")
 	for _, u := range testUsers {
 		var existing User
-		if err := db.Where("email = ?", u.Email).First(&existing).Error; err != nil {
+		if err := db.Where("id = ? OR email = ?", u.ID, u.Email).First(&existing).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				db.Create(&u)
 			}
 		} else {
 			db.Model(&existing).Updates(map[string]interface{}{
+				"email":         u.Email,
 				"role":          u.Role,
 				"password_hash": u.PasswordHash,
 				"is_verified":   true,
@@ -102,7 +103,7 @@ func SeedInitialData(db *gorm.DB) {
 			ID:                  "dealer-reed-motors",
 			UserID:              "usr-dealer-reed",
 			Slug:                "reed-motors-lagos",
-			Name:                "Reed Motors Lagos",
+			Name:                "Dew Autos",
 			Tagline:             "Certified Tokunbo & Luxury Vehicles with Independent Trust Scoring",
 			Logo:                "",
 			Banner:              "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679253/carplug/brand/hero-car.webp",
@@ -115,7 +116,7 @@ func SeedInitialData(db *gorm.DB) {
 			ActiveListingsCount: 5,
 			Phone:               "+234 803 500 4401",
 			Whatsapp:            "+2348035004401",
-			Email:               "dealer.reed@mycars.ng",
+			Email:               "carsplug0@gmail.com",
 			OperatingHours:      "Mon - Sat: 8:00 AM - 6:30 PM",
 			JoinedDate:          "January 2026",
 		},
@@ -246,7 +247,7 @@ func SeedInitialData(db *gorm.DB) {
 			ExactLocation:      "Plot 14 Admiralty Way, Lekki",
 			SellerID:           "dealer-reed-motors",
 			SellerType:         "dealer",
-			SellerName:         "Reed Motors Lagos",
+			SellerName:         "Dew Autos",
 			SellerPhone:        "+234 803 500 4401",
 			SellerRating:       4.9,
 			CustomsStatus:      "Fully Cleared",
@@ -285,7 +286,7 @@ func SeedInitialData(db *gorm.DB) {
 			ExactLocation:      "Ahmadu Bello Way, VI",
 			SellerID:           "dealer-reed-motors",
 			SellerType:         "dealer",
-			SellerName:         "Reed Motors Lagos",
+			SellerName:         "Dew Autos",
 			SellerPhone:        "+234 803 500 4401",
 			SellerRating:       4.9,
 			CustomsStatus:      "Fully Cleared",
@@ -540,7 +541,7 @@ func SeedInitialData(db *gorm.DB) {
 			ExactLocation:      "Plot 14 Admiralty Way, Lekki",
 			SellerID:           "dealer-reed-motors",
 			SellerType:         "dealer",
-			SellerName:         "Reed Motors Lagos",
+			SellerName:         "Dew Autos",
 			SellerPhone:        "+234 803 500 4401",
 			SellerRating:       4.9,
 			CustomsStatus:      "Fully Cleared",
@@ -798,7 +799,7 @@ func SeedInitialData(db *gorm.DB) {
 			ExactLocation:      "Plot 14 Admiralty Way, Lekki",
 			SellerID:           "dealer-reed-motors",
 			SellerType:         "dealer",
-			SellerName:         "Reed Motors Lagos",
+			SellerName:         "Dew Autos",
 			SellerPhone:        "+234 803 500 4401",
 			SellerRating:       4.9,
 			CustomsStatus:      "Fully Cleared",
@@ -890,8 +891,8 @@ func SeedInitialData(db *gorm.DB) {
 				ID:        "txn-8091",
 				Reference: "CP-TXN-1789001-PAYSTACK",
 				UserID:    "dealer-reed-motors",
-				UserName:  "Reed Motors Lagos",
-				UserEmail: "dealer.reed@mycars.ng",
+				UserName:  "Dew Autos",
+				UserEmail: "carsplug0@gmail.com",
 				UserRole:  "dealer",
 				Type:      "dealer_subscription",
 				Title:     "Dealer Subscription (Pro Shop)",

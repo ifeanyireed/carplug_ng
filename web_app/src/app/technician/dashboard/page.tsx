@@ -7,7 +7,9 @@ import { InspectionReport } from "@/data/mockStore";
 import {
   fetchTechnicianMeInspections,
   fetchWallet,
+  fetchMyVerifications,
   WalletResponse,
+  VerificationItem,
 } from "@/services/api";
 import {
   Wrench,
@@ -24,6 +26,7 @@ export default function TechnicianDashboardPage() {
   const { user } = useAuth();
   const [inspections, setInspections] = useState<InspectionReport[]>([]);
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
+  const [techVerification, setTechVerification] = useState<VerificationItem | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshIndex, setRefreshIndex] = useState<number>(0);
 
@@ -32,15 +35,19 @@ export default function TechnicianDashboardPage() {
 
     async function loadTechDashboard() {
       try {
-        const [jobs, walletData] = await Promise.all([
+        const [jobs, walletData, verifs] = await Promise.all([
           fetchTechnicianMeInspections().catch(() => []),
           fetchWallet().catch(() => null),
+          fetchMyVerifications({ entityType: "tech_license" }).catch(() => ({ data: [] })),
         ]);
 
         if (!isMounted) return;
 
         setInspections(jobs);
         setWallet(walletData);
+        if (verifs && verifs.data && verifs.data.length > 0) {
+          setTechVerification(verifs.data[0]);
+        }
       } catch (err) {
         console.warn("Failed to load technician dashboard data:", err);
       } finally {
@@ -85,9 +92,22 @@ export default function TechnicianDashboardPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
-                {user?.isVerified ? "Master Certified Diagnostic" : "ASE Certified Inspector"}
-              </span>
+              {techVerification?.status === "approved" ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                  Master Certified Diagnostic
+                </span>
+              ) : techVerification?.status === "pending" ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                  Accreditation Pending Review
+                </span>
+              ) : (
+                <Link
+                  href="/technician/onboard"
+                  className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold hover:bg-blue-100 transition"
+                >
+                  Submit Credentials →
+                </Link>
+              )}
               <span className="text-xs text-gray-400">•</span>
               <span className="text-xs font-semibold text-neutral-800 flex items-center gap-1">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />

@@ -84,32 +84,46 @@ export default function AdminBlogPage() {
   const [isCatSubmitting, setIsCatSubmitting] = useState(false);
   const [isTagSubmitting, setIsTagSubmitting] = useState(false);
 
-  // Load initial data
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const [postsRes, catsRes, tagsRes] = await Promise.all([
-        fetchAdminBlogPosts({
-          status: statusFilter === "all" ? undefined : statusFilter,
-          categoryId: categoryFilter || undefined,
-          search: search || undefined,
-        }),
-        fetchBlogCategories(),
-        fetchBlogTags(),
-      ]);
-      setPosts(postsRes.data);
-      setCategories(catsRes);
-      setTags(tagsRes);
-    } catch (err) {
-      console.warn("Failed to load blog data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   useEffect(() => {
-    loadData();
-  }, [statusFilter, categoryFilter, search]);
+    let isMounted = true;
+
+    async function fetchData() {
+      try {
+        const [postsRes, catsRes, tagsRes] = await Promise.all([
+          fetchAdminBlogPosts({
+            status: statusFilter === "all" ? undefined : statusFilter,
+            categoryId: categoryFilter || undefined,
+            search: search || undefined,
+          }),
+          fetchBlogCategories(),
+          fetchBlogTags(),
+        ]);
+        if (!isMounted) return;
+        setPosts(postsRes.data);
+        setCategories(catsRes);
+        setTags(tagsRes);
+      } catch (err) {
+        console.warn("Failed to load blog data:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [statusFilter, categoryFilter, search, refreshIndex]);
+
+  const loadData = () => {
+    setIsLoading(true);
+    setRefreshIndex((prev) => prev + 1);
+  };
 
   // Open Composer for New Article
   const handleOpenNewComposer = () => {

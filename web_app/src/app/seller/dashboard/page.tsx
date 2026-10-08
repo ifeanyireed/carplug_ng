@@ -74,8 +74,8 @@ export default function SellerDashboardPage() {
   };
 
   const primaryListing = vehicles[0];
-  const ninVerified = user?.isVerified || verifications.some((v) => v.entityType === "seller_nin" && v.status === "approved");
-  const ninPending = verifications.some((v) => v.entityType === "seller_nin" && v.status === "pending");
+  const ninVerified = user?.isIdentityVerified || verifications.some((v) => v.entityType === "seller_nin" && v.status === "approved");
+  const ninPending = user?.kycStatus === "pending" || verifications.some((v) => v.entityType === "seller_nin" && v.status === "pending");
 
   const unreadMessagesCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 

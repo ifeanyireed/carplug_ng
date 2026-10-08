@@ -138,7 +138,7 @@ export const ShopInventoryFilter: React.FC<ShopInventoryFilterProps> = ({
               <span className="font-medium text-gray-500">Sort:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as "featured" | "price_asc" | "price_desc" | "year_desc")}
                 className="bg-transparent font-semibold text-gray-900 focus:outline-hidden cursor-pointer"
               >
                 <option value="featured">Featured</option>

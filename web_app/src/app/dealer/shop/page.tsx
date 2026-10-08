@@ -1,10 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { DealerShop } from "@/data/mockStore";
-import { fetchDealerMeShop, updateDealerShop } from "@/services/api";
-import { ShieldCheck, Save, ArrowUpRight, Loader2, AlertCircle } from "lucide-react";
+import {
+  fetchDealerMeShop,
+  updateDealerShop,
+  fetchMyVerifications,
+  submitVerification,
+  uploadVehicleImages,
+  VerificationItem,
+} from "@/services/api";
+import {
+  ShieldCheck,
+  Save,
+  ArrowUpRight,
+  Loader2,
+  AlertCircle,
+  Clock,
+  Upload,
+  Building2,
+} from "lucide-react";
 
 export default function DealerShopSettingsPage() {
   const [shop, setShop] = useState<DealerShop | null>(null);
@@ -12,6 +28,16 @@ export default function DealerShopSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // CAC verification state
+  const [cacVerif, setCacVerif] = useState<VerificationItem | null>(null);
+  const [cacRcNumber, setCacRcNumber] = useState("");
+  const [cacDocUrl, setCacDocUrl] = useState<string | null>(null);
+  const [cacDocName, setCacDocName] = useState<string | null>(null);
+  const [isUploadingCac, setIsUploadingCac] = useState(false);
+  const [isSubmittingCac, setIsSubmittingCac] = useState(false);
+  const [cacMessage, setCacMessage] = useState<string | null>(null);
+  const cacFileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -27,10 +53,15 @@ export default function DealerShopSettingsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadShop() {
+    async function loadShopAndVerif() {
       try {
-        const data = await fetchDealerMeShop();
+        const [data, verifs] = await Promise.all([
+          fetchDealerMeShop().catch(() => null),
+          fetchMyVerifications({ entityType: "dealer_cac" }).catch(() => ({ data: [] })),
+        ]);
+
         if (!isMounted) return;
+
         if (data) {
           setShop(data);
           setForm({
@@ -44,8 +75,12 @@ export default function DealerShopSettingsPage() {
             operatingHours: data.operatingHours || "",
           });
         }
+
+        if (verifs && verifs.data && verifs.data.length > 0) {
+          setCacVerif(verifs.data[0]);
+        }
       } catch (err) {
-        console.warn("Failed to fetch dealer shop from API:", err);
+        console.warn("Failed to fetch dealer shop and verifications:", err);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -53,7 +88,7 @@ export default function DealerShopSettingsPage() {
       }
     }
 
-    loadShop();
+    loadShopAndVerif();
 
     return () => {
       isMounted = false;
@@ -80,6 +115,56 @@ export default function DealerShopSettingsPage() {
     }
   };
 
+  const handleCacFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCac(true);
+    setCacMessage(null);
+    try {
+      const urls = await uploadVehicleImages([file], "carplug/verifications");
+      if (urls.length > 0) {
+        setCacDocUrl(urls[0]);
+        setCacDocName(file.name);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Document upload failed.";
+      setCacMessage(msg);
+    } finally {
+      setIsUploadingCac(false);
+    }
+  };
+
+  const handleSubmitCac = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cacRcNumber.trim()) {
+      setCacMessage("Please enter your CAC Registration Number (RC or BN).");
+      return;
+    }
+    if (!cacDocUrl) {
+      setCacMessage("Please upload a photograph or PDF of your CAC Certificate.");
+      return;
+    }
+
+    setIsSubmittingCac(true);
+    setCacMessage(null);
+
+    try {
+      const created = await submitVerification({
+        entityType: "dealer_cac",
+        documentUrl: cacDocUrl,
+        vin: `CAC: ${cacRcNumber.trim()}`,
+        notes: `CAC Certificate submitted for dealership: ${form.name || shop?.name || "Dealership"}`,
+      });
+      setCacVerif(created);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "CAC submission failed. Please try again.";
+      setCacMessage(msg);
+    } finally {
+      setIsSubmittingCac(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto p-16 bg-white border border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-3 text-gray-400">
@@ -89,21 +174,28 @@ export default function DealerShopSettingsPage() {
     );
   }
 
+  const isCacVerified = shop?.verifiedCAC || cacVerif?.status === "approved";
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            {shop?.verifiedCAC ? (
-              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
+            {isCacVerified ? (
+              <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>CAC Verified Dealership</span>
               </span>
+            ) : cacVerif?.status === "pending" ? (
+              <span className="px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                <span>CAC Verification Under Review</span>
+              </span>
             ) : (
-              <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                <span>CAC Verification Pending</span>
+              <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Commercial Dealership</span>
               </span>
             )}
           </div>
@@ -121,6 +213,129 @@ export default function DealerShopSettingsPage() {
             <span>View Public Storefront</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
+        )}
+      </div>
+
+      {/* CAC Corporate Accreditation Card */}
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-neutral-900">
+              CAC Corporate Accreditation
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Verified Corporate Affairs Commission (CAC) certificate unlocks the verified dealership badge across all vehicle listings.
+            </p>
+          </div>
+        </div>
+
+        {isCacVerified ? (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-6 h-6 text-emerald-600" />
+              <div>
+                <div className="text-xs font-bold text-emerald-950">CAC Verified Dealership</div>
+                <div className="text-[10px] text-emerald-700">Official corporate business registration verified by compliance</div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-extrabold">Active Badge</span>
+          </div>
+        ) : cacVerif?.status === "pending" ? (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-amber-600" />
+              <div>
+                <div className="text-xs font-bold text-amber-950">CAC Documents Under Compliance Audit</div>
+                <div className="text-[10px] text-amber-700">Submitted on {new Date(cacVerif.createdAt).toLocaleDateString()} — review turnaround is within 24 hours</div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">Pending</span>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmitCac} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-4">
+            {cacMessage && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{cacMessage}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  CAC Registration Number (RC / BN)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={cacRcNumber}
+                  onChange={(e) => setCacRcNumber(e.target.value)}
+                  placeholder="e.g. RC 1849204"
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Upload CAC Certificate Photo or PDF
+                </label>
+                <input
+                  ref={cacFileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleCacFileUpload}
+                  className="hidden"
+                />
+
+                {cacDocUrl ? (
+                  <div className="px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                    <span className="text-emerald-900 font-semibold truncate max-w-[180px]">{cacDocName || "Document Attached"}</span>
+                    <button
+                      type="button"
+                      onClick={() => cacFileInputRef.current?.click()}
+                      className="text-emerald-700 underline font-bold"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => cacFileInputRef.current?.click()}
+                    disabled={isUploadingCac}
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition"
+                  >
+                    {isUploadingCac ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Select Certificate File</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmittingCac || isUploadingCac}
+              className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmittingCac ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <span>Submit CAC for Verification</span>
+              )}
+            </button>
+          </form>
         )}
       </div>
 
@@ -173,24 +388,23 @@ export default function DealerShopSettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Operating Hours</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Showroom Address</label>
             <input
               type="text"
-              value={form.operatingHours}
-              onChange={(e) => setForm({ ...form, operatingHours: e.target.value })}
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">
-            Exact Showroom Physical Address
-          </label>
+          <label className="block text-xs font-bold text-gray-700 mb-1">Operating Hours</label>
           <input
             type="text"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            value={form.operatingHours}
+            onChange={(e) => setForm({ ...form, operatingHours: e.target.value })}
+            placeholder="e.g. Mon - Sat: 8:00 AM - 6:00 PM"
             className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none"
           />
         </div>
@@ -230,7 +444,7 @@ export default function DealerShopSettingsPage() {
         <button
           type="submit"
           disabled={isSaving}
-          className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition"
+          className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
         >
           {isSaving ? (
             <>

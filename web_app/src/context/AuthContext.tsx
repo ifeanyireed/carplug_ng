@@ -110,6 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: claims.email || "",
             role: (claims.role as AuthUser["role"]) || "buyer",
             isVerified: false,
+            isIdentityVerified: false,
+            kycStatus: "unverified",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };

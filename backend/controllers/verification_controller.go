@@ -77,6 +77,20 @@ func SubmitVerification(c *gin.Context) {
 		return
 	}
 
+	// Update live applicant status
+	if entityType == "seller_nin" {
+		updates := map[string]interface{}{
+			"kyc_status": "pending",
+			"updated_at": time.Now(),
+		}
+		if strings.HasPrefix(verification.VIN, "NIN:") {
+			updates["nin"] = strings.TrimSpace(strings.TrimPrefix(verification.VIN, "NIN:"))
+		}
+		_ = db.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error
+	} else if entityType == "tech_license" {
+		_ = db.Model(&models.Technician{}).Where("user_id = ? OR id = ?", userID, entityID).Update("verification_status", "pending").Error
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Verification document submitted successfully and queued for review",
 		"data":    verification,
@@ -247,28 +261,46 @@ func UpdateVerificationStatus(c *gin.Context) {
 			}
 
 		case "tech_license":
-			// Upgrade technician's verification badge
+			// Upgrade technician's verification badge and status
 			var tech models.Technician
-			if err := db.Where("id = ?", verification.EntityID).First(&tech).Error; err == nil {
+			if err := db.Where("user_id = ? OR id = ?", verification.UserID, verification.EntityID).First(&tech).Error; err == nil {
 				tech.Badge = "Master Technician • State Certified"
+				tech.VerificationStatus = "certified"
+				tech.UpdatedAt = time.Now()
 				_ = db.Save(&tech).Error
 			}
 
 		case "dealer_cac":
-			// Upgrade dealer showroom to CAC Verified (Priority 1)
+			// Upgrade dealer showroom to CAC Verified
 			var shop models.DealerShop
 			if err := db.Where("id = ? OR user_id = ?", verification.EntityID, verification.UserID).First(&shop).Error; err == nil {
 				shop.VerifiedCAC = true
+				shop.UpdatedAt = time.Now()
 				_ = db.Save(&shop).Error
 			}
 
 		case "seller_nin":
-			// Upgrade private seller account to National Identity Verified (Priority 1)
+			// Upgrade private seller account to National Identity Verified
 			var user models.User
 			if err := db.Where("id = ?", verification.UserID).First(&user).Error; err == nil {
-				user.IsVerified = true
+				user.IsIdentityVerified = true
+				user.KYCStatus = "approved"
+				user.UpdatedAt = time.Now()
 				_ = db.Save(&user).Error
 			}
+		}
+	} else if status == "rejected" {
+		switch verification.EntityType {
+		case "seller_nin":
+			_ = db.Model(&models.User{}).Where("id = ?", verification.UserID).Updates(map[string]interface{}{
+				"kyc_status": "rejected",
+				"updated_at": time.Now(),
+			}).Error
+		case "tech_license":
+			_ = db.Model(&models.Technician{}).Where("user_id = ? OR id = ?", verification.UserID, verification.EntityID).Updates(map[string]interface{}{
+				"verification_status": "rejected",
+				"updated_at":          time.Now(),
+			}).Error
 		}
 	}
 

@@ -227,6 +227,9 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
             </div>
 
             <div className="flex items-center gap-6">
+              <Link href="/blog" className="hover:text-black font-medium transition">
+                Blog &amp; Editorial
+              </Link>
               <Link href="#" className="hover:text-black transition">
                 Terms & condition
               </Link>

@@ -20,6 +20,7 @@ import {
   Megaphone,
   Settings,
   Building2,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
@@ -61,7 +62,8 @@ export const Navbar = ({
     pathname.startsWith("/buyer/concierge") ||
     pathname.startsWith("/advertise") ||
     pathname.startsWith("/shops") ||
-    pathname.startsWith("/dealers");
+    pathname.startsWith("/dealers") ||
+    pathname.startsWith("/blog");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -409,6 +411,19 @@ export const Navbar = ({
                       <div className="text-[10px] text-gray-400 truncate">Promote inventory or brand</div>
                     </div>
                   </NavLink>
+                  <NavLink
+                    href="/blog"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
+                  >
+                    <BookOpen className="w-4 h-4 text-emerald-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Blog &amp; Editorial</div>
+                      <div className="text-[10px] text-gray-400 truncate">Buyer guides, news &amp; tips</div>
+                    </div>
+                  </NavLink>
                 </div>
               </div>
             )}
@@ -747,6 +762,16 @@ export const Navbar = ({
               inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Advertise on mycarsNg
+            </NavLink>
+            <NavLink
+              href="/blog"
+              activeMatch={(path) => path === "/blog" || path.startsWith("/blog/")}
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              Blog &amp; Editorial
             </NavLink>
             <NavLink
               href="/buyer/garage"

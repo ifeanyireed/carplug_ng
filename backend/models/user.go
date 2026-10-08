@@ -24,9 +24,12 @@ type User struct {
 	Phone        string         `gorm:"size:50" json:"phone,omitempty"`
 	PasswordHash string         `gorm:"size:255;not null" json:"-"` // NEVER exposed in JSON
 	Role         string         `gorm:"size:50;default:'buyer';index" json:"role"` // buyer, seller, dealer, technician, admin
-	Avatar       string         `gorm:"size:255" json:"avatar,omitempty"`
-	IsVerified   bool           `gorm:"default:false" json:"isVerified"`
-	CreatedAt    time.Time      `json:"createdAt"`
-	UpdatedAt    time.Time      `json:"updatedAt"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	Avatar             string         `gorm:"size:255" json:"avatar,omitempty"`
+	IsVerified         bool           `gorm:"default:false" json:"isVerified"` // Email verified via Brevo OTP
+	IsIdentityVerified bool           `gorm:"default:false" json:"isIdentityVerified"` // Verified NIN / Government ID
+	KYCStatus          string         `gorm:"size:50;default:'unverified';index" json:"kycStatus"` // unverified, pending, approved, rejected
+	NIN                string         `gorm:"size:50" json:"nin,omitempty"`
+	CreatedAt          time.Time      `json:"createdAt"`
+	UpdatedAt          time.Time      `json:"updatedAt"`
+	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`
 }

@@ -40,6 +40,12 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   const [contentHtml, setContentHtml] = useState<string>(initialContent);
   const [wordCount, setWordCount] = useState(0);
 
+  const updateCounts = (html: string) => {
+    const text = html.replace(/<[^>]*>/g, " ").trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    setWordCount(words);
+  };
+
   // Sync initial content once mounted
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== initialContent) {
@@ -48,12 +54,6 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       updateCounts(initialContent);
     }
   }, [initialContent]);
-
-  const updateCounts = (html: string) => {
-    const text = html.replace(/<[^>]*>/g, " ").trim();
-    const words = text ? text.split(/\s+/).length : 0;
-    setWordCount(words);
-  };
 
   const handleInput = () => {
     if (editorRef.current) {

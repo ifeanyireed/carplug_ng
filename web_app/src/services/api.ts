@@ -48,6 +48,9 @@ export interface AuthUser {
   role: "buyer" | "seller" | "dealer" | "technician" | "admin";
   avatar?: string;
   isVerified: boolean;
+  isIdentityVerified?: boolean;
+  kycStatus?: "unverified" | "pending" | "approved" | "rejected";
+  nin?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -79,20 +79,60 @@ func Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		ID:           "usr_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:16],
-		Name:         strings.TrimSpace(req.Name),
-		Email:        trimmedEmail,
-		Phone:        strings.TrimSpace(req.Phone),
-		PasswordHash: string(hashedPassword),
-		Role:         role,
-		IsVerified:   false,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:                 "usr_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:16],
+		Name:               strings.TrimSpace(req.Name),
+		Email:              trimmedEmail,
+		Phone:              strings.TrimSpace(req.Phone),
+		PasswordHash:       string(hashedPassword),
+		Role:               role,
+		IsVerified:         false,
+		IsIdentityVerified: false,
+		KYCStatus:          "unverified",
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
 	}
 
 	if err := db.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user account"})
 		return
+	}
+
+	// Auto-provision DealerShop if registered as dealer
+	if role == string(models.RoleDealer) {
+		newShop := models.DealerShop{
+			ID:          "shop_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12],
+			UserID:      user.ID,
+			Name:        user.Name,
+			Slug:        strings.ToLower(strings.ReplaceAll(user.Name, " ", "-")),
+			Location:    "Lagos",
+			Address:     "Lagos, Nigeria",
+			Phone:       user.Phone,
+			Email:       user.Email,
+			VerifiedCAC: false,
+			Rating:      5.0,
+			ReviewCount: 0,
+			JoinedDate:  time.Now().Format("Jan 2006"),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+		_ = db.Create(&newShop).Error
+	}
+
+	// Auto-provision Technician profile if registered as technician
+	if role == string(models.RoleTechnician) {
+		newTech := models.Technician{
+			ID:                 "tech-" + user.ID,
+			UserID:             user.ID,
+			Name:               user.Name,
+			Email:              user.Email,
+			Phone:              user.Phone,
+			VerificationStatus: "unverified",
+			Badge:              "Associate Technician",
+			Rating:             5.0,
+			CreatedAt:          time.Now(),
+			UpdatedAt:          time.Now(),
+		}
+		_ = db.Create(&newTech).Error
 	}
 
 	// Generate 6-digit numeric verification OTP
@@ -407,6 +447,26 @@ func UpgradeRole(c *gin.Context) {
 				UpdatedAt:   time.Now(),
 			}
 			db.Create(&newShop)
+		}
+	}
+
+	// Auto-provision technician profile if upgrading to technician
+	if targetRole == string(models.RoleTechnician) {
+		var tech models.Technician
+		if err := db.Where("user_id = ?", user.ID).First(&tech).Error; err != nil {
+			newTech := models.Technician{
+				ID:                 "tech-" + user.ID,
+				UserID:             user.ID,
+				Name:               user.Name,
+				Email:              user.Email,
+				Phone:              user.Phone,
+				VerificationStatus: "unverified",
+				Badge:              "Associate Technician",
+				Rating:             5.0,
+				CreatedAt:          time.Now(),
+				UpdatedAt:          time.Now(),
+			}
+			db.Create(&newTech)
 		}
 	}
 

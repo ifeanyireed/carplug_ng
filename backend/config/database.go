@@ -166,6 +166,22 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 				log.Println("[Database] inspection_reports table updated.")
 			}
 		}
+		if !DB.Migrator().HasColumn(&models.User{}, "IsIdentityVerified") {
+			log.Println("[Database] Migrating users for IsIdentityVerified, KYCStatus, NIN columns...")
+			if migErr := DB.AutoMigrate(&models.User{}); migErr != nil {
+				log.Printf("[Database] Warning: auto-migrating users table: %v\n", migErr)
+			} else {
+				log.Println("[Database] users table updated with KYC fields.")
+			}
+		}
+		if !DB.Migrator().HasColumn(&models.Technician{}, "UserID") {
+			log.Println("[Database] Migrating technicians for UserID and VerificationStatus columns...")
+			if migErr := DB.AutoMigrate(&models.Technician{}); migErr != nil {
+				log.Printf("[Database] Warning: auto-migrating technicians table: %v\n", migErr)
+			} else {
+				log.Println("[Database] technicians table updated with UserID and VerificationStatus.")
+			}
+		}
 		if !DB.Migrator().HasTable(&models.BlogCategory{}) || !DB.Migrator().HasTable(&models.BlogTag{}) || !DB.Migrator().HasTable(&models.BlogPost{}) {
 			log.Println("[Database] Initializing Blog tables (BlogCategory, BlogTag, BlogPost)...")
 			if migErr := DB.AutoMigrate(&models.BlogCategory{}, &models.BlogTag{}, &models.BlogPost{}); migErr != nil {

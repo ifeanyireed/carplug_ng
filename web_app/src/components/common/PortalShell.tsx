@@ -104,61 +104,6 @@ export const PortalShell = ({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Quick Role Switcher for Testing */}
-          <div className="hidden lg:flex items-center gap-1.5 text-xs bg-gray-100 p-1 rounded-lg">
-            <span className="px-2 text-gray-500 font-medium">Switch Portal:</span>
-            <NavLink
-              href="/buyer/search"
-              matchPrefix
-              activeMatch={(p) => p.startsWith("/buyer")}
-              className="px-2.5 py-1 rounded-md font-medium transition"
-              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
-              inactiveClassName="text-gray-600 hover:text-gray-900"
-            >
-              Buyer
-            </NavLink>
-            <NavLink
-              href="/dealer/dashboard"
-              matchPrefix
-              activeMatch={(p) => p.startsWith("/dealer")}
-              className="px-2.5 py-1 rounded-md font-medium transition"
-              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
-              inactiveClassName="text-gray-600 hover:text-gray-900"
-            >
-              Dealer
-            </NavLink>
-            <NavLink
-              href="/seller/dashboard"
-              matchPrefix
-              activeMatch={(p) => p.startsWith("/seller")}
-              className="px-2.5 py-1 rounded-md font-medium transition"
-              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
-              inactiveClassName="text-gray-600 hover:text-gray-900"
-            >
-              Private Seller
-            </NavLink>
-            <NavLink
-              href="/technician/dashboard"
-              matchPrefix
-              activeMatch={(p) => p.startsWith("/technician")}
-              className="px-2.5 py-1 rounded-md font-medium transition"
-              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
-              inactiveClassName="text-gray-600 hover:text-gray-900"
-            >
-              Technician
-            </NavLink>
-            <NavLink
-              href="/admin/dashboard"
-              matchPrefix
-              activeMatch={(p) => p.startsWith("/admin")}
-              className="px-2.5 py-1 rounded-md font-medium transition"
-              activeClassName="bg-white shadow-xs text-emerald-600 font-bold border border-emerald-500/30"
-              inactiveClassName="text-gray-600 hover:text-gray-900"
-            >
-              Admin
-            </NavLink>
-          </div>
-
           <Link
             href="/buyer/search"
             className="text-xs font-medium text-gray-600 hover:text-gray-900 hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 transition"

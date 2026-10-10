@@ -38,7 +38,7 @@ function resolveApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
-const API_TIMEOUT_MS = 60000;
+const API_TIMEOUT_MS = 10000;
 
 export interface AuthUser {
   id: string;

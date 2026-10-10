@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
+	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
 
 type StartConversationRequest struct {
@@ -142,6 +143,45 @@ func StartConversation(c *gin.Context) {
 		if err := db.Create(&msg).Error; err == nil {
 			BroadcastMessageToConversation(convID, conv.BuyerID, conv.SellerID, msg)
 		}
+
+		// Asynchronously notify vehicle seller of the new buyer inquiry
+		go func(sellerID, buyerName, vehTitle, messageText string) {
+			var recipientEmail string
+			var recipientName string
+
+			var dealer models.DealerShop
+			if err := db.Where("id = ? OR user_id = ? OR slug = ?", sellerID, sellerID, sellerID).First(&dealer).Error; err == nil {
+				recipientEmail = dealer.Email
+				recipientName = dealer.Name
+				if recipientEmail == "" && dealer.UserID != "" {
+					var u models.User
+					if err := db.Where("id = ?", dealer.UserID).First(&u).Error; err == nil {
+						recipientEmail = u.Email
+					}
+				}
+			}
+
+			if recipientEmail == "" {
+				var u models.User
+				if err := db.Where("id = ?", sellerID).First(&u).Error; err == nil {
+					recipientEmail = u.Email
+					recipientName = u.Name
+				}
+			}
+
+			if recipientEmail != "" {
+				if recipientName == "" {
+					recipientName = "Seller"
+				}
+				_ = utils.SendNewMessageNotificationEmail(
+					recipientEmail,
+					recipientName,
+					buyerName,
+					vehTitle,
+					messageText,
+				)
+			}
+		}(vehicle.SellerID, buyer.Name, vehicle.Title, trimmedMsg)
 	}
 
 	c.JSON(http.StatusCreated, conv)

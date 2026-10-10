@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
+	"github.com/ifeanyireed/carplug_ng/backend/utils"
 )
 
 func GetLeads(c *gin.Context) {
@@ -124,6 +125,53 @@ func CreateLead(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create lead: " + err.Error()})
 		return
 	}
+
+	// Asynchronously dispatch email notification via Brevo to the seller or dealer
+	go func(l models.Lead) {
+		var recipientEmail string
+		var recipientName string
+
+		// 1. Check if seller is a DealerShop
+		var dealer models.DealerShop
+		if err := db.Where("id = ? OR user_id = ? OR slug = ?", l.SellerID, l.SellerID, l.SellerID).First(&dealer).Error; err == nil {
+			recipientEmail = dealer.Email
+			recipientName = dealer.Name
+			if recipientEmail == "" && dealer.UserID != "" {
+				var u models.User
+				if err := db.Where("id = ?", dealer.UserID).First(&u).Error; err == nil {
+					recipientEmail = u.Email
+				}
+			}
+		}
+
+		// 2. If not a dealer or recipientEmail still empty, check User model (Private Seller)
+		if recipientEmail == "" && l.SellerID != "" {
+			var u models.User
+			if err := db.Where("id = ?", l.SellerID).First(&u).Error; err == nil {
+				recipientEmail = u.Email
+				recipientName = u.Name
+			}
+		}
+
+		// 3. If recipient email resolved, dispatch branded lead notification
+		if recipientEmail != "" {
+			if recipientName == "" {
+				recipientName = "Seller"
+			}
+			_ = utils.SendLeadNotificationEmail(
+				recipientEmail,
+				recipientName,
+				l.BuyerName,
+				l.BuyerPhone,
+				l.BuyerCity,
+				l.VehicleTitle,
+				l.VehiclePrice,
+				l.Type,
+				l.Date,
+				l.Note,
+			)
+		}
+	}(lead)
 
 	c.JSON(http.StatusCreated, lead)
 }

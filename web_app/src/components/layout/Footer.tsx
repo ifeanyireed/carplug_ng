@@ -109,7 +109,54 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
         </div>
       </div>
 
-      {/* 2. Newsletter, Socials & Watermark Band */}
+      {/* 2. Quick Platform Links Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 border-t border-gray-200/80 pt-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">Marketplace</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
+              <li><Link href="/buyer/search" className="hover:text-black transition">Explore All Vehicles</Link></li>
+              <li><Link href="/swap" className="hover:text-black transition">Car Swap &amp; Trade-In</Link></li>
+              <li><Link href="/buyer/compare" className="hover:text-black transition">Compare Vehicles</Link></li>
+              <li><Link href="/buyer/concierge" className="hover:text-black transition">Concierge Sourcing</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">For Dealerships</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
+              <li>
+                <Link href="/pricing" className="text-emerald-700 hover:text-emerald-900 font-bold transition flex items-center gap-1.5">
+                  <span>Showroom Plans &amp; Pricing</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase">Free Option</span>
+                </Link>
+              </li>
+              <li><Link href="/shops" className="hover:text-black transition">Verified Showrooms Directory</Link></li>
+              <li><Link href="/dealer/dashboard" className="hover:text-black transition">Dealer Pro Hub</Link></li>
+              <li><Link href="/advertise" className="hover:text-black transition">Advertising Console</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">For Sellers &amp; Techs</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
+              <li><Link href="/seller/sell" className="hover:text-black transition">Instant Car Valuation</Link></li>
+              <li><Link href="/seller/dashboard" className="hover:text-black transition">Private Seller Dashboard</Link></li>
+              <li><Link href="/technician/dashboard" className="hover:text-black transition">Master Technician Portal</Link></li>
+              <li><Link href="/technician/onboard" className="hover:text-black transition">Apply as Inspection Tech</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">Resources &amp; Trust</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
+              <li><Link href="/pricing" className="text-neutral-900 font-semibold hover:text-emerald-700 transition">Pricing &amp; Subscriptions</Link></li>
+              <li><Link href="/blog" className="hover:text-black transition">Blog &amp; Auto Editorial</Link></li>
+              <li><Link href="/admin/dashboard" className="hover:text-black transition">Super Admin Console</Link></li>
+              <li><Link href="/shops" className="hover:text-black transition">CAC Verification Standards</Link></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Newsletter, Socials & Watermark Band */}
       <div className="w-full bg-[#EAEDF2] pt-10 pb-6 relative overflow-hidden border-t border-gray-200/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Top Row: Newsletter Form & Social Links */}
@@ -227,6 +274,9 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
             </div>
 
             <div className="flex items-center gap-6">
+              <Link href="/pricing" className="text-emerald-700 hover:text-emerald-900 font-bold transition">
+                Dealer Pricing &amp; Plans
+              </Link>
               <Link href="/blog" className="hover:text-black font-medium transition">
                 Blog &amp; Editorial
               </Link>

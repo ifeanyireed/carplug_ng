@@ -15,6 +15,12 @@ import {
   DealerSubscriptionResponse,
 } from "@/services/api";
 
+import {
+  SUBSCRIPTION_TIERS,
+  normalizePlanKey,
+  getTierLimit,
+} from "@/services/SubscriptionHelper";
+
 export default function DealerSubscriptionPage() {
   const [subData, setSubData] = useState<DealerSubscriptionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,54 +55,48 @@ export default function DealerSubscriptionPage() {
   }, []);
 
   const currentPlan = subData?.subscription?.plan || "Pro Shop";
-  const currentPlanNormalized = currentPlan.toLowerCase();
+  const activePlanKey = normalizePlanKey(currentPlan);
 
   const plans = [
     {
+      id: "starter",
+      name: SUBSCRIPTION_TIERS.starter.name,
+      price: SUBSCRIPTION_TIERS.starter.priceMonthly,
+      period: "per month",
+      listings: "Up to 3 active listings",
+      features: SUBSCRIPTION_TIERS.starter.features,
+      current: activePlanKey === "starter",
+      badge: activePlanKey === "starter" ? "Current Active Plan" : "100% Free",
+    },
+    {
       id: "basic",
-      name: "Basic Shop",
-      price: 25000,
+      name: SUBSCRIPTION_TIERS.basic.name,
+      price: SUBSCRIPTION_TIERS.basic.priceMonthly,
       period: "per month",
       listings: "Up to 15 active listings",
-      features: [
-        "Standard search placement",
-        "Basic dashboard analytics",
-        "Public storefront URL",
-        "WhatsApp lead forwarding",
-      ],
-      current: currentPlanNormalized.includes("basic"),
+      features: SUBSCRIPTION_TIERS.basic.features,
+      current: activePlanKey === "basic",
+      badge: activePlanKey === "basic" ? "Current Active Plan" : undefined,
     },
     {
       id: "pro",
-      name: "Pro Shop",
-      price: 65000,
+      name: SUBSCRIPTION_TIERS.pro.name,
+      price: SUBSCRIPTION_TIERS.pro.priceMonthly,
       period: "per month",
       listings: "Up to 60 active listings",
-      features: [
-        "Priority search & map placement",
-        "Verified buyer lead access",
-        "Full showroom telemetry analytics",
-        "Inspection bundle discounts (10% off)",
-        "Dedicated phone support",
-      ],
-      current: currentPlanNormalized.includes("pro"),
-      badge: currentPlanNormalized.includes("pro") ? "Current Active Plan" : undefined,
+      features: SUBSCRIPTION_TIERS.pro.features,
+      current: activePlanKey === "pro",
+      badge: activePlanKey === "pro" ? "Current Active Plan" : "Most Popular",
     },
     {
       id: "premium",
-      name: "Premium Shop",
-      price: 150000,
+      name: SUBSCRIPTION_TIERS.premium.name,
+      price: SUBSCRIPTION_TIERS.premium.priceMonthly,
       period: "per month",
       listings: "Unlimited listings",
-      features: [
-        "Featured homepage placement & banner",
-        "Unlimited inventory capacity",
-        "Priority concierge lead dispatch",
-        "Dedicated account manager",
-        "Bulk inspection pricing (25% off)",
-      ],
-      current: currentPlanNormalized.includes("premium") || currentPlanNormalized.includes("enterprise"),
-      badge: currentPlanNormalized.includes("premium") ? "Current Active Plan" : undefined,
+      features: SUBSCRIPTION_TIERS.premium.features,
+      current: activePlanKey === "premium",
+      badge: activePlanKey === "premium" ? "Current Active Plan" : undefined,
     },
   ];
 
@@ -198,7 +198,7 @@ export default function DealerSubscriptionPage() {
       </div>
 
       {/* Plans Comparison */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((p) => (
           <div
             key={p.id}
@@ -209,7 +209,7 @@ export default function DealerSubscriptionPage() {
             }`}
           >
             {p.badge && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider shadow-xs whitespace-nowrap">
                 {p.badge}
               </div>
             )}
@@ -218,9 +218,9 @@ export default function DealerSubscriptionPage() {
               <h3 className="font-bold text-base text-neutral-900">{p.name}</h3>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-2xl font-black text-neutral-900">
-                  ₦{p.price.toLocaleString()}
+                  {p.price === 0 ? "Free" : `₦${p.price.toLocaleString()}`}
                 </span>
-                <span className="text-xs text-gray-400">/ mo</span>
+                {p.price > 0 && <span className="text-xs text-gray-400">/ mo</span>}
               </div>
 
               <div className="text-xs font-semibold text-blue-600 mt-1 pb-4 border-b border-gray-100">

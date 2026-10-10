@@ -287,14 +287,18 @@ func GetDealerSubscription(c *gin.Context) {
 		// Auto-initialize active subscription
 		plan := dealer.Plan
 		if plan == "" {
-			plan = "Pro Shop"
+			plan = "Starter Showroom"
 		}
-		limit := 60
-		price := 65000.0
-		if strings.Contains(strings.ToLower(plan), "basic") {
+		limit := 3
+		price := 0.0
+		planLower := strings.ToLower(plan)
+		if strings.Contains(planLower, "basic") {
 			limit = 15
 			price = 25000.0
-		} else if strings.Contains(strings.ToLower(plan), "premium") {
+		} else if strings.Contains(planLower, "pro") {
+			limit = 60
+			price = 65000.0
+		} else if strings.Contains(planLower, "premium") || strings.Contains(planLower, "enterprise") {
 			limit = 9999
 			price = 150000.0
 		}
@@ -359,6 +363,10 @@ func UpgradeDealerSubscription(c *gin.Context) {
 	var price float64
 
 	switch {
+	case strings.Contains(planNormalized, "free") || strings.Contains(planNormalized, "starter"):
+		planName = "Starter Showroom"
+		limit = 3
+		price = 0.0
 	case strings.Contains(planNormalized, "basic"):
 		planName = "Basic Shop"
 		limit = 15

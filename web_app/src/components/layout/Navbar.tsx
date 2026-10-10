@@ -21,6 +21,7 @@ import {
   Settings,
   Building2,
   BookOpen,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
@@ -60,6 +61,7 @@ export const Navbar = ({
   const isMoreActive =
     pathname.startsWith("/buyer/compare") ||
     pathname.startsWith("/buyer/concierge") ||
+    pathname.startsWith("/pricing") ||
     pathname.startsWith("/advertise") ||
     pathname.startsWith("/shops") ||
     pathname.startsWith("/dealers") ||
@@ -332,6 +334,17 @@ export const Navbar = ({
             Swap Car
           </NavLink>
 
+          {/* Pricing */}
+          <NavLink
+            href="/pricing"
+            activeMatch={(path) => path === "/pricing"}
+            className="px-2.5 xl:px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 shadow-xs"
+            inactiveClassName="text-white/90 hover:text-white hover:bg-white/10 border border-transparent"
+          >
+            Pricing
+          </NavLink>
+
           {/* More Services Dropdown */}
           <div className="relative">
             <button
@@ -396,6 +409,19 @@ export const Navbar = ({
                     <div className="min-w-0">
                       <div className="font-semibold text-white">Dealerships</div>
                       <div className="text-[10px] text-gray-400 truncate">CAC certified showrooms</div>
+                    </div>
+                  </NavLink>
+                  <NavLink
+                    href="/pricing"
+                    onClick={() => setActiveDropdown(null)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg transition"
+                    activeClassName="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30"
+                    inactiveClassName="hover:bg-white/10 text-gray-200"
+                  >
+                    <CreditCard className="w-4 h-4 text-emerald-400" />
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">Dealership Plans</div>
+                      <div className="text-[10px] text-gray-400 truncate">Free starter &amp; pro showroom tiers</div>
                     </div>
                   </NavLink>
                   <NavLink
@@ -735,6 +761,15 @@ export const Navbar = ({
               inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
             >
               Verified Dealerships
+            </NavLink>
+            <NavLink
+              href="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium transition"
+              activeClassName="text-emerald-400 font-bold bg-emerald-500/15 border-l-4 border-emerald-400"
+              inactiveClassName="text-white/90 hover:text-white hover:bg-white/10"
+            >
+              Dealer Pricing &amp; Plans
             </NavLink>
             <NavLink
               href="/buyer/compare"

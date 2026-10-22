@@ -393,6 +393,53 @@ func CreateVehicle(c *gin.Context) {
 		} else if userRole != "admin" || vehicle.SellerID == "" {
 			vehicle.SellerID = userID
 		}
+
+		// Enforce dealership subscription listing quota
+		dealerID := vehicle.SellerID
+		var sub models.Subscription
+		listingsLimit := 3
+		if err := db.Where("dealer_id = ?", dealerID).First(&sub).Error; err == nil {
+			planLower := strings.ToLower(sub.Plan)
+			switch {
+			case strings.Contains(planLower, "basic"):
+				listingsLimit = 15
+			case strings.Contains(planLower, "pro"):
+				listingsLimit = 60
+			case strings.Contains(planLower, "premium") || strings.Contains(planLower, "enterprise") || strings.Contains(planLower, "unlimited"):
+				listingsLimit = 9999
+			default:
+				listingsLimit = 3
+			}
+		} else {
+			planLower := strings.ToLower(shop.Plan)
+			switch {
+			case strings.Contains(planLower, "basic"):
+				listingsLimit = 15
+			case strings.Contains(planLower, "pro"):
+				listingsLimit = 60
+			case strings.Contains(planLower, "premium") || strings.Contains(planLower, "enterprise") || strings.Contains(planLower, "unlimited"):
+				listingsLimit = 9999
+			default:
+				listingsLimit = 3
+			}
+		}
+
+		var currentCount int64
+		sellerIDs := []string{dealerID}
+		if shop.UserID != "" && shop.UserID != dealerID {
+			sellerIDs = append(sellerIDs, shop.UserID)
+		}
+		db.Model(&models.Vehicle{}).Where("seller_id IN ?", sellerIDs).Count(&currentCount)
+
+		if int(currentCount) >= listingsLimit {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":         fmt.Sprintf("Subscription listing quota reached (%d/%d vehicles). Please upgrade your dealership plan to list more vehicles.", currentCount, listingsLimit),
+				"code":          "QUOTA_EXCEEDED",
+				"currentCount":  currentCount,
+				"listingsLimit": listingsLimit,
+			})
+			return
+		}
 	} else {
 		if vehicle.SellerType == "" {
 			vehicle.SellerType = "private"

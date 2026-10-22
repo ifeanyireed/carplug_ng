@@ -409,14 +409,14 @@ func DeleteBlogPost(c *gin.Context) {
 	db := config.GetDB()
 
 	var post models.BlogPost
-	if err := db.First(&post, "id = ?", id).Error; err != nil {
+	if err := db.Unscoped().First(&post, "id = ?", id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
 		return
 	}
 
-	// Clear tags association and delete
+	// Clear tags association and hard delete
 	db.Model(&post).Association("Tags").Clear()
-	if err := db.Delete(&post).Error; err != nil {
+	if err := db.Unscoped().Delete(&post).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete article: " + err.Error()})
 		return
 	}
@@ -503,13 +503,16 @@ func DeleteBlogCategory(c *gin.Context) {
 	id := c.Param("id")
 	db := config.GetDB()
 
-	// Check if any posts are using this category
+	// Check if any active posts are using this category
 	var count int64
 	db.Model(&models.BlogPost{}).Where("category_id = ?", id).Count(&count)
 	if count > 0 {
 		c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Cannot delete category with %d active articles. Reassign them first.", count)})
 		return
 	}
+
+	// Clean up any lingering soft-deleted references to prevent foreign key constraint violation
+	db.Unscoped().Where("category_id = ?", id).Delete(&models.BlogPost{})
 
 	if err := db.Delete(&models.BlogCategory{}, "id = ?", id).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category: " + err.Error()})

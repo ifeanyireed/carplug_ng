@@ -38,7 +38,14 @@ func CreateCampaign(c *gin.Context) {
 	if camp.ID == "" {
 		camp.ID = "camp-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	}
-	if camp.Status == "" {
+
+	role, _ := c.Get("userRole")
+	userRole, _ := role.(string)
+
+	// If not an admin, campaign must enter moderation queue as "Pending Review"
+	if userRole != "admin" {
+		camp.Status = "Pending Review"
+	} else if camp.Status == "" {
 		camp.Status = "Active"
 	}
 
@@ -62,7 +69,13 @@ func UpdateCampaignStatus(c *gin.Context) {
 	}
 
 	db := config.GetDB()
-	if err := db.Model(&models.Campaign{}).Where("id = ?", id).Update("status", req.Status).Error; err != nil {
+	var camp models.Campaign
+	if err := db.First(&camp, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Campaign not found"})
+		return
+	}
+
+	if err := db.Model(&camp).Update("status", req.Status).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update campaign status: " + err.Error()})
 		return
 	}

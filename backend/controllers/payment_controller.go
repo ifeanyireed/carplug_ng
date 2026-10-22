@@ -564,6 +564,10 @@ func VerifyPayment(c *gin.Context) {
 				}
 			}
 		}
+		// If already settled or held in escrow via verified webhook, acknowledge verified
+		if txn.Status == "settled" || txn.Status == "held_in_escrow" {
+			verifiedOnline = true
+		}
 	} else {
 		// Mock / test environment fallback
 		verifiedOnline = true

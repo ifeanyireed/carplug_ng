@@ -211,7 +211,7 @@ func ModerateListingStatus(c *gin.Context) {
 		return
 	}
 
-	if req.Status == "removed" {
+	if req.Status == "removed" || req.Status == "rejected" {
 		if err := db.Delete(&vehicle).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove vehicle listing"})
 			return

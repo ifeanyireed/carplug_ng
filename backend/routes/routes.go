@@ -202,8 +202,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			// Public read
 			campaigns.GET("", controllers.GetCampaigns)
 
-			// Protected campaign creation & moderation
-			campaigns.POST("", authMiddleware, middleware.RequireRoles("admin"), controllers.CreateCampaign)
+			// Public submission with optional auth & admin moderation
+			campaigns.POST("", middleware.OptionalAuthMiddleware(cfg.JWTSecret), controllers.CreateCampaign)
 			campaigns.PATCH("/:id/status", authMiddleware, middleware.RequireRoles("admin"), controllers.UpdateCampaignStatus)
 		}
 

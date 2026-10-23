@@ -70,6 +70,22 @@ export const PortalShell = ({
     admin: "bg-red-100 text-red-800",
   };
 
+  const roleBottomActiveColor = {
+    buyer: "text-blue-600",
+    dealer: "text-amber-600",
+    seller: "text-purple-600",
+    technician: "text-emerald-600",
+    admin: "text-red-600",
+  };
+
+  const roleBottomIndicator = {
+    buyer: "bg-blue-600",
+    dealer: "bg-amber-600",
+    seller: "bg-purple-600",
+    technician: "bg-emerald-600",
+    admin: "bg-red-600",
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col">
       {/* Top Bar */}
@@ -391,12 +407,104 @@ export const PortalShell = ({
         )}
 
         {/* Main Workspace Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 min-w-0">
           <div className="max-w-7xl mx-auto w-full">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Dashboard Mobile Bottom Navigation Menu */}
+      <nav
+        aria-label={`${roleTitle} Mobile Navigation`}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200/90 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      >
+        <div className="flex items-center justify-around max-w-lg mx-auto">
+          {navItems.slice(0, 4).map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                activeMatch={(p) =>
+                  p === item.href ||
+                  (item.href !== "/" &&
+                    p.startsWith(item.href) &&
+                    item.href !== `/${roleType}`)
+                }
+                onClick={() => setMobileOpen(false)}
+                className="flex flex-col items-center justify-center min-w-[56px] py-1 transition-all"
+                activeClassName={`font-bold ${roleBottomActiveColor[roleType]}`}
+                inactiveClassName="text-gray-500 hover:text-gray-900 font-medium"
+              >
+                {({ isActive }) => (
+                  <>
+                    <div className="relative flex items-center justify-center">
+                      <Icon
+                        className={`w-5 h-5 transition-transform ${
+                          isActive
+                            ? `scale-110 stroke-[2.5] ${roleBottomActiveColor[roleType]}`
+                            : "stroke-[1.75]"
+                        }`}
+                      />
+                      {item.badge && (
+                        <span
+                          className={`absolute -top-1.5 -right-2 text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center shadow-xs ${
+                            isActive
+                              ? roleActiveBadgeStyles[roleType]
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
+                      {item.label}
+                    </span>
+                    {isActive && (
+                      <span
+                        className={`w-1 h-1 rounded-full mt-0.5 ${roleBottomIndicator[roleType]}`}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+
+          {/* 5th Tab: "More / Menu" Toggle */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className={`flex flex-col items-center justify-center min-w-[56px] py-1 transition-all cursor-pointer ${
+              mobileOpen
+                ? `${roleBottomActiveColor[roleType]} font-bold`
+                : "text-gray-500 hover:text-gray-900 font-medium"
+            }`}
+            aria-label="Toggle Full Menu"
+          >
+            <div className="relative flex items-center justify-center">
+              {mobileOpen ? (
+                <X className="w-5 h-5 stroke-[2.2]" />
+              ) : (
+                <Menu className="w-5 h-5 stroke-[1.75]" />
+              )}
+              {navItems.slice(4).some((i) => !!i.badge) && !mobileOpen && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-600 border-2 border-white" />
+              )}
+            </div>
+            <span className="text-[10px] mt-1 tracking-tight">
+              {mobileOpen ? "Close" : "More"}
+            </span>
+            {mobileOpen && (
+              <span
+                className={`w-1 h-1 rounded-full mt-0.5 ${roleBottomIndicator[roleType]}`}
+              />
+            )}
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };

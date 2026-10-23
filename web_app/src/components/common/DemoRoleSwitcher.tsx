@@ -171,7 +171,7 @@ export const DemoRoleSwitcher = () => {
 
   if (isMinimized) {
     return (
-      <aside aria-label="Demo role switcher" className="fixed bottom-4 left-4 z-50">
+      <aside aria-label="Demo role switcher" className="fixed bottom-20 md:bottom-4 left-4 z-50">
         <button
           type="button"
           onClick={() => setIsMinimized(false)}
@@ -189,7 +189,7 @@ export const DemoRoleSwitcher = () => {
   }
 
   return (
-    <aside aria-label="Demo role switcher" className="fixed bottom-4 left-4 z-50 flex flex-col items-start select-none">
+    <aside aria-label="Demo role switcher" className="fixed bottom-20 md:bottom-4 left-4 z-50 flex flex-col items-start select-none">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="mb-2 bg-neutral-900 text-white text-xs px-3.5 py-2 rounded-xl shadow-xl border border-white/15 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">

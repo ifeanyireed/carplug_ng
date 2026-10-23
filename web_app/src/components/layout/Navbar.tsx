@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
+import { PublicBottomNav } from "./PublicBottomNav";
 
 const emptySubscribe = () => () => {};
 function useIsMounted(): boolean {
@@ -119,11 +120,12 @@ export const Navbar = ({
   }, []);
 
   return (
-    <header
-      className={`${
-        floating ? "fixed top-0 inset-x-0" : "sticky top-0 w-full"
-      } z-50 pt-3 sm:pt-4 pb-2 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-none transition-all duration-300`}
-    >
+    <>
+      <header
+        className={`${
+          floating ? "fixed top-0 inset-x-0" : "sticky top-0 w-full"
+        } z-50 pt-3 sm:pt-4 pb-2 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-none transition-all duration-300`}
+      >
       <nav
         ref={navRef}
         className={`pointer-events-auto transition-all duration-300 backdrop-blur-xl border rounded-xl px-4 sm:px-6 py-2 sm:py-2.5 text-white flex items-center justify-between ${
@@ -890,5 +892,7 @@ export const Navbar = ({
         </div>
       )}
     </header>
+    <PublicBottomNav />
+  </>
   );
 };

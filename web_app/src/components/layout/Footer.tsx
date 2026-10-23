@@ -294,7 +294,7 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
         </div>
 
         {/* Brand Watermark Graphic */}
-        <div className="w-full overflow-hidden pointer-events-none select-none mt-10 pb-12 sm:pb-20 flex items-center justify-center px-4">
+        <div className="w-full overflow-hidden pointer-events-none select-none mt-10 pb-24 sm:pb-20 flex items-center justify-center px-4">
           <RojoLogo variant="black" className="h-20 sm:h-32 md:h-44 lg:h-56 w-auto shrink-0 transition-transform opacity-20 sm:opacity-25" />
         </div>
       </div>

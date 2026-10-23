@@ -5,7 +5,7 @@ const crypto = require('crypto');
 
 const BASE_URL = process.env.API_URL || 'http://localhost:8080/api';
 const STANDARD_PASS = 'Carplug2026!';
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_carplug_dev_secret_key_2026';
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_c72d8273e6f39a8344209bc10cc89c9a12f1e9f6';
 let ipCounter = 900;
 
 function logHeader(title) {

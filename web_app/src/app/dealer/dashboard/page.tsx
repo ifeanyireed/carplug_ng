@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { Vehicle, Lead, DealerShop } from "@/data/mockStore";
-import { fetchDealerInventory, fetchVehicles, fetchLeads, fetchDealerBySlugOrId } from "@/services/api";
+import { fetchDealerInventory, fetchVehicles, fetchLeads, fetchDealerBySlugOrId, fetchDealerSubscription, DealerSubscriptionResponse } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Car,
@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
   RefreshCw,
   Loader2,
+  CreditCard,
 } from "lucide-react";
 
 export default function DealerDashboardPage() {
@@ -23,6 +24,7 @@ export default function DealerDashboardPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [shop, setShop] = useState<DealerShop | null>(null);
+  const [subscription, setSubscription] = useState<DealerSubscriptionResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const dealerId = useMemo(() => {
@@ -41,14 +43,19 @@ export default function DealerDashboardPage() {
 
     async function fetchDashboardData() {
       try {
-        // Parallel fetch for dealer details, inventory, and inbound leads
-        const [inventoryData, leadsData, shopData] = await Promise.all([
+        // Parallel fetch for dealer details, inventory, inbound leads, and subscription
+        const [inventoryData, leadsData, shopData, subData] = await Promise.all([
           fetchDealerInventory(dealerId).catch(() => []),
           fetchLeads().catch(() => []),
           fetchDealerBySlugOrId(dealerId).catch(() => undefined),
+          fetchDealerSubscription().catch(() => null),
         ]);
 
         if (!isMounted) return;
+
+        if (subData) {
+          setSubscription(subData);
+        }
 
         if (inventoryData && inventoryData.length > 0) {
           setVehicles(inventoryData);
@@ -128,6 +135,13 @@ export default function DealerDashboardPage() {
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-neutral-900" : ""}`} />
           </button>
           <Link
+            href="/dealer/subscription"
+            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-neutral-900 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-neutral-700" />
+            <span>Plan &amp; Billing</span>
+          </Link>
+          <Link
             href={`/shops/${shop?.slug || "reed-motors-lagos"}`}
             className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-neutral-900 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition"
           >
@@ -153,7 +167,9 @@ export default function DealerDashboardPage() {
           </div>
           <div className="text-2xl font-black text-neutral-900">
             {metrics.activeListingsCount}
-            <span className="text-xs font-normal text-gray-400 ml-1">/ 60 max</span>
+            <span className="text-xs font-normal text-gray-400 ml-1">
+              / {subscription?.listingsLimit ? (subscription.listingsLimit >= 9999 ? "Unlimited" : subscription.listingsLimit) : 60} max
+            </span>
           </div>
           <div className="text-[11px] text-emerald-700 font-semibold">
             {metrics.verifiedListings} listings carrying Certified Badges

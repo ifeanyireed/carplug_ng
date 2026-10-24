@@ -36,9 +36,31 @@ func GetTransactions(c *gin.Context) {
 	query := db.Model(&models.Transaction{})
 
 	if userRole != "admin" {
-		query = query.Where("user_id = ?", userID)
+		cleanID := strings.TrimPrefix(userID, "usr-")
+		userIDs := []string{userID, cleanID, "usr-" + cleanID}
+		var dealer models.DealerShop
+		if err := db.Where("user_id IN ? OR id IN ?", userIDs, userIDs).First(&dealer).Error; err == nil {
+			if dealer.ID != "" {
+				userIDs = append(userIDs, dealer.ID)
+			}
+			if dealer.UserID != "" {
+				userIDs = append(userIDs, dealer.UserID)
+			}
+		}
+		query = query.Where("user_id IN ? OR entity_id IN ?", userIDs, userIDs)
 	} else if filterUser := c.Query("userId"); filterUser != "" {
-		query = query.Where("user_id = ?", filterUser)
+		cleanID := strings.TrimPrefix(filterUser, "usr-")
+		userIDs := []string{filterUser, cleanID, "usr-" + cleanID}
+		var dealer models.DealerShop
+		if err := db.Where("user_id IN ? OR id IN ?", userIDs, userIDs).First(&dealer).Error; err == nil {
+			if dealer.ID != "" {
+				userIDs = append(userIDs, dealer.ID)
+			}
+			if dealer.UserID != "" {
+				userIDs = append(userIDs, dealer.UserID)
+			}
+		}
+		query = query.Where("user_id IN ? OR entity_id IN ?", userIDs, userIDs)
 	}
 
 	if txnType := c.Query("type"); txnType != "" && txnType != "all" {
@@ -113,11 +135,20 @@ func GetWallet(c *gin.Context) {
 	db := config.GetDB()
 	cleanID := strings.TrimPrefix(userID, "usr-")
 	userIDs := []string{userID, cleanID, "usr-" + cleanID}
+	var dealer models.DealerShop
+	if err := db.Where("user_id IN ? OR id IN ?", userIDs, userIDs).First(&dealer).Error; err == nil {
+		if dealer.ID != "" {
+			userIDs = append(userIDs, dealer.ID)
+		}
+		if dealer.UserID != "" {
+			userIDs = append(userIDs, dealer.UserID)
+		}
+	}
 
 	// 1. Total settled earnings (inflows)
 	var totalEarned int64
 	db.Model(&models.Transaction{}).
-		Where("user_id IN ? AND type != ? AND status = ?", userIDs, "tech_payout", "settled").
+		Where("(user_id IN ? OR entity_id IN ?) AND type != ? AND status = ?", userIDs, userIDs, "tech_payout", "settled").
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalEarned)
 
 	// 2. Prior payouts (settled or pending)
@@ -134,12 +165,12 @@ func GetWallet(c *gin.Context) {
 	// 3. Pending escrow
 	var pendingEscrow int64
 	db.Model(&models.Transaction{}).
-		Where("user_id IN ? AND type = ? AND status = ?", userIDs, "inspection_escrow", "held_in_escrow").
+		Where("(user_id IN ? OR entity_id IN ?) AND type = ? AND status = ?", userIDs, userIDs, "inspection_escrow", "held_in_escrow").
 		Select("COALESCE(SUM(amount), 0)").Row().Scan(&pendingEscrow)
 
 	// Fetch recent 50 transactions for display list
 	var txns []models.Transaction
-	if err := db.Where("user_id IN ?", userIDs).Order("created_at desc").Limit(50).Find(&txns).Error; err != nil {
+	if err := db.Where("user_id IN ? OR entity_id IN ?", userIDs, userIDs).Order("created_at desc").Limit(50).Find(&txns).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query wallet: " + err.Error()})
 		return
 	}
@@ -261,6 +292,16 @@ func InitializePayment(c *gin.Context) {
 		}
 	}
 
+	targetEntityID := req.EntityID
+	if req.Type == "dealer_subscription" && targetEntityID == "" {
+		var d models.DealerShop
+		if err := db.Where("user_id = ? OR id = ?", userID, userID).First(&d).Error; err == nil {
+			targetEntityID = d.ID
+		} else {
+			targetEntityID = userID
+		}
+	}
+
 	txn := models.Transaction{
 		ID:        "txn-" + strconv.FormatInt(time.Now().UnixNano(), 36),
 		Reference: reference,
@@ -270,7 +311,7 @@ func InitializePayment(c *gin.Context) {
 		UserRole:  userRole,
 		Type:      req.Type,
 		Title:     title,
-		EntityID:  req.EntityID,
+		EntityID:  targetEntityID,
 		Amount:    req.Amount,
 		Currency:  "NGN",
 		Gateway:   gateway,
@@ -285,7 +326,7 @@ func InitializePayment(c *gin.Context) {
 	}
 
 	// Downstream action: if dealer subscription, update or create dealer subscription
-	if req.Type == "dealer_subscription" && req.EntityID != "" {
+	if req.Type == "dealer_subscription" && targetEntityID != "" {
 		plan := "Pro Shop"
 		limit := 60
 		if req.Amount >= 150000 {
@@ -297,10 +338,10 @@ func InitializePayment(c *gin.Context) {
 		}
 
 		var sub models.Subscription
-		if err := db.Where("dealer_id = ?", req.EntityID).First(&sub).Error; err != nil {
+		if err := db.Where("dealer_id = ?", targetEntityID).First(&sub).Error; err != nil {
 			sub = models.Subscription{
 				ID:            "sub-" + strconv.FormatInt(time.Now().UnixNano(), 36),
-				DealerID:      req.EntityID,
+				DealerID:      targetEntityID,
 				Plan:          plan,
 				Status:        "active",
 				BillingCycle:  "monthly",
@@ -317,6 +358,9 @@ func InitializePayment(c *gin.Context) {
 			sub.ExpiresAt = time.Now().AddDate(0, 1, 0)
 			_ = db.Save(&sub).Error
 		}
+
+		_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", targetEntityID, targetEntityID).
+			Update("plan", plan).Error
 	}
 
 	checkoutURL := fmt.Sprintf("https://checkout.paystack.com/%s", reference)
@@ -583,13 +627,30 @@ func VerifyPayment(c *gin.Context) {
 			}
 		} else {
 			txn.Status = "settled"
-			if txn.Type == "dealer_subscription" && txn.EntityID != "" {
-				_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", txn.EntityID, txn.EntityID).
-					Update("plan", "Pro Shop").Error
-				_ = db.Model(&models.Subscription{}).Where("dealer_id = ?", txn.EntityID).
+			if txn.Type == "dealer_subscription" {
+				subEntityID := txn.EntityID
+				if subEntityID == "" {
+					subEntityID = txn.UserID
+				}
+				plan := "Pro Shop"
+				limit := 60
+				if txn.Amount >= 150000 {
+					plan = "Premium Shop"
+					limit = 9999
+				} else if txn.Amount <= 25000 {
+					plan = "Basic Shop"
+					limit = 15
+				}
+
+				_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", subEntityID, subEntityID).
+					Update("plan", plan).Error
+				_ = db.Model(&models.Subscription{}).Where("dealer_id = ?", subEntityID).
 					Updates(map[string]interface{}{
-						"status":     "active",
-						"expires_at": time.Now().AddDate(0, 1, 0),
+						"plan":           plan,
+						"listings_limit": limit,
+						"price":          float64(txn.Amount),
+						"status":         "active",
+						"expires_at":     time.Now().AddDate(0, 1, 0),
 					}).Error
 			}
 		}
@@ -661,13 +722,30 @@ func HandleWebhook(c *gin.Context) {
 				}
 			} else {
 				txn.Status = "settled"
-				if txn.Type == "dealer_subscription" && txn.EntityID != "" {
-					_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", txn.EntityID, txn.EntityID).
-						Update("plan", "Pro Shop").Error
-					_ = db.Model(&models.Subscription{}).Where("dealer_id = ?", txn.EntityID).
+				if txn.Type == "dealer_subscription" {
+					subEntityID := txn.EntityID
+					if subEntityID == "" {
+						subEntityID = txn.UserID
+					}
+					plan := "Pro Shop"
+					limit := 60
+					if txn.Amount >= 150000 {
+						plan = "Premium Shop"
+						limit = 9999
+					} else if txn.Amount <= 25000 {
+						plan = "Basic Shop"
+						limit = 15
+					}
+
+					_ = db.Model(&models.DealerShop{}).Where("id = ? OR user_id = ?", subEntityID, subEntityID).
+						Update("plan", plan).Error
+					_ = db.Model(&models.Subscription{}).Where("dealer_id = ?", subEntityID).
 						Updates(map[string]interface{}{
-							"status":     "active",
-							"expires_at": time.Now().AddDate(0, 1, 0),
+							"plan":           plan,
+							"listings_limit": limit,
+							"price":          float64(txn.Amount),
+							"status":         "active",
+							"expires_at":     time.Now().AddDate(0, 1, 0),
 						}).Error
 				}
 			}

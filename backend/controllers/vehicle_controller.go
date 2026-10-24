@@ -396,19 +396,43 @@ func CreateVehicle(c *gin.Context) {
 
 		// Enforce dealership subscription listing quota
 		dealerID := vehicle.SellerID
+		candidateIDs := []string{dealerID}
+		if shop.ID != "" && shop.ID != dealerID {
+			candidateIDs = append(candidateIDs, shop.ID)
+		}
+		if shop.UserID != "" && shop.UserID != dealerID {
+			candidateIDs = append(candidateIDs, shop.UserID)
+		}
+
 		var sub models.Subscription
 		listingsLimit := 3
-		if err := db.Where("dealer_id = ?", dealerID).First(&sub).Error; err == nil {
-			planLower := strings.ToLower(sub.Plan)
-			switch {
-			case strings.Contains(planLower, "basic"):
-				listingsLimit = 15
-			case strings.Contains(planLower, "pro"):
-				listingsLimit = 60
-			case strings.Contains(planLower, "premium") || strings.Contains(planLower, "enterprise") || strings.Contains(planLower, "unlimited"):
-				listingsLimit = 9999
-			default:
-				listingsLimit = 3
+		if err := db.Where("dealer_id IN ?", candidateIDs).Order("created_at desc").First(&sub).Error; err == nil {
+			// Check if subscription has expired beyond the 7-day grace period
+			isGracePeriod := false
+			isExpired := false
+			if !sub.ExpiresAt.IsZero() && time.Now().After(sub.ExpiresAt) {
+				if time.Now().Before(sub.ExpiresAt.AddDate(0, 0, 7)) {
+					isGracePeriod = true
+				} else {
+					isExpired = true
+				}
+			}
+			_ = isGracePeriod
+
+			if isExpired || sub.Status == "inactive" || sub.Status == "cancelled" {
+				listingsLimit = 3 // Downgraded to free starter showroom limit
+			} else {
+				planLower := strings.ToLower(sub.Plan)
+				switch {
+				case strings.Contains(planLower, "basic"):
+					listingsLimit = 15
+				case strings.Contains(planLower, "pro"):
+					listingsLimit = 60
+				case strings.Contains(planLower, "premium") || strings.Contains(planLower, "enterprise") || strings.Contains(planLower, "unlimited"):
+					listingsLimit = 9999
+				default:
+					listingsLimit = 3
+				}
 			}
 		} else {
 			planLower := strings.ToLower(shop.Plan)
@@ -425,11 +449,7 @@ func CreateVehicle(c *gin.Context) {
 		}
 
 		var currentCount int64
-		sellerIDs := []string{dealerID}
-		if shop.UserID != "" && shop.UserID != dealerID {
-			sellerIDs = append(sellerIDs, shop.UserID)
-		}
-		db.Model(&models.Vehicle{}).Where("seller_id IN ?", sellerIDs).Count(&currentCount)
+		db.Model(&models.Vehicle{}).Where("seller_id IN ?", candidateIDs).Count(&currentCount)
 
 		if int(currentCount) >= listingsLimit {
 			c.JSON(http.StatusForbidden, gin.H{

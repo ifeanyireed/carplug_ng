@@ -116,6 +116,7 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
             <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">Marketplace</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
               <li><Link href="/buyer/search" className="hover:text-black transition">Explore All Vehicles</Link></li>
+              <li><Link href="/buyer/garage" className="hover:text-black transition">My Garage &amp; Saved Cars</Link></li>
               <li><Link href="/swap" className="hover:text-black transition">Car Swap &amp; Trade-In</Link></li>
               <li><Link href="/buyer/compare" className="hover:text-black transition">Compare Vehicles</Link></li>
               <li><Link href="/buyer/concierge" className="hover:text-black transition">Concierge Sourcing</Link></li>
@@ -280,13 +281,13 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
               <Link href="/blog" className="hover:text-black font-medium transition">
                 Blog &amp; Editorial
               </Link>
-              <Link href="#" className="hover:text-black transition">
-                Terms & condition
+              <Link href="/terms" className="hover:text-black transition">
+                Terms &amp; Conditions
               </Link>
-              <Link href="#" className="hover:text-black transition">
+              <Link href="/privacy" className="hover:text-black transition">
                 Privacy Policy
               </Link>
-              <Link href="#" className="hover:text-black transition">
+              <Link href="/cookies" className="hover:text-black transition">
                 Cookie Policy
               </Link>
             </div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Vehicle } from "@/data/mockStore";
-import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages, fetchValuationEstimate, ValuationEstimateResult } from "@/services/api";
+import { createVehicle, updateVehicle, fetchVehicleById, uploadVehicleImages, fetchValuationEstimate, ValuationEstimateResult, fetchDealerSubscription } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Upload,
@@ -37,6 +37,30 @@ function AddVehicleWizardContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [priceValuation, setPriceValuation] = useState<ValuationEstimateResult | null>(null);
   const [isEvaluatingPrice, setIsEvaluatingPrice] = useState(false);
+  const [quotaInfo, setQuotaInfo] = useState<{
+    isAtQuota: boolean;
+    activeCount: number;
+    limit: number;
+    planName: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "dealer" && !isEditMode) {
+      fetchDealerSubscription()
+        .then((data) => {
+          if (data) {
+            const isAtQuota = data.activeListingsCount >= data.listingsLimit && data.listingsLimit < 9999;
+            setQuotaInfo({
+              isAtQuota,
+              activeCount: data.activeListingsCount,
+              limit: data.listingsLimit,
+              planName: data.subscription?.plan || "Starter Showroom",
+            });
+          }
+        })
+        .catch(() => null);
+    }
+  }, [user?.role, isEditMode]);
 
   const [formData, setFormData] = useState(() => {
     const qMake = searchParams.get("make");
@@ -336,6 +360,27 @@ function AddVehicleWizardContent() {
           ))}
         </div>
       </div>
+
+      {/* Showroom Quota Warning */}
+      {quotaInfo?.isAtQuota && (
+        <div className="p-5 bg-amber-50 border border-amber-200 rounded-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-sm text-amber-900">Showroom Listing Quota Reached</h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Your dealership has reached the capacity limit of <b>{quotaInfo.activeCount} / {quotaInfo.limit}</b> active vehicles under your <b>{quotaInfo.planName}</b> plan. Upgrade your plan to list additional inventory.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dealer/subscription"
+            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl shrink-0 transition flex items-center justify-center gap-1.5 shadow-xs"
+          >
+            Upgrade Plan
+          </Link>
+        </div>
+      )}
 
       {/* Wizard Content Card */}
       <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-10 shadow-xs">
@@ -754,6 +799,21 @@ function AddVehicleWizardContent() {
                   </div>
                 )}
 
+                {quotaInfo?.isAtQuota && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-semibold flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                      <span>Dealership quota reached ({quotaInfo.activeCount}/{quotaInfo.limit} listings). Upgrade subscription to publish this vehicle.</span>
+                    </div>
+                    <Link
+                      href="/dealer/subscription"
+                      className="px-3 py-1.5 bg-neutral-900 text-white rounded-xl text-xs font-bold hover:bg-neutral-800 shrink-0 self-start sm:self-auto"
+                    >
+                      Upgrade Plan
+                    </Link>
+                  </div>
+                )}
+
                 {publishError && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -801,13 +861,15 @@ function AddVehicleWizardContent() {
 
               <button
                 onClick={handleNext}
-                disabled={isPublishing}
+                disabled={isPublishing || (currentStep === 10 && Boolean(quotaInfo?.isAtQuota))}
                 className="px-6 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {isPublishing && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>
                   {currentStep === 10
-                    ? isPublishing
+                    ? quotaInfo?.isAtQuota
+                      ? "Quota Reached — Upgrade Plan"
+                      : isPublishing
                       ? isEditMode
                         ? "Saving Changes..."
                         : user?.role === "buyer"

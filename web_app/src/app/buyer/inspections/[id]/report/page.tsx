@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { fetchInspectionById } from "@/services/api";
+import { PublicAdBanner } from "@/components/common/PublicAdBanner";
 import { Share2, ArrowLeft } from "lucide-react";
 
 export default async function VehicleHealthReportPage({
@@ -175,6 +176,9 @@ export default async function VehicleHealthReportPage({
             </div>
           </div>
         </div>
+
+        {/* Co-Branded Vehicle Health Report Sponsor Ad Banner */}
+        <PublicAdBanner placement="Vehicle Health Report Sponsor" className="mt-8" />
       </main>
 
       <Footer />

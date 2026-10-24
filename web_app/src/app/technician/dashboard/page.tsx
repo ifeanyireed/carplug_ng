@@ -8,6 +8,7 @@ import {
   fetchTechnicianMeInspections,
   fetchWallet,
   fetchMyVerifications,
+  requestPayout,
   WalletResponse,
   VerificationItem,
 } from "@/services/api";
@@ -20,6 +21,10 @@ import {
   CheckCircle2,
   RefreshCw,
   Loader2,
+  Banknote,
+  X,
+  AlertCircle,
+  Building2,
 } from "lucide-react";
 
 export default function TechnicianDashboardPage() {
@@ -29,6 +34,70 @@ export default function TechnicianDashboardPage() {
   const [techVerification, setTechVerification] = useState<VerificationItem | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshIndex, setRefreshIndex] = useState<number>(0);
+
+  // Manual Payout Request State
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState("");
+  const [bankName, setBankName] = useState("Zenith Bank PLC");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [payoutMessage, setPayoutMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleOpenPayoutModal = () => {
+    setPayoutMessage(null);
+    setPayoutAmount(wallet?.balance ? String(wallet.balance) : "20000");
+    setAccountName(user?.name || "Musa Danladi");
+    setIsPayoutModalOpen(true);
+  };
+
+  const handlePayoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = Number(payoutAmount);
+    if (!amountNum || amountNum <= 0) {
+      setPayoutMessage({ type: "error", text: "Please enter a valid payout amount greater than zero." });
+      return;
+    }
+    if (wallet && amountNum > wallet.balance) {
+      setPayoutMessage({
+        type: "error",
+        text: `Requested amount (₦${amountNum.toLocaleString()}) exceeds available balance of ₦${wallet.balance.toLocaleString()}.`,
+      });
+      return;
+    }
+    if (!accountNumber || accountNumber.trim().length < 10) {
+      setPayoutMessage({ type: "error", text: "Please enter a valid 10-digit NUBAN bank account number." });
+      return;
+    }
+    if (!accountName.trim()) {
+      setPayoutMessage({ type: "error", text: "Please enter the account beneficiary name as on bank record." });
+      return;
+    }
+
+    setPayoutSubmitting(true);
+    setPayoutMessage(null);
+    try {
+      const res = await requestPayout({
+        amount: amountNum,
+        bankName,
+        accountNumber: accountNumber.trim(),
+        accountName: accountName.trim(),
+      });
+      setPayoutMessage({
+        type: "success",
+        text: res.message || "Payout requested successfully! Queued for Super Admin settlement.",
+      });
+      setTimeout(() => {
+        setIsPayoutModalOpen(false);
+        handleRefresh();
+      }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to submit payout request.";
+      setPayoutMessage({ type: "error", text: msg });
+    } finally {
+      setPayoutSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -154,9 +223,19 @@ export default function TechnicianDashboardPage() {
           <div className="text-2xl font-black text-neutral-900">
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-gray-400 mt-1" /> : formatNaira(wallet?.balance ?? 125000)}
           </div>
-          <span className="text-[11px] text-emerald-600 font-semibold block">
-            Ready for instant bank transfer
-          </span>
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-[11px] text-emerald-600 font-semibold block">
+              Ready for instant bank transfer
+            </span>
+            <button
+              onClick={handleOpenPayoutModal}
+              disabled={(wallet?.balance ?? 0) <= 0}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+            >
+              <Banknote className="w-3.5 h-3.5" />
+              <span>Withdraw</span>
+            </button>
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-1">
@@ -257,6 +336,148 @@ export default function TechnicianDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Manual Payout Request Modal */}
+      {isPayoutModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-200 max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-neutral-900">Request Bank Withdrawal</h3>
+                  <p className="text-xs text-gray-500">Disbursed via instant NIP settlement</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPayoutModalOpen(false)}
+                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {payoutMessage && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-start gap-2 ${
+                  payoutMessage.type === "success"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-red-50 text-red-800 border border-red-200"
+                }`}
+              >
+                {payoutMessage.type === "success" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                )}
+                <span>{payoutMessage.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePayoutSubmit} className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-700 mb-1.5">
+                  <span>Withdrawal Amount (₦)</span>
+                  <span className="text-gray-400">
+                    Max: <b className="text-neutral-900">₦{(wallet?.balance ?? 0).toLocaleString()}</b>
+                  </span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
+                  <input
+                    type="number"
+                    required
+                    min={1000}
+                    max={wallet?.balance ?? 10000000}
+                    value={payoutAmount}
+                    onChange={(e) => setPayoutAmount(e.target.value)}
+                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Enter amount"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Destination Bank</label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <select
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  >
+                    <option value="Zenith Bank PLC">Zenith Bank PLC</option>
+                    <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
+                    <option value="Access Bank PLC">Access Bank PLC</option>
+                    <option value="First Bank of Nigeria">First Bank of Nigeria</option>
+                    <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
+                    <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
+                    <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
+                    <option value="Fidelity Bank PLC">Fidelity Bank PLC</option>
+                    <option value="Opay / Paycom">Opay / Paycom</option>
+                    <option value="Palmpay">Palmpay</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">NUBAN Account Number (10 Digits)</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="e.g. 2081192834"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Beneficiary Account Name</label>
+                <input
+                  type="text"
+                  required
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="e.g. Musa Danladi"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPayoutModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={payoutSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-xs font-bold text-white transition flex items-center gap-2 cursor-pointer shadow-xs"
+                >
+                  {payoutSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Banknote className="w-3.5 h-3.5" />
+                      <span>Submit Withdrawal Request</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

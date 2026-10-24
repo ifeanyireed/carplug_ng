@@ -5,6 +5,7 @@ import {
   InspectionReport,
   Lead,
 } from "@/data/mockStore";
+import { getTierLimit } from "./SubscriptionHelper";
 
 function resolveApiBaseUrl(): string {
   let raw = (process.env.NEXT_PUBLIC_API_URL || "").trim();
@@ -986,7 +987,13 @@ export async function fetchDealerSubscription(): Promise<DealerSubscriptionRespo
       signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) return null;
-    return await res.json();
+    const data: DealerSubscriptionResponse = await res.json();
+    if (data && data.subscription) {
+      const canonicalLimit = getTierLimit(data.subscription.plan);
+      data.listingsLimit = canonicalLimit;
+      data.subscription.listingsLimit = canonicalLimit;
+    }
+    return data;
   } catch {
     return null;
   }
@@ -2132,7 +2139,7 @@ export async function requestPayout(payload: {
   bankName: string;
   accountNumber: string;
   accountName: string;
-}): Promise<{ message: string; transaction: TransactionItem }> {
+}): Promise<{ message: string; transaction: TransactionItem; availableBalance?: number }> {
   const res = await fetch(`${API_BASE_URL}/payments/payout`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -2141,6 +2148,28 @@ export async function requestPayout(payload: {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || "Failed to request payout settlement");
+  }
+  return await res.json();
+}
+
+/**
+ * Super Admin review & approval/rejection of technician bank payouts.
+ */
+export async function updatePayoutStatus(
+  id: string,
+  payload: {
+    status: "settled" | "failed" | "refunded" | "pending";
+    notes?: string;
+  }
+): Promise<{ message: string; transaction: TransactionItem }> {
+  const res = await fetch(`${API_BASE_URL}/payments/payouts/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update payout settlement status");
   }
   return await res.json();
 }

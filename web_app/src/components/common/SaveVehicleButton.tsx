@@ -37,6 +37,7 @@ export const SaveVehicleButton: React.FC<SaveVehicleButtonProps> = ({
     const normalizedVehicle: SavedVehicleItem = {
       ...vehicle,
       id: vehicle.id,
+      title: vTitle || vName || `${vMake} ${vModel}`.trim(),
       make:
         vMake ||
         (vName

@@ -13,6 +13,7 @@ import {
   BlogCategory,
   BlogTag,
 } from "@/services/api";
+import { PublicAdBanner } from "@/components/common/PublicAdBanner";
 import {
   Search,
   BookOpen,
@@ -244,6 +245,9 @@ export default function BlogIndexClient() {
                 </div>
               </div>
             )}
+
+            {/* Public Editorial Ad Leaderboard Banner */}
+            <PublicAdBanner placement="Category Header Leaderboard" className="my-4" />
 
             {/* Articles Grid (3 columns) */}
             <div className="space-y-6">

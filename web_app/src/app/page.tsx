@@ -19,6 +19,7 @@ import { CarListing } from "@/data/mockCars";
 import { Vehicle } from "@/data/mockStore";
 import { fetchVehicles } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
+import { PublicAdBanner } from "@/components/common/PublicAdBanner";
 
 function adaptVehicleToCarListing(v: Vehicle): CarListing {
   const isNew = v.condition.toLowerCase().includes("brand new");
@@ -313,6 +314,11 @@ export default function HomePage() {
         <ExploreVehiclesSection
           onSelectCar={handleSelectExploreCar}
         />
+
+        {/* Homepage Brand Spotlight Public Ad Banner */}
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-10">
+          <PublicAdBanner placement="Homepage Brand Spotlight" />
+        </div>
 
         {/* Exploring Best Selling Cars Makes Section from UI8.webp */}
         <BestSellingMakesSection onSelectMake={handleSelectBrand} />

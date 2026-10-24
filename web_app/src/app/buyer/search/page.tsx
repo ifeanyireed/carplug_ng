@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
+import { PublicAdBanner } from "@/components/common/PublicAdBanner";
 
 type TierFilter = "all" | "3" | "4" | "5";
 type PriceRatingFilter = "all" | "deal" | "fair";
@@ -195,6 +196,9 @@ function BuyerSearchContent() {
             </Link>
           </div>
         </div>
+
+        {/* Public Category Header Ad Banner */}
+        <PublicAdBanner placement="Category Header Leaderboard" className="mb-6" />
 
         {/* Outer White Card Enclosing Toggle & Cars Grid */}
         <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-7 lg:p-8 shadow-sm space-y-6">

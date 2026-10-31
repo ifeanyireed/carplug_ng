@@ -149,8 +149,9 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
             <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">Resources &amp; Trust</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
               <li><Link href="/pricing" className="text-neutral-900 font-semibold hover:text-emerald-700 transition">Pricing &amp; Subscriptions</Link></li>
-              <li><Link href="/blog" className="hover:text-black transition">Blog &amp; Auto Editorial</Link></li>
-              <li><Link href="/admin/dashboard" className="hover:text-black transition">Super Admin Console</Link></li>
+              <li><Link href="/acceptable-use" className="hover:text-black transition">Acceptable Use Policy</Link></li>
+              <li><Link href="/shipping-policy" className="hover:text-black transition">Shipping &amp; Collection Policy</Link></li>
+              <li><Link href="/refund-policy" className="hover:text-black transition">Returns &amp; Refunds Policy</Link></li>
               <li><Link href="/shops" className="hover:text-black transition">CAC Verification Standards</Link></li>
             </ul>
           </div>
@@ -274,21 +275,24 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
               © 2026 mycarsNg. All Rights Reserved
             </div>
 
-            <div className="flex items-center gap-6">
-              <Link href="/pricing" className="text-emerald-700 hover:text-emerald-900 font-bold transition">
-                Dealer Pricing &amp; Plans
-              </Link>
-              <Link href="/blog" className="hover:text-black font-medium transition">
-                Blog &amp; Editorial
-              </Link>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2 text-xs">
               <Link href="/terms" className="hover:text-black transition">
-                Terms &amp; Conditions
+                Terms of Service
+              </Link>
+              <Link href="/acceptable-use" className="hover:text-black transition">
+                Acceptable Use
               </Link>
               <Link href="/privacy" className="hover:text-black transition">
                 Privacy Policy
               </Link>
               <Link href="/cookies" className="hover:text-black transition">
                 Cookie Policy
+              </Link>
+              <Link href="/shipping-policy" className="hover:text-black transition">
+                Shipping &amp; Collection
+              </Link>
+              <Link href="/refund-policy" className="hover:text-black transition">
+                Returns &amp; Refunds
               </Link>
             </div>
           </div>

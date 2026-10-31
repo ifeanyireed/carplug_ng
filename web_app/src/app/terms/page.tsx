@@ -196,9 +196,12 @@ export default function TermsOfServicePage() {
                   <b>Disbursement:</b> Funds are only released to the certified technician after their verified 150-point report, diagnostic scan codes, and high-resolution undercarriage media are completed and validated.
                 </li>
                 <li>
-                  <b>Cancellations &amp; Rescheduling:</b> A buyer may reschedule or cancel an audit with full refund up to 3 hours prior to technician dispatch. Once a technician has mobilized, a mobilization fee of ₦5,000 applies.
+                  <b>Cancellations &amp; Rescheduling:</b> A buyer may reschedule or cancel an audit with full refund up to 3 hours prior to technician dispatch. Once a technician has mobilized, a mobilization fee of ₦5,000 applies. Detailed cancellation and refund rules are governed by our <Link href="/refund-policy" className="text-blue-600 underline font-semibold">Returns &amp; Refunds Policy</Link>.
                 </li>
               </ul>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-900 mt-2">
+                <b>Clarification on Vehicle Purchases:</b> The escrow mechanism described above applies exclusively to third-party diagnostic inspection service fees. <b>mycarsNg does not collect, receive, hold, or escrow vehicle purchase funds on behalf of vehicle owners or dealerships.</b> Vehicle purchase payments and ownership handovers are arranged directly between buyers and sellers outside our platform as set forth in our <Link href="/shipping-policy" className="text-blue-600 underline font-semibold">Shipping &amp; Vehicle Collection Policy</Link> and <Link href="/acceptable-use" className="text-blue-600 underline font-semibold">Acceptable Use Policy</Link>.
+              </div>
             </section>
 
             {/* Section 6 */}

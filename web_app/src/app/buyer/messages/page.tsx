@@ -9,10 +9,12 @@ import { Footer } from "@/components/layout/Footer";
 import { useAuth } from "@/context/AuthContext";
 import {
   fetchConversations,
+  fetchConversationById,
   fetchMessages,
   sendMessage,
   startConversation,
   getWebSocketUrl,
+  getAuthToken,
   Conversation,
   ChatMessage,
 } from "@/services/api";
@@ -51,6 +53,11 @@ export default function BuyerMessagesPage() {
   const wsRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const activeConvId = activeConv?.id;
+  const activeConvIdRef = useRef<string | undefined>(activeConvId);
+
+  useEffect(() => {
+    activeConvIdRef.current = activeConvId;
+  }, [activeConvId]);
 
   // Auto-scroll messages container
   const scrollToBottom = () => {
@@ -78,11 +85,22 @@ export default function BuyerMessagesPage() {
           const matched = list.find((c) => c.id === targetId || c.vehicleId === targetId);
           if (matched) {
             setActiveConv(matched);
+          } else if (targetId.startsWith("conv_")) {
+            // It's a specific conversation ID: retrieve directly
+            try {
+              const directConv = await fetchConversationById(targetId);
+              if (isMounted && directConv) {
+                setActiveConv(directConv);
+                list = [directConv, ...list.filter((c) => c.id !== directConv.id)];
+              }
+            } catch (err) {
+              console.warn("Could not load direct conversation by id:", err);
+            }
           } else {
             // It's a vehicle ID: initiate or retrieve conversation
             try {
               const conv = await startConversation(targetId);
-              if (isMounted) {
+              if (isMounted && conv) {
                 setActiveConv(conv);
                 list = await fetchConversations();
               }
@@ -146,24 +164,31 @@ export default function BuyerMessagesPage() {
     let isSubscribed = true;
     let ws: WebSocket | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
+    let retryCount = 0;
 
     function connect() {
+      const token = getAuthToken();
+      if (!token) return;
       try {
         const url = getWebSocketUrl();
         ws = new WebSocket(url);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          if (isSubscribed) setIsWsConnected(true);
+          if (isSubscribed) {
+            setIsWsConnected(true);
+            retryCount = 0;
+          }
         };
 
         ws.onmessage = (event) => {
           if (!isSubscribed) return;
           try {
             const data = JSON.parse(event.data);
+            const currentActiveId = activeConvIdRef.current;
             if (data.type === "new_message" && data.message) {
               const newMsg: ChatMessage = data.message;
-              if (data.conversationId === activeConvId) {
+              if (data.conversationId === currentActiveId) {
                 setMessages((prev) => {
                   if (prev.some((m) => m.id === newMsg.id)) return prev;
                   return [...prev, newMsg];
@@ -177,12 +202,12 @@ export default function BuyerMessagesPage() {
                         ...c,
                         lastMessage: newMsg.body,
                         lastMessageAt: newMsg.createdAt,
-                        unreadCount: c.id === activeConvId ? 0 : (c.unreadCount || 0) + 1,
+                        unreadCount: c.id === currentActiveId ? 0 : (c.unreadCount || 0) + 1,
                       }
                     : c
                 )
               );
-            } else if (data.type === "user_typing" && data.conversationId === activeConvId) {
+            } else if (data.type === "user_typing" && data.conversationId === currentActiveId) {
               setTypingUser(data.userName || "Participant");
               if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
               typingTimeoutRef.current = setTimeout(() => {
@@ -197,7 +222,11 @@ export default function BuyerMessagesPage() {
         ws.onclose = () => {
           if (isSubscribed) {
             setIsWsConnected(false);
-            reconnectTimeout = setTimeout(connect, 3000);
+            if (retryCount < 5) {
+              const delay = Math.min(1000 * Math.pow(2, retryCount), 15000);
+              retryCount++;
+              reconnectTimeout = setTimeout(connect, delay);
+            }
           }
         };
 
@@ -209,7 +238,11 @@ export default function BuyerMessagesPage() {
         };
       } catch {
         if (isSubscribed) {
-          reconnectTimeout = setTimeout(connect, 4000);
+          if (retryCount < 5) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 15000);
+            retryCount++;
+            reconnectTimeout = setTimeout(connect, delay);
+          }
         }
       }
     }
@@ -224,7 +257,7 @@ export default function BuyerMessagesPage() {
         wsRef.current = null;
       }
     };
-  }, [isAuthenticated, activeConvId]);
+  }, [isAuthenticated, user?.id]);
 
   // 4. Background polling fallback (relaxed to 15s since WebSocket handles real time)
   useEffect(() => {
@@ -389,7 +422,12 @@ export default function BuyerMessagesPage() {
                         onClick={() => {
                           setActiveConv(conv);
                           setMessages([]);
-                          router.push(`/buyer/messages/${conv.id}`);
+                          setConversations((prev) =>
+                            prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c))
+                          );
+                          if (typeof window !== "undefined") {
+                            window.history.replaceState(null, "", `/buyer/messages/${conv.id}`);
+                          }
                         }}
                         className={`w-full p-3.5 text-left transition flex items-start gap-3 ${
                           isSelected

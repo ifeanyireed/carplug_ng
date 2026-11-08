@@ -44,6 +44,7 @@ type WSClient struct {
 	Hub      *WSHub
 	Conn     *websocket.Conn
 	UserID   string
+	AliasIDs []string
 	UserName string
 	UserRole string
 	Send     chan []byte
@@ -102,10 +103,16 @@ func (h *WSHub) Run() {
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client] = true
-			if _, ok := h.userClients[client.UserID]; !ok {
-				h.userClients[client.UserID] = make(map[*WSClient]bool)
+			allIDs := append([]string{client.UserID}, client.AliasIDs...)
+			for _, uid := range allIDs {
+				if uid == "" {
+					continue
+				}
+				if _, ok := h.userClients[uid]; !ok {
+					h.userClients[uid] = make(map[*WSClient]bool)
+				}
+				h.userClients[uid][client] = true
 			}
-			h.userClients[client.UserID][client] = true
 			h.mu.Unlock()
 			log.Printf("[WebSocket] User connected: %s (%s). Active connections: %d\n", client.UserName, client.UserID, len(h.clients))
 
@@ -114,10 +121,13 @@ func (h *WSHub) Run() {
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.Send)
-				if userConns, ok := h.userClients[client.UserID]; ok {
-					delete(userConns, client)
-					if len(userConns) == 0 {
-						delete(h.userClients, client.UserID)
+				allIDs := append([]string{client.UserID}, client.AliasIDs...)
+				for _, uid := range allIDs {
+					if userConns, ok := h.userClients[uid]; ok {
+						delete(userConns, client)
+						if len(userConns) == 0 {
+							delete(h.userClients, uid)
+						}
 					}
 				}
 				log.Printf("[WebSocket] User disconnected: %s (%s). Remaining connections: %d\n", client.UserName, client.UserID, len(h.clients))
@@ -153,13 +163,28 @@ func (h *WSHub) BroadcastToUsers(userIDs []string, event WSOutgoingEvent) {
 
 // BroadcastMessageToConversation notifies both the buyer and seller of a newly created message
 func BroadcastMessageToConversation(convID string, buyerID string, sellerID string, msg models.Message) {
+	db := config.GetDB()
+	recipientIDsMap := make(map[string]bool)
+
+	for _, id := range resolveUserParticipantIDs(db, buyerID) {
+		recipientIDsMap[id] = true
+	}
+	for _, id := range resolveUserParticipantIDs(db, sellerID) {
+		recipientIDsMap[id] = true
+	}
+
+	var allRecipients []string
+	for id := range recipientIDsMap {
+		allRecipients = append(allRecipients, id)
+	}
+
 	event := WSOutgoingEvent{
 		Type:           "new_message",
 		ConversationID: convID,
 		Message:        msg,
 		Timestamp:      time.Now().Format(time.RFC3339),
 	}
-	GlobalWSHub.BroadcastToUsers([]string{buyerID, sellerID}, event)
+	GlobalWSHub.BroadcastToUsers(allRecipients, event)
 }
 
 // ReadPump pumps messages from the websocket connection to the hub.
@@ -202,17 +227,30 @@ func (c *WSClient) ReadPump() {
 			}
 			var conv models.Conversation
 			if err := db.Where("id = ?", inMsg.ConversationID).First(&conv).Error; err == nil {
-				targetUserID := conv.SellerID
-				if c.UserID == conv.SellerID {
-					targetUserID = conv.BuyerID
+				participantIDs := resolveUserParticipantIDs(db, c.UserID)
+				if isUserParticipant(&conv, participantIDs, c.UserRole) {
+					var otherPartyID string
+					isBuyer := false
+					for _, pid := range participantIDs {
+						if pid == conv.BuyerID {
+							isBuyer = true
+							break
+						}
+					}
+					if isBuyer {
+						otherPartyID = conv.SellerID
+					} else {
+						otherPartyID = conv.BuyerID
+					}
+					recipientIDs := resolveUserParticipantIDs(db, otherPartyID)
+					c.Hub.BroadcastToUsers(recipientIDs, WSOutgoingEvent{
+						Type:           "user_typing",
+						ConversationID: conv.ID,
+						UserID:         c.UserID,
+						UserName:       c.UserName,
+						Timestamp:      time.Now().Format(time.RFC3339),
+					})
 				}
-				c.Hub.BroadcastToUsers([]string{targetUserID}, WSOutgoingEvent{
-					Type:           "user_typing",
-					ConversationID: conv.ID,
-					UserID:         c.UserID,
-					UserName:       c.UserName,
-					Timestamp:      time.Now().Format(time.RFC3339),
-				})
 			}
 
 		case "chat_message":
@@ -226,7 +264,8 @@ func (c *WSClient) ReadPump() {
 			if err := db.Where("id = ?", inMsg.ConversationID).First(&conv).Error; err != nil {
 				continue
 			}
-			if conv.BuyerID != c.UserID && conv.SellerID != c.UserID && c.UserRole != "admin" {
+			participantIDs := resolveUserParticipantIDs(db, c.UserID)
+			if !isUserParticipant(&conv, participantIDs, c.UserRole) {
 				continue
 			}
 
@@ -340,10 +379,13 @@ func HandleWebSocket(c *gin.Context) {
 		return
 	}
 
+	participantIDs := resolveUserParticipantIDs(db, claims.UserID)
+
 	client := &WSClient{
 		Hub:      GlobalWSHub,
 		Conn:     conn,
 		UserID:   claims.UserID,
+		AliasIDs: participantIDs,
 		UserName: userName,
 		UserRole: claims.Role,
 		Send:     make(chan []byte, 256),

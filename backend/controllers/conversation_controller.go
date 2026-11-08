@@ -11,6 +11,7 @@ import (
 	"github.com/ifeanyireed/carplug_ng/backend/config"
 	"github.com/ifeanyireed/carplug_ng/backend/models"
 	"github.com/ifeanyireed/carplug_ng/backend/utils"
+	"gorm.io/gorm"
 )
 
 type StartConversationRequest struct {
@@ -20,6 +21,66 @@ type StartConversationRequest struct {
 
 type SendMessageRequest struct {
 	Body string `json:"body" binding:"required"`
+}
+
+// resolveUserParticipantIDs returns all identifiers that can represent a user in conversations,
+// including their primary user ID, dealer shop ID(s), slug(s), and stripped/prefixed variations.
+func resolveUserParticipantIDs(db *gorm.DB, userID string) []string {
+	if userID == "" {
+		return nil
+	}
+
+	idsMap := make(map[string]bool)
+	idsMap[userID] = true
+
+	// Handle prefix variations (e.g. usr-dealer-reed -> dealer-reed, reed)
+	trimmed := strings.TrimPrefix(userID, "usr-")
+	if trimmed != "" && trimmed != userID {
+		idsMap[trimmed] = true
+		idsMap["dealer-"+trimmed] = true
+		idsMap["seller-"+trimmed] = true
+	}
+	if strings.HasPrefix(userID, "dealer-") {
+		idsMap["usr-"+userID] = true
+	}
+	if strings.HasPrefix(userID, "seller-") {
+		idsMap["usr-"+userID] = true
+	}
+
+	// Check if this user is associated with any dealer shop
+	var shops []models.DealerShop
+	if err := db.Where("user_id = ? OR id = ? OR slug = ?", userID, userID, userID).Find(&shops).Error; err == nil {
+		for _, s := range shops {
+			if s.ID != "" {
+				idsMap[s.ID] = true
+			}
+			if s.UserID != "" {
+				idsMap[s.UserID] = true
+			}
+			if s.Slug != "" {
+				idsMap[s.Slug] = true
+			}
+		}
+	}
+
+	var result []string
+	for id := range idsMap {
+		result = append(result, id)
+	}
+	return result
+}
+
+// isUserParticipant checks whether any of the user's participant IDs match the conversation participants.
+func isUserParticipant(conv *models.Conversation, participantIDs []string, userRole string) bool {
+	if userRole == "admin" {
+		return true
+	}
+	for _, id := range participantIDs {
+		if conv.BuyerID == id || conv.SellerID == id || (conv.DealerID != "" && conv.DealerID == id) {
+			return true
+		}
+	}
+	return false
 }
 
 // StartConversation starts or returns an existing conversation for a vehicle listing.
@@ -46,9 +107,12 @@ func StartConversation(c *gin.Context) {
 	}
 
 	// 2. Prevent buyer from starting conversation with themselves
-	if vehicle.SellerID == userID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "You cannot start a conversation regarding your own vehicle listing"})
-		return
+	participantIDs := resolveUserParticipantIDs(db, userID)
+	for _, pid := range participantIDs {
+		if vehicle.SellerID == pid {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "You cannot start a conversation regarding your own vehicle listing"})
+			return
+		}
 	}
 
 	// 3. Fetch Buyer User
@@ -118,7 +182,7 @@ func StartConversation(c *gin.Context) {
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
-	if vehicle.SellerType == "dealer" {
+	if vehicle.SellerType == "dealer" || strings.HasPrefix(vehicle.SellerID, "dealer-") || strings.HasPrefix(vehicle.SellerID, "dlr-") {
 		conv.DealerID = vehicle.SellerID
 	}
 
@@ -195,14 +259,17 @@ func GetConversations(c *gin.Context) {
 		return
 	}
 
-	userRole, _ := c.Get("userRole")
+	userRoleVal, _ := c.Get("userRole")
+	userRole, _ := userRoleVal.(string)
 	db := config.GetDB()
+
+	participantIDs := resolveUserParticipantIDs(db, userID)
 
 	var conversations []models.Conversation
 	query := db.Model(&models.Conversation{})
 
 	if userRole != "admin" {
-		query = query.Where("buyer_id = ? OR seller_id = ?", userID, userID)
+		query = query.Where("buyer_id IN (?) OR seller_id IN (?) OR dealer_id IN (?)", participantIDs, participantIDs, participantIDs)
 	}
 
 	if err := query.Order("COALESCE(last_message_at, updated_at, created_at) DESC").Find(&conversations).Error; err != nil {
@@ -214,7 +281,7 @@ func GetConversations(c *gin.Context) {
 	for i := range conversations {
 		var unread int64
 		db.Model(&models.Message{}).
-			Where("conversation_id = ? AND sender_id != ? AND read_at IS NULL", conversations[i].ID, userID).
+			Where("conversation_id = ? AND sender_id NOT IN (?) AND read_at IS NULL", conversations[i].ID, participantIDs).
 			Count(&unread)
 		conversations[i].UnreadCount = int(unread)
 	}
@@ -231,7 +298,8 @@ func GetConversationByID(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-	userRole, _ := c.Get("userRole")
+	userRoleVal, _ := c.Get("userRole")
+	userRole, _ := userRoleVal.(string)
 	db := config.GetDB()
 
 	var conv models.Conversation
@@ -240,8 +308,10 @@ func GetConversationByID(c *gin.Context) {
 		return
 	}
 
+	participantIDs := resolveUserParticipantIDs(db, userID)
+
 	// Participation check
-	if userRole != "admin" && conv.BuyerID != userID && conv.SellerID != userID {
+	if !isUserParticipant(&conv, participantIDs, userRole) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to view this conversation"})
 		return
 	}
@@ -249,7 +319,7 @@ func GetConversationByID(c *gin.Context) {
 	// Compute unread count
 	var unread int64
 	db.Model(&models.Message{}).
-		Where("conversation_id = ? AND sender_id != ? AND read_at IS NULL", conv.ID, userID).
+		Where("conversation_id = ? AND sender_id NOT IN (?) AND read_at IS NULL", conv.ID, participantIDs).
 		Count(&unread)
 	conv.UnreadCount = int(unread)
 
@@ -265,7 +335,8 @@ func GetMessages(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-	userRole, _ := c.Get("userRole")
+	userRoleVal, _ := c.Get("userRole")
+	userRole, _ := userRoleVal.(string)
 	db := config.GetDB()
 
 	// 1. Verify Conversation Existence & Participation
@@ -275,7 +346,9 @@ func GetMessages(c *gin.Context) {
 		return
 	}
 
-	if userRole != "admin" && conv.BuyerID != userID && conv.SellerID != userID {
+	participantIDs := resolveUserParticipantIDs(db, userID)
+
+	if !isUserParticipant(&conv, participantIDs, userRole) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to view messages in this conversation"})
 		return
 	}
@@ -283,7 +356,7 @@ func GetMessages(c *gin.Context) {
 	// 2. Mark incoming messages as read
 	now := time.Now()
 	_ = db.Model(&models.Message{}).
-		Where("conversation_id = ? AND sender_id != ? AND read_at IS NULL", id, userID).
+		Where("conversation_id = ? AND sender_id NOT IN (?) AND read_at IS NULL", id, participantIDs).
 		Update("read_at", &now)
 
 	// 3. Fetch messages
@@ -308,7 +381,8 @@ func SendMessage(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-	userRole, _ := c.Get("userRole")
+	userRoleVal, _ := c.Get("userRole")
+	userRole, _ := userRoleVal.(string)
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.Body) == "" {
@@ -325,7 +399,9 @@ func SendMessage(c *gin.Context) {
 		return
 	}
 
-	if userRole != "admin" && conv.BuyerID != userID && conv.SellerID != userID {
+	participantIDs := resolveUserParticipantIDs(db, userID)
+
+	if !isUserParticipant(&conv, participantIDs, userRole) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to send messages in this conversation"})
 		return
 	}
@@ -335,6 +411,11 @@ func SendMessage(c *gin.Context) {
 	if err := db.Where("id = ?", userID).First(&sender).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load sender details"})
 		return
+	}
+
+	senderRole := sender.Role
+	if senderRole == "" {
+		senderRole = userRole
 	}
 
 	// 3. Create Message
@@ -347,7 +428,7 @@ func SendMessage(c *gin.Context) {
 		ConversationID: conv.ID,
 		SenderID:       userID,
 		SenderName:     sender.Name,
-		SenderRole:     sender.Role,
+		SenderRole:     senderRole,
 		Body:           bodyClean,
 		CreatedAt:      now,
 		UpdatedAt:      now,

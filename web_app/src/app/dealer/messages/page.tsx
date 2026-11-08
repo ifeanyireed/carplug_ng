@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   fetchConversations,
   fetchMessages,
   sendMessage,
+  getWebSocketUrl,
+  getAuthToken,
   Conversation,
   ChatMessage,
 } from "@/services/api";
@@ -19,21 +22,34 @@ import {
   ExternalLink,
   CheckCheck,
   RefreshCw,
+  Radio,
 } from "lucide-react";
 
 export default function DealerMessagesPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const searchParams = useSearchParams();
+  const targetConvId = searchParams?.get("id") || searchParams?.get("conv");
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
-  const [isLoadingConvs, setIsLoadingConvs] = useState(false);
+  const [isLoadingConvs, setIsLoadingConvs] = useState(true);
   const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [pollTrigger, setPollTrigger] = useState(0);
+  const [isWsConnected, setIsWsConnected] = useState(false);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const activeConvId = activeConv?.id;
+  const activeConvIdRef = useRef<string | undefined>(activeConvId);
+
+  useEffect(() => {
+    activeConvIdRef.current = activeConvId;
+  }, [activeConvId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,18 +61,25 @@ export default function DealerMessagesPage() {
 
   // Load Dealer's Inbound Conversations
   useEffect(() => {
+    if (!isAuthenticated) return;
     let isMounted = true;
 
     async function loadConversations() {
+      setIsLoadingConvs(true);
       try {
         const list = await fetchConversations();
         if (!isMounted) return;
         setConversations(list);
         if (list.length > 0) {
-          setActiveConv((prev) => prev || list[0]);
+          const target = targetConvId
+            ? list.find((c) => c.id === targetConvId || c.vehicleId === targetConvId)
+            : null;
+          setActiveConv((prev) => target || prev || list[0]);
         }
       } catch (err) {
         console.warn("Failed to load dealer conversations:", err);
+      } finally {
+        if (isMounted) setIsLoadingConvs(false);
       }
     }
 
@@ -65,7 +88,7 @@ export default function DealerMessagesPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id, isAuthenticated, targetConvId]);
 
   // Load Messages for Active Thread
   useEffect(() => {
@@ -94,22 +117,137 @@ export default function DealerMessagesPage() {
     };
   }, [activeConvId]);
 
-  // Background Polling for New Inbound Buyer Messages
+  // Real-Time Duplex WebSocket Connection
   useEffect(() => {
-    if (!activeConvId) return;
+    if (!isAuthenticated) return;
+
+    let isSubscribed = true;
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let retryCount = 0;
+
+    function connect() {
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        const url = getWebSocketUrl();
+        ws = new WebSocket(url);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          if (isSubscribed) {
+            setIsWsConnected(true);
+            retryCount = 0;
+          }
+        };
+
+        ws.onmessage = (event) => {
+          if (!isSubscribed) return;
+          try {
+            const data = JSON.parse(event.data);
+            const currentActiveId = activeConvIdRef.current;
+            if (data.type === "new_message" && data.message) {
+              const newMsg: ChatMessage = data.message;
+              if (data.conversationId === currentActiveId) {
+                setMessages((prev) => {
+                  if (prev.some((m) => m.id === newMsg.id)) return prev;
+                  return [...prev, newMsg];
+                });
+              }
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === data.conversationId
+                    ? {
+                        ...c,
+                        lastMessage: newMsg.body,
+                        lastMessageAt: newMsg.createdAt,
+                        unreadCount: c.id === currentActiveId ? 0 : (c.unreadCount || 0) + 1,
+                      }
+                    : c
+                )
+              );
+            } else if (data.type === "user_typing" && data.conversationId === currentActiveId) {
+              setTypingUser(data.userName || "Buyer");
+              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+              typingTimeoutRef.current = setTimeout(() => {
+                if (isSubscribed) setTypingUser(null);
+              }, 3000);
+            }
+          } catch {
+            // Ignore non-JSON or ping frames
+          }
+        };
+
+        ws.onclose = () => {
+          if (isSubscribed) {
+            setIsWsConnected(false);
+            if (retryCount < 5) {
+              const delay = Math.min(1000 * Math.pow(2, retryCount), 15000);
+              retryCount++;
+              reconnectTimeout = setTimeout(connect, delay);
+            }
+          }
+        };
+
+        ws.onerror = () => {
+          if (isSubscribed) {
+            setIsWsConnected(false);
+            ws?.close();
+          }
+        };
+      } catch {
+        if (isSubscribed && retryCount < 5) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 15000);
+          retryCount++;
+          reconnectTimeout = setTimeout(connect, delay);
+        }
+      }
+    }
+
+    connect();
+
+    return () => {
+      isSubscribed = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [isAuthenticated, user?.id]);
+
+  // Background Polling Fallback (Relaxed to 15s)
+  useEffect(() => {
+    if (!activeConvId || !isAuthenticated) return;
     const currentId = activeConvId;
 
     const interval = setInterval(async () => {
       try {
         const msgs = await fetchMessages(currentId);
-        setMessages(msgs);
+        setMessages((prev) => (msgs.length >= prev.length ? msgs : prev));
       } catch {
-        // Ignore polling errors
+        // Ignore background polling errors
       }
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
-  }, [activeConvId, pollTrigger]);
+  }, [activeConvId, isAuthenticated, pollTrigger]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && activeConv) {
+      try {
+        wsRef.current.send(
+          JSON.stringify({
+            type: "typing",
+            conversationId: activeConv.id,
+          })
+        );
+      } catch {
+        // Non-blocking socket write
+      }
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +259,10 @@ export default function DealerMessagesPage() {
 
     try {
       const msg = await sendMessage(activeConv.id, clean);
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
       setConversations((prev) =>
         prev.map((c) =>
           c.id === activeConv.id
@@ -154,7 +295,15 @@ export default function DealerMessagesPage() {
       <div className="md:col-span-4 border-r border-gray-200 flex flex-col bg-gray-50/50">
         <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-sm text-neutral-900">Inbound Buyer Inquiries</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-bold text-sm text-neutral-900">Inbound Buyer Inquiries</h2>
+              {isWsConnected && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-gray-500 mt-0.5">
               {conversations.length} leads in direct chat
             </p>
@@ -196,6 +345,9 @@ export default function DealerMessagesPage() {
                   onClick={() => {
                     setActiveConv(conv);
                     setMessages([]);
+                    setConversations((prev) =>
+                      prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c))
+                    );
                   }}
                   className={`w-full p-3.5 text-left transition flex items-start gap-3 ${
                     isSelected
@@ -303,7 +455,10 @@ export default function DealerMessagesPage() {
                 </div>
               ) : (
                 messages.map((m) => {
-                  const isMe = m.senderId === user?.id || m.senderRole === "dealer" || m.senderRole === "seller";
+                  const isMe =
+                    m.senderId === user?.id ||
+                    m.senderRole === "dealer" ||
+                    m.senderRole === "seller";
                   return (
                     <div
                       key={m.id}
@@ -337,6 +492,14 @@ export default function DealerMessagesPage() {
                   );
                 })
               )}
+
+              {typingUser && (
+                <div className="flex items-center gap-2 text-[11px] text-gray-500 italic px-2 py-1 bg-gray-100/70 rounded-full w-fit animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                  <span>{typingUser} is typing...</span>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 
@@ -349,7 +512,7 @@ export default function DealerMessagesPage() {
                 type="text"
                 placeholder="Type your response to the buyer..."
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={handleInputChange}
                 disabled={isSending}
                 className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition"
               />

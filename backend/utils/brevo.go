@@ -64,11 +64,11 @@ func SendBrevoEmail(toEmail, toName, subject, htmlContent string) error {
 
 	senderName := cfg.BrevoSenderName
 	if senderName == "" {
-		senderName = "CarPlug Nigeria"
+		senderName = "MyCars NG"
 	}
 	senderEmail := cfg.BrevoSenderEmail
 	if senderEmail == "" {
-		senderEmail = "verify@carplug.ng"
+		senderEmail = "hello@mycarsng.com"
 	}
 
 	payload := BrevoSendEmailRequest{

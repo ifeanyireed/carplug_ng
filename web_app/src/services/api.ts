@@ -1467,10 +1467,11 @@ export async function registerUser(payload: {
     throw new Error(errorData.error || `Registration failed: ${res.statusText}`);
   }
   const data: AuthResponse = await res.json();
-  if (data.token) {
+  // Only persist session if account does NOT require verification and is already verified
+  if (data.token && !data.requiresVerification && data.user?.isVerified) {
     setAuthToken(data.token);
   }
-  if (data.user) {
+  if (data.user && !data.requiresVerification && data.user?.isVerified) {
     setStoredUser(data.user);
   }
   return data;
@@ -1490,13 +1491,21 @@ export async function loginUser(payload: {
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `Login failed: ${res.statusText}`);
+    const error = new Error(errorData.error || `Login failed: ${res.statusText}`) as Error & {
+      requiresVerification?: boolean;
+      email?: string;
+      code?: string;
+    };
+    error.requiresVerification = errorData.requiresVerification;
+    error.email = errorData.email;
+    error.code = errorData.code;
+    throw error;
   }
   const data: AuthResponse = await res.json();
-  if (data.token) {
+  if (data.token && data.user?.isVerified) {
     setAuthToken(data.token);
   }
-  if (data.user) {
+  if (data.user && data.user?.isVerified) {
     setStoredUser(data.user);
   }
   return data;

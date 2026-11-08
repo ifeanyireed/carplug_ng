@@ -200,6 +200,37 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Verify that email is confirmed via OTP before issuing authenticated login token
+	if !user.IsVerified {
+		// Ensure an active OTP exists or dispatch a fresh one via Brevo
+		otpCode, err := utils.GenerateNumericOTP(6)
+		if err == nil {
+			otp := models.OTPVerification{
+				ID:        "otp_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:16],
+				Email:     user.Email,
+				Code:      otpCode,
+				Type:      "signup",
+				ExpiresAt: time.Now().Add(10 * time.Minute),
+				Attempts:  0,
+				IsUsed:    false,
+				CreatedAt: time.Now(),
+			}
+			db.Create(&otp)
+
+			go func(email, name, code string) {
+				_ = utils.SendVerificationOTP(email, name, code)
+			}(user.Email, user.Name, otpCode)
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":                "Your email address is not verified. A 6-digit verification code has been dispatched to your email. Please verify to sign in.",
+			"requiresVerification": true,
+			"email":                user.Email,
+			"code":                 "EMAIL_NOT_VERIFIED",
+		})
+		return
+	}
+
 	// Generate JWT Token
 	cfg := config.AppConfig
 	token, err := utils.GenerateToken(&user, cfg.JWTSecret, cfg.JWTExpirationHours)

@@ -97,6 +97,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Restore user immediately so client is authenticated without waiting for remote network
       const storedUser = getStoredUser();
       if (storedUser) {
+        if (!storedUser.isVerified) {
+          clearAuthToken();
+          clearStoredUser();
+          if (isMounted) {
+            setTokenState(null);
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
         if (isMounted) {
           setUser(storedUser);
           setIsLoading(false);
@@ -104,22 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         const claims = parseJwtPayload(storedToken);
         if (claims && claims.userId) {
-          const fallbackUser: AuthUser = {
-            id: claims.userId,
-            name: claims.name || claims.email?.split("@")[0] || "User",
-            email: claims.email || "",
-            role: (claims.role as AuthUser["role"]) || "buyer",
-            isVerified: false,
-            isIdentityVerified: false,
-            kycStatus: "unverified",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+          // If we only have raw claims without verified profile, verify with backend before granting session
           if (isMounted) {
-            setUser(fallbackUser);
-            setIsLoading(false);
+            setIsLoading(true);
           }
-          setStoredUser(fallbackUser);
         }
       }
 
@@ -129,8 +127,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isMounted) return;
 
         if (freshUser) {
-          setUser(freshUser);
-          setStoredUser(freshUser);
+          if (!freshUser.isVerified) {
+            clearAuthToken();
+            clearStoredUser();
+            setTokenState(null);
+            setUser(null);
+          } else {
+            setUser(freshUser);
+            setStoredUser(freshUser);
+          }
         } else if (isUnauthorized) {
           // Only clear session if token was explicitly rejected with HTTP 401
           clearAuthToken();
@@ -159,10 +164,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const res = await loginUser(payload);
-      if (res.token) setTokenState(res.token);
-      if (res.user) {
+      if (res.user?.isVerified && res.token) {
+        setTokenState(res.token);
         setUser(res.user);
         setStoredUser(res.user);
+      } else {
+        clearAuthToken();
+        clearStoredUser();
+        setTokenState(null);
+        setUser(null);
+        setPendingVerificationEmail(payload.email);
+        throw Object.assign(
+          new Error("Please verify your email address before signing in."),
+          { requiresVerification: true, email: payload.email }
+        );
       }
     } finally {
       setIsLoading(false);
@@ -180,12 +195,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const res = await registerUser(payload);
-        if (res.token) setTokenState(res.token);
-        if (res.user) {
-          setUser(res.user);
-          setStoredUser(res.user);
-        }
         setPendingVerificationEmail(payload.email);
+        // Do NOT authenticate or store unverified user session on signup
+        setTokenState(null);
+        setUser(null);
+        clearAuthToken();
+        clearStoredUser();
         return {
           requiresVerification: res.requiresVerification ?? true,
           email: payload.email,
@@ -206,11 +221,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const res = await verifyOTP(payload);
-        if (res.token) setTokenState(res.token);
+        if (res.token) {
+          setTokenState(res.token);
+        }
         if (res.user) {
           setUser(res.user);
           setStoredUser(res.user);
         }
+        setPendingVerificationEmail(null);
       } finally {
         setIsLoading(false);
       }
@@ -301,7 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       token,
       isLoading,
-      isAuthenticated: !!user,
+      isAuthenticated: !!user && user.isVerified === true,
       isAuthModalOpen,
       authModalMode,
       pendingVerificationEmail,

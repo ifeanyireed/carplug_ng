@@ -93,8 +93,8 @@ func LoadConfig() *Config {
 		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
 		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
 		BrevoAPIKey:         getEnv("BREVO_API_KEY", ""),
-		BrevoSenderName:     getEnv("BREVO_SENDER_NAME", "CarPlug Nigeria"),
-		BrevoSenderEmail:    getEnv("BREVO_SENDER_EMAIL", "verify@carplug.ng"),
+		BrevoSenderName:     getEnv("BREVO_SENDER_NAME", "MyCars NG"),
+		BrevoSenderEmail:    getEnv("BREVO_SENDER_EMAIL", "hello@mycarsng.com"),
 		PaystackSecretKey:   getEnv("PAYSTACK_SECRET_KEY", ""),
 	}
 

@@ -38,8 +38,8 @@ export function RoleGuard({
     );
   }
 
-  // 2. Unauthenticated state
-  if (!user) {
+  // 2. Unauthenticated or Unverified state
+  if (!user || !user.isVerified) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4 sm:p-6">
         <div className="max-w-md w-full bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xl text-center">
@@ -48,28 +48,49 @@ export function RoleGuard({
           </div>
 
           <h2 className="text-xl font-bold text-gray-900 mb-2">
-            Authentication Required
+            {user && !user.isVerified ? "Email Verification Required" : "Authentication Required"}
           </h2>
           <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-            Please sign in to your account to access the{" "}
-            <span className="font-semibold text-neutral-900">{portalName}</span>.
+            {user && !user.isVerified ? (
+              <>
+                Your email <span className="font-semibold text-neutral-900">{user.email}</span> has not been confirmed yet. Please verify your email with your 6-digit code to access the{" "}
+                <span className="font-semibold text-neutral-900">{portalName}</span>.
+              </>
+            ) : (
+              <>
+                Please sign in to your account to access the{" "}
+                <span className="font-semibold text-neutral-900">{portalName}</span>.
+              </>
+            )}
           </p>
 
           <div className="space-y-2.5">
-            <button
-              onClick={() => openAuthModal("login")}
-              className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow cursor-pointer"
-            >
-              <span>Sign In to Continue</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {user && !user.isVerified ? (
+              <button
+                onClick={() => openAuthModal("verify_otp", user.email)}
+                className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow cursor-pointer"
+              >
+                <span>Enter Verification Code</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => openAuthModal("login")}
+                  className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow cursor-pointer"
+                >
+                  <span>Sign In to Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
 
-            <button
-              onClick={() => openAuthModal("signup")}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-900 font-medium text-sm py-2.5 rounded-xl transition cursor-pointer"
-            >
-              Create New Account
-            </button>
+                <button
+                  onClick={() => openAuthModal("signup")}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-neutral-900 font-medium text-sm py-2.5 rounded-xl transition cursor-pointer"
+                >
+                  Create New Account
+                </button>
+              </>
+            )}
           </div>
 
           <div className="mt-6 pt-4 border-t border-gray-100">

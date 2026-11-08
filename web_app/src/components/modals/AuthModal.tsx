@@ -275,10 +275,21 @@ export const AuthModal = ({
         setResendCooldown(60);
         setOverrideMode("verify_otp");
         setInfoMessage(
-          "We have sent a 6-digit confirmation code via Brevo. Enter it below to activate your account."
+          "We have sent a 6-digit confirmation code. Enter it below to activate your account."
         );
       }
     } catch (err: unknown) {
+      const errObj = err as { requiresVerification?: boolean; email?: string; message?: string };
+      if (errObj?.requiresVerification) {
+        const emailToVerify = errObj.email || formData.email.trim();
+        setPendingVerificationEmail(emailToVerify);
+        setResendCooldown(60);
+        setOverrideMode("verify_otp");
+        setInfoMessage(
+          "Your email address has not been verified yet. We dispatched a 6-digit verification code. Please enter it below to activate your account."
+        );
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Authentication failed";
       setError(msg);
     } finally {
@@ -424,7 +435,7 @@ export const AuthModal = ({
             {mode === "signup" && "Create an account to buy, sell, inspect, or manage inventory"}
             {mode === "verify_otp" && (
               <>
-                Enter the 6-digit code sent via Brevo to{" "}
+                Enter the 6-digit code sent to{" "}
                 <span className="font-semibold text-gray-800 break-all">{targetEmail}</span>
               </>
             )}
@@ -799,7 +810,7 @@ export const AuthModal = ({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Sending reset code via Brevo...</span>
+                      <span>Sending reset code...</span>
                     </>
                   ) : (
                     <>

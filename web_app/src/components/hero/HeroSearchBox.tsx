@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FlameIcon,
   VideoAdsIcon,
@@ -27,9 +27,10 @@ export interface SearchFilterState {
 
 interface HeroSearchBoxProps {
   onSearch?: (filters: SearchFilterState) => void;
+  externalFilters?: SearchFilterState | null;
 }
 
-const BRANDS = [
+export const BRANDS = [
   "All Brands",
   "Toyota",
   "Mercedes-Benz",
@@ -46,7 +47,7 @@ const BRANDS = [
   "Volvo",
 ];
 
-const TYPES = [
+export const TYPES = [
   "All Types",
   "SUV",
   "Sedan",
@@ -57,7 +58,7 @@ const TYPES = [
   "Electric",
 ];
 
-const MODELS: Record<string, string[]> = {
+export const MODELS: Record<string, string[]> = {
   "All Brands": ["All Models"],
   Toyota: ["All Models", "Camry", "Corolla", "Highlander", "Land Cruiser", "4Runner", "RAV4", "Supra"],
   "Mercedes-Benz": ["All Models", "C-Class", "E-Class", "S-Class", "GLE", "GLC", "G-Class", "AMG GT"],
@@ -84,7 +85,7 @@ export const PRICE_RANGES = [
   { label: "Above ₦100M", value: "gt100m" },
 ];
 
-export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
+export const HeroSearchBox = ({ onSearch, externalFilters }: HeroSearchBoxProps) => {
   const [category, setCategory] = useState<"all" | "new" | "used" | "tokunbo" | "nigerian_used">("all");
   const [brand, setBrand] = useState("All Brands");
   const [type, setType] = useState("All Types");
@@ -100,6 +101,30 @@ export const HeroSearchBox = ({ onSearch }: HeroSearchBoxProps) => {
   });
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (externalFilters) {
+      setCategory(externalFilters.category);
+      setBrand(externalFilters.brand || "All Brands");
+      setType(externalFilters.type || "All Types");
+      setModel(externalFilters.model || "All Models");
+      setPrice(externalFilters.price || "Any Price");
+      setOptions(externalFilters.options);
+    } else if (externalFilters === null) {
+      setCategory("all");
+      setBrand("All Brands");
+      setType("All Types");
+      setModel("All Models");
+      setPrice("Any Price");
+      setOptions({
+        hotDeals: false,
+        videoAds: false,
+        trustedDealers: false,
+        rojoCertified: false,
+        warranty: false,
+      });
+    }
+  }, [externalFilters]);
 
   const toggleOption = (key: keyof typeof options) => {
     const updated = { ...options, [key]: !options[key] };

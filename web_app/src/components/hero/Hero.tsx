@@ -8,10 +8,12 @@ import { Play } from "lucide-react";
 
 interface HeroProps {
   onSearch?: (filters: SearchFilterState) => void;
+  externalFilters?: SearchFilterState | null;
 }
 
 export const Hero = ({
   onSearch,
+  externalFilters,
 }: HeroProps) => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
@@ -78,7 +80,9 @@ export const Hero = ({
           </div>
 
           {/* Search & Filter Box */}
-          <HeroSearchBox onSearch={onSearch} />
+          <div id="hero-search" className="scroll-mt-24">
+            <HeroSearchBox onSearch={onSearch} externalFilters={externalFilters} />
+          </div>
 
         </div>
 

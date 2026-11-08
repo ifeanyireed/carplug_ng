@@ -5,7 +5,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { Vehicle, Lead, DealerShop } from "@/data/mockStore";
-import { fetchDealerInventory, fetchVehicles, fetchLeads, fetchDealerBySlugOrId, fetchDealerSubscription, DealerSubscriptionResponse } from "@/services/api";
+import {
+  fetchDealerInventory,
+  fetchVehicles,
+  fetchLeads,
+  fetchConversations,
+  fetchDealerBySlugOrId,
+  fetchDealerSubscription,
+  DealerSubscriptionResponse,
+  Conversation,
+} from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Car,
@@ -17,12 +26,14 @@ import {
   RefreshCw,
   Loader2,
   CreditCard,
+  MessageSquare,
 } from "lucide-react";
 
 export default function DealerDashboardPage() {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [shop, setShop] = useState<DealerShop | null>(null);
   const [subscription, setSubscription] = useState<DealerSubscriptionResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -43,10 +54,11 @@ export default function DealerDashboardPage() {
 
     async function fetchDashboardData() {
       try {
-        // Parallel fetch for dealer details, inventory, inbound leads, and subscription
-        const [inventoryData, leadsData, shopData, subData] = await Promise.all([
+        // Parallel fetch for dealer details, inventory, inbound leads, buyer messages, and subscription
+        const [inventoryData, leadsData, convsData, shopData, subData] = await Promise.all([
           fetchDealerInventory(dealerId).catch(() => []),
           fetchLeads().catch(() => []),
+          fetchConversations().catch(() => []),
           fetchDealerBySlugOrId(dealerId).catch(() => undefined),
           fetchDealerSubscription().catch(() => null),
         ]);
@@ -69,6 +81,7 @@ export default function DealerDashboardPage() {
         }
 
         setLeads(leadsData || []);
+        setConversations(convsData || []);
 
         if (shopData) {
           setShop(shopData);
@@ -78,6 +91,7 @@ export default function DealerDashboardPage() {
         console.warn("Failed to load dealer dashboard live data:", err);
         setVehicles([]);
         setLeads([]);
+        setConversations([]);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -90,21 +104,27 @@ export default function DealerDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [dealerId, refreshIndex]);
+  }, [dealerId, refreshIndex, user?.id]);
 
   // Derived metrics with useMemo
   const metrics = useMemo(() => {
     const verifiedListings = vehicles.filter((v) => v.trustTier >= 4).length;
     const inspectionRequests = leads.filter((l) => l.type === "inspection_request").length;
     const viewingRequests = leads.filter((l) => l.type === "viewing_schedule").length;
+    const unreadMessagesCount = conversations.reduce(
+      (acc, c) => acc + (c.unreadCount || 0),
+      0
+    );
     return {
       activeListingsCount: vehicles.length,
       verifiedListings,
       totalLeads: leads.length,
       inspectionRequests,
       viewingRequests,
+      totalConversations: conversations.length,
+      unreadMessagesCount,
     };
-  }, [vehicles, leads]);
+  }, [vehicles, leads, conversations]);
 
   return (
     <div className="space-y-8">
@@ -159,7 +179,8 @@ export default function DealerDashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Active Listings */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-gray-500 text-xs">
             <span>Active Listings</span>
@@ -176,6 +197,30 @@ export default function DealerDashboardPage() {
           </div>
         </div>
 
+        {/* Buyer Messages & Inquiries (New) */}
+        <Link
+          href="/dealer/messages"
+          className="bg-white border border-gray-200 hover:border-blue-400 rounded-2xl p-5 shadow-xs space-y-2 transition block group"
+        >
+          <div className="flex items-center justify-between text-gray-500 text-xs">
+            <span>Buyer Messages</span>
+            <MessageSquare className="w-4 h-4 text-blue-600 group-hover:scale-110 transition" />
+          </div>
+          <div className="text-2xl font-black text-neutral-900 flex items-center gap-2">
+            <span>{metrics.totalConversations}</span>
+            {metrics.unreadMessagesCount > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold animate-pulse">
+                {metrics.unreadMessagesCount} unread
+              </span>
+            )}
+          </div>
+          <div className="text-[11px] text-blue-700 font-semibold group-hover:underline flex items-center gap-1">
+            <span>Open In-App Chat</span>
+            <ArrowUpRight className="w-3 h-3" />
+          </div>
+        </Link>
+
+        {/* Inbound Leads */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-gray-500 text-xs">
             <span>Inbound Leads</span>
@@ -187,6 +232,7 @@ export default function DealerDashboardPage() {
           </div>
         </div>
 
+        {/* Inspection Requests */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-gray-500 text-xs">
             <span>Inspection Requests</span>
@@ -198,14 +244,99 @@ export default function DealerDashboardPage() {
           </div>
         </div>
 
+        {/* Dealership Rating */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-gray-500 text-xs">
             <span>Dealership Rating</span>
             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
           </div>
           <div className="text-2xl font-black text-neutral-900">{shop?.rating ?? "—"}</div>
-          <div className="text-[11px] text-gray-500">Based on {shop?.reviewCount ?? 0} customer reviews</div>
+          <div className="text-[11px] text-gray-500">Based on {shop?.reviewCount ?? 0} reviews</div>
         </div>
+      </div>
+
+      {/* In-App Direct Buyer Messages & Inquiries Feed */}
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-base text-neutral-900">
+              Direct Buyer Messages &amp; Inquiries
+            </h2>
+            {metrics.unreadMessagesCount > 0 && (
+              <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-blue-600 text-white">
+                {metrics.unreadMessagesCount} Unread
+              </span>
+            )}
+          </div>
+          <Link
+            href="/dealer/messages"
+            className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
+          >
+            <span>Open All Messages Inbox →</span>
+          </Link>
+        </div>
+
+        {isLoading ? (
+          <div className="p-8 flex items-center justify-center gap-2 text-gray-400 text-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-neutral-900" />
+            <span>Loading buyer conversations...</span>
+          </div>
+        ) : conversations.length === 0 ? (
+          <div className="p-8 text-center text-xs text-gray-400 space-y-1">
+            <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="font-medium text-gray-600">No buyer messages received yet</p>
+            <p className="text-[11px] text-gray-400">
+              When buyers click &apos;Contact Seller&apos; on your showroom cars, their inquiries will appear here in real time.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {conversations.slice(0, 5).map((conv) => (
+              <div
+                key={conv.id}
+                className="py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-gray-50/70 rounded-xl px-2 -mx-2 transition"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-neutral-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                    {conv.buyerName?.charAt(0) || "B"}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs text-neutral-900 truncate">
+                        {conv.buyerName || "Verified Buyer"}
+                      </span>
+                      {conv.unreadCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold">
+                          NEW
+                        </span>
+                      )}
+                      <span className="text-[10px] text-gray-400">
+                        • {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      Car: <b className="text-neutral-900">{conv.vehicleTitle}</b> (₦
+                      {(conv.vehiclePrice / 1000000).toFixed(1)}M)
+                    </p>
+                    <p className="text-[11px] text-gray-500 truncate mt-0.5 italic">
+                      &quot;{conv.lastMessage || "Inquiry initiated..."}&quot;
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  <Link
+                    href={`/dealer/messages?id=${conv.id}`}
+                    className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl flex items-center gap-1 transition shadow-xs"
+                  >
+                    <span>Reply in Chat</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Active Inventory Snapshot */}

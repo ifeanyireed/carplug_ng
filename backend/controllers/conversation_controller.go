@@ -147,6 +147,16 @@ func StartConversation(c *gin.Context) {
 				existing.UpdatedAt = now
 				db.Save(&existing)
 				BroadcastMessageToConversation(existing.ID, existing.BuyerID, existing.SellerID, msg)
+
+				// Update or create corresponding Lead entry
+				leadID := "lead-conv-" + existing.ID
+				var l models.Lead
+				if err := db.Where("id = ?", leadID).First(&l).Error; err == nil {
+					l.Note = trimmedMsg
+					l.Status = "new"
+					l.UpdatedAt = now
+					db.Save(&l)
+				}
 			}
 		}
 
@@ -190,6 +200,33 @@ func StartConversation(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create conversation: " + err.Error()})
 		return
 	}
+
+	// Also record an inbound Lead so dealer CRM and dashboards immediately see the inquiry
+	leadNote := trimmedMsg
+	if leadNote == "" {
+		leadNote = "In-app buyer inquiry initiated"
+	}
+	buyerPhone := buyer.Phone
+	if buyerPhone == "" {
+		buyerPhone = "+234 Masked Contact"
+	}
+	newLead := models.Lead{
+		ID:           "lead-conv-" + conv.ID,
+		BuyerName:    buyer.Name,
+		BuyerPhone:   buyerPhone,
+		BuyerCity:    "Lagos, Nigeria",
+		VehicleID:    vehicle.ID,
+		VehicleTitle: vehicle.Title,
+		VehiclePrice: vehicle.Price,
+		Type:         "direct_inquiry",
+		Status:       "new",
+		SellerID:     vehicle.SellerID,
+		Date:         time.Now().Format("2006-01-02"),
+		Note:         leadNote,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	_ = db.Create(&newLead)
 
 	// 7. If initial message was supplied, append it and broadcast
 	if trimmedMsg != "" {

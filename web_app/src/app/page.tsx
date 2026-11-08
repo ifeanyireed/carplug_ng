@@ -68,9 +68,12 @@ export default function HomePage() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>("featured");
   const [searchResults, setSearchResults] = useState<CarListing[] | null>(null);
+  const [isCatalogLoading, setIsCatalogLoading] = useState<boolean>(true);
+  const [isFiltering, setIsFiltering] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
+    setIsCatalogLoading(true);
     fetchVehicles()
       .then((vehicles) => {
         if (isMounted) {
@@ -85,6 +88,11 @@ export default function HomePage() {
       .catch((err) => {
         console.warn("Failed to load live vehicles for homepage catalog:", err);
         if (isMounted) setCatalog([]);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCatalogLoading(false);
+        }
       });
     return () => {
       isMounted = false;
@@ -204,6 +212,14 @@ export default function HomePage() {
     return list;
   };
 
+  const triggerFilteringAnimation = (updateFn: () => void) => {
+    setIsFiltering(true);
+    updateFn();
+    setTimeout(() => {
+      setIsFiltering(false);
+    }, 250);
+  };
+
   const scrollToResults = () => {
     setTimeout(() => {
       const resultsEl = document.getElementById("search-results");
@@ -214,89 +230,94 @@ export default function HomePage() {
   };
 
   const handleSearch = (filters: SearchFilterState) => {
-    setActiveFilters(filters);
-    const brand = filters.brand !== "All" && filters.brand !== "All Brands" ? filters.brand : null;
-    const type = filters.type !== "All" && filters.type !== "All Types" ? filters.type : null;
-    setSelectedBrand(brand);
-    setSelectedType(type);
+    triggerFilteringAnimation(() => {
+      setActiveFilters(filters);
+      const brand = filters.brand !== "All" && filters.brand !== "All Brands" ? filters.brand : null;
+      const type = filters.type !== "All" && filters.type !== "All Types" ? filters.type : null;
+      setSelectedBrand(brand);
+      setSelectedType(type);
 
-    const filtered = filterCatalog(filters, brand, type);
-    setSearchResults(filtered);
+      const filtered = filterCatalog(filters, brand, type, sortBy);
+      setSearchResults(filtered);
+    });
     scrollToResults();
   };
 
   const handleSelectBrand = (brandName: string) => {
-    if (selectedBrand === brandName) {
-      setSelectedBrand(null);
-      const updated = activeFilters ? { ...activeFilters, brand: "All Brands" } : null;
-      setActiveFilters(updated);
-      const filtered = filterCatalog(updated, null, selectedType);
-      // If no other filters active, reset search results to null
-      if (!updated && !selectedType) {
-        setSearchResults(null);
-      } else {
-        setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      if (selectedBrand === brandName) {
+        setSelectedBrand(null);
+        const updated = activeFilters ? { ...activeFilters, brand: "All Brands" } : null;
+        setActiveFilters(updated);
+        const filtered = filterCatalog(updated, null, selectedType, sortBy);
+        if (!updated && !selectedType) {
+          setSearchResults(null);
+        } else {
+          setSearchResults(filtered);
+        }
+        return;
       }
-      return;
-    }
 
-    setSelectedBrand(brandName);
-    const updated: SearchFilterState = activeFilters
-      ? { ...activeFilters, brand: brandName }
-      : {
-          category: "all",
-          brand: brandName,
-          type: selectedType || "All Types",
-          model: "All Models",
-          price: "Any Price",
-          options: {
-            hotDeals: false,
-            videoAds: false,
-            trustedDealers: false,
-            rojoCertified: false,
-            warranty: false,
-          },
-        };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, brandName, selectedType);
-    setSearchResults(filtered);
+      setSelectedBrand(brandName);
+      const updated: SearchFilterState = activeFilters
+        ? { ...activeFilters, brand: brandName }
+        : {
+            category: "all",
+            brand: brandName,
+            type: selectedType || "All Types",
+            model: "All Models",
+            price: "Any Price",
+            options: {
+              hotDeals: false,
+              videoAds: false,
+              trustedDealers: false,
+              rojoCertified: false,
+              warranty: false,
+            },
+          };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, brandName, selectedType, sortBy);
+      setSearchResults(filtered);
+    });
     scrollToResults();
   };
 
   const handleSelectType = (typeName: string) => {
-    if (selectedType === typeName) {
-      setSelectedType(null);
-      const updated = activeFilters ? { ...activeFilters, type: "All Types" } : null;
-      setActiveFilters(updated);
-      const filtered = filterCatalog(updated, selectedBrand, null);
-      if (!updated && !selectedBrand) {
-        setSearchResults(null);
-      } else {
-        setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      if (selectedType === typeName) {
+        setSelectedType(null);
+        const updated = activeFilters ? { ...activeFilters, type: "All Types" } : null;
+        setActiveFilters(updated);
+        const filtered = filterCatalog(updated, selectedBrand, null, sortBy);
+        if (!updated && !selectedBrand) {
+          setSearchResults(null);
+        } else {
+          setSearchResults(filtered);
+        }
+        return;
       }
-      return;
-    }
 
-    setSelectedType(typeName);
-    const updated: SearchFilterState = activeFilters
-      ? { ...activeFilters, type: typeName }
-      : {
-          category: "all",
-          brand: selectedBrand || "All Brands",
-          type: typeName,
-          model: "All Models",
-          price: "Any Price",
-          options: {
-            hotDeals: false,
-            videoAds: false,
-            trustedDealers: false,
-            rojoCertified: false,
-            warranty: false,
-          },
-        };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, selectedBrand, typeName);
-    setSearchResults(filtered);
+      setSelectedType(typeName);
+      const updated: SearchFilterState = activeFilters
+        ? { ...activeFilters, type: typeName }
+        : {
+            category: "all",
+            brand: selectedBrand || "All Brands",
+            type: typeName,
+            model: "All Models",
+            price: "Any Price",
+            options: {
+              hotDeals: false,
+              videoAds: false,
+              trustedDealers: false,
+              rojoCertified: false,
+              warranty: false,
+            },
+          };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, selectedBrand, typeName, sortBy);
+      setSearchResults(filtered);
+    });
     scrollToResults();
   };
 
@@ -379,30 +400,34 @@ export default function HomePage() {
   };
 
   const handleSelectCategoryTab = (cat: SearchFilterState["category"]) => {
-    const base: SearchFilterState = activeFilters || {
-      category: cat,
-      brand: selectedBrand || "All Brands",
-      type: selectedType || "All Types",
-      model: "All Models",
-      price: "Any Price",
-      options: {
-        hotDeals: false,
-        videoAds: false,
-        trustedDealers: false,
-        rojoCertified: false,
-        warranty: false,
-      },
-    };
-    const updated = { ...base, category: cat };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, selectedBrand, selectedType);
-    setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      const base: SearchFilterState = activeFilters || {
+        category: cat,
+        brand: selectedBrand || "All Brands",
+        type: selectedType || "All Types",
+        model: "All Models",
+        price: "Any Price",
+        options: {
+          hotDeals: false,
+          videoAds: false,
+          trustedDealers: false,
+          rojoCertified: false,
+          warranty: false,
+        },
+      };
+      const updated = { ...base, category: cat };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, selectedBrand, selectedType, sortBy);
+      setSearchResults(filtered);
+    });
   };
 
   const handleSortChange = (newSort: string) => {
-    setSortBy(newSort);
-    const filtered = filterCatalog(activeFilters, selectedBrand, selectedType, newSort);
-    setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      setSortBy(newSort);
+      const filtered = filterCatalog(activeFilters, selectedBrand, selectedType, newSort);
+      setSearchResults(filtered);
+    });
   };
 
   const handleScrollToHero = () => {
@@ -415,104 +440,112 @@ export default function HomePage() {
   };
 
   const handleChangeBrand = (brandName: string) => {
-    const isAll = brandName === "All Brands" || brandName === "All";
-    setSelectedBrand(isAll ? null : brandName);
-    const base: SearchFilterState = activeFilters || {
-      category: "all",
-      brand: "All Brands",
-      type: selectedType || "All Types",
-      model: "All Models",
-      price: "Any Price",
-      options: {
-        hotDeals: false,
-        videoAds: false,
-        trustedDealers: false,
-        rojoCertified: false,
-        warranty: false,
-      },
-    };
-    const updated: SearchFilterState = {
-      ...base,
-      brand: brandName,
-      model: "All Models",
-    };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, isAll ? null : brandName, selectedType);
-    setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      const isAll = brandName === "All Brands" || brandName === "All";
+      setSelectedBrand(isAll ? null : brandName);
+      const base: SearchFilterState = activeFilters || {
+        category: "all",
+        brand: "All Brands",
+        type: selectedType || "All Types",
+        model: "All Models",
+        price: "Any Price",
+        options: {
+          hotDeals: false,
+          videoAds: false,
+          trustedDealers: false,
+          rojoCertified: false,
+          warranty: false,
+        },
+      };
+      const updated: SearchFilterState = {
+        ...base,
+        brand: brandName,
+        model: "All Models",
+      };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, isAll ? null : brandName, selectedType, sortBy);
+      setSearchResults(filtered);
+    });
   };
 
   const handleChangeType = (typeName: string) => {
-    const isAll = typeName === "All Types" || typeName === "All";
-    setSelectedType(isAll ? null : typeName);
-    const base: SearchFilterState = activeFilters || {
-      category: "all",
-      brand: selectedBrand || "All Brands",
-      type: "All Types",
-      model: "All Models",
-      price: "Any Price",
-      options: {
-        hotDeals: false,
-        videoAds: false,
-        trustedDealers: false,
-        rojoCertified: false,
-        warranty: false,
-      },
-    };
-    const updated: SearchFilterState = {
-      ...base,
-      type: typeName,
-    };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, selectedBrand, isAll ? null : typeName);
-    setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      const isAll = typeName === "All Types" || typeName === "All";
+      setSelectedType(isAll ? null : typeName);
+      const base: SearchFilterState = activeFilters || {
+        category: "all",
+        brand: selectedBrand || "All Brands",
+        type: "All Types",
+        model: "All Models",
+        price: "Any Price",
+        options: {
+          hotDeals: false,
+          videoAds: false,
+          trustedDealers: false,
+          rojoCertified: false,
+          warranty: false,
+        },
+      };
+      const updated: SearchFilterState = {
+        ...base,
+        type: typeName,
+      };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, selectedBrand, isAll ? null : typeName, sortBy);
+      setSearchResults(filtered);
+    });
   };
 
   const handleChangeModel = (modelName: string) => {
-    const base: SearchFilterState = activeFilters || {
-      category: "all",
-      brand: selectedBrand || "All Brands",
-      type: selectedType || "All Types",
-      model: "All Models",
-      price: "Any Price",
-      options: {
-        hotDeals: false,
-        videoAds: false,
-        trustedDealers: false,
-        rojoCertified: false,
-        warranty: false,
-      },
-    };
-    const updated: SearchFilterState = {
-      ...base,
-      model: modelName,
-    };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, selectedBrand, selectedType);
-    setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      const base: SearchFilterState = activeFilters || {
+        category: "all",
+        brand: selectedBrand || "All Brands",
+        type: selectedType || "All Types",
+        model: "All Models",
+        price: "Any Price",
+        options: {
+          hotDeals: false,
+          videoAds: false,
+          trustedDealers: false,
+          rojoCertified: false,
+          warranty: false,
+        },
+      };
+      const updated: SearchFilterState = {
+        ...base,
+        model: modelName,
+      };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, selectedBrand, selectedType, sortBy);
+      setSearchResults(filtered);
+    });
   };
 
   const handleChangePrice = (priceRange: string) => {
-    const base: SearchFilterState = activeFilters || {
-      category: "all",
-      brand: selectedBrand || "All Brands",
-      type: selectedType || "All Types",
-      model: "All Models",
-      price: "Any Price",
-      options: {
-        hotDeals: false,
-        videoAds: false,
-        trustedDealers: false,
-        rojoCertified: false,
-        warranty: false,
-      },
-    };
-    const updated: SearchFilterState = {
-      ...base,
-      price: priceRange,
-    };
-    setActiveFilters(updated);
-    const filtered = filterCatalog(updated, selectedBrand, selectedType);
-    setSearchResults(filtered);
+    triggerFilteringAnimation(() => {
+      const base: SearchFilterState = activeFilters || {
+        category: "all",
+        brand: selectedBrand || "All Brands",
+        type: selectedType || "All Types",
+        model: "All Models",
+        price: "Any Price",
+        options: {
+          hotDeals: false,
+          videoAds: false,
+          trustedDealers: false,
+          rojoCertified: false,
+          warranty: false,
+        },
+      };
+      const updated: SearchFilterState = {
+        ...base,
+        price: priceRange,
+      };
+      setActiveFilters(updated);
+      const filtered = filterCatalog(updated, selectedBrand, selectedType, sortBy);
+      setSearchResults(filtered);
+    });
   };
 
   // Generate filter summary string
@@ -624,6 +657,7 @@ export default function HomePage() {
             onChangeType={handleChangeType}
             onChangeModel={handleChangeModel}
             onChangePrice={handleChangePrice}
+            isLoading={isCatalogLoading || isFiltering}
           />
         )}
 

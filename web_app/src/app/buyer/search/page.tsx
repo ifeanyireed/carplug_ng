@@ -23,6 +23,7 @@ import {
 
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 import { PublicAdBanner } from "@/components/common/PublicAdBanner";
+import { VehicleGridSkeleton } from "@/components/common/VehicleCardSkeleton";
 
 type TierFilter = "all" | "3" | "4" | "5";
 type PriceRatingFilter = "all" | "deal" | "fair";
@@ -54,6 +55,7 @@ function BuyerSearchContent() {
 
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
 
     fetchVehicles({
       condition: activeTab,
@@ -315,8 +317,8 @@ function BuyerSearchContent() {
             {/* Sort selection & Results count */}
             <div className="flex items-center gap-3">
               <span className="text-gray-500 text-xs font-medium flex items-center gap-1.5">
-                {isPending && <Loader2 className="w-3 h-3 animate-spin text-blue-600" />}
-                {filteredVehicles.length} vehicles
+                {(isLoading || isPending) && <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />}
+                {isLoading ? "Loading inventory..." : `${filteredVehicles.length} vehicles`}
               </span>
               <div className="inline-flex items-center gap-1.5 bg-[#ECEEF2] px-3 py-1.5 rounded-lg">
                 <SlidersHorizontal className="w-3 h-3 text-gray-500" />
@@ -334,142 +336,147 @@ function BuyerSearchContent() {
             </div>
           </div>
 
-          {/* Vehicles Grid with Tighter Padding/Gap (Exact matching ExploreVehiclesSection) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2">
-            {filteredVehicles.map((car) => {
-              const isFav = isSaved(car.id);
-              const badge = getCarBadge(car);
-
-              return (
-                <div
-                  key={car.id}
-                  className="group bg-white rounded-xl overflow-hidden border border-gray-200/80 hover:border-gray-300 hover:shadow-md transition-all duration-300 flex flex-col cursor-pointer"
-                >
-                  {/* Card Image Area */}
-                  <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
-                    <Image
-                      src={car.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
-                      alt={`${car.title} (${car.year})`}
-                      fill
-                      className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                    />
-
-                    {/* Top Badge (Fully Rounded Corners) */}
-                    {badge && (
-                      <div className="absolute top-3 left-3 z-10">
-                        <span
-                          className={`inline-block px-3 py-1 text-[11px] font-medium text-white ${badge.bg} rounded-full tracking-tight shadow-sm`}
-                        >
-                          {badge.text}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Favorite Heart Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleFavoriteClick(e, car)}
-                      aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                      className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
-                    >
-                      <Heart
-                        className={`w-4 h-4 transition ${
-                          isFav ? "fill-rose-500 text-rose-500" : "text-white"
-                        }`}
-                      />
-                    </button>
-
-                    {/* Carousel Pagination Dots */}
-                    <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-4 sm:p-4.5 flex-1 flex flex-col justify-between">
-                    <div>
-                      {/* Car Title & Year */}
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-[-0.04em] group-hover:text-black">
-                        {car.title} ({car.year})
-                      </h3>
-
-                      {/* Specs Pill Row (Black color and font-medium) */}
-                      <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 mt-2.5 text-xs sm:text-[13px] font-medium text-black">
-                        <div className="flex items-center gap-1 text-black">
-                          {getFuelIcon(car.fuelType)}
-                          <span className="text-black">{car.fuelType}</span>
-                        </div>
-                        <span className="text-gray-300 font-normal">•</span>
-                        <div className="flex items-center gap-1 text-black">
-                          <Settings2 className="w-3.5 h-3.5 text-black stroke-[2]" />
-                          <span className="text-black">{car.transmission}</span>
-                        </div>
-                        <span className="text-gray-300 font-normal">•</span>
-                        <div className="flex items-center gap-1 text-black">
-                          <CarFront className="w-3.5 h-3.5 text-black stroke-[2]" />
-                          <span className="text-black">
-                            {car.condition === "Foreign Used (Tokunbo)" ? "Tokunbo" : car.condition}
-                          </span>
-                        </div>
-                        <span className="text-gray-300 font-normal">•</span>
-                        <span className="text-black">{car.bodyType}</span>
-                      </div>
-                    </div>
-
-                    {/* Pricing & CTA Divider (Same font size & medium weight for prices, larger See Details icon) */}
-                    <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between">
-                      <div className="flex items-baseline gap-2">
-                        {car.marketPriceRange && (
-                          <span className="text-sm sm:text-base text-rose-500 line-through font-medium">
-                            ₦{(car.marketPriceRange[1] / 1000000).toFixed(1)}M
-                          </span>
-                        )}
-                        <span className="text-sm sm:text-base font-medium text-gray-900 tracking-tight">
-                          ₦{(car.price / 1000000).toFixed(1)}M
-                        </span>
-                      </div>
-
-                      <Link
-                        href={`/buyer/vehicles/${car.id}`}
-                        className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black transition"
-                      >
-                        <span>See Details</span>
-                        <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredVehicles.length === 0 && (
-              <div className="col-span-full text-center py-16 px-4">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 text-gray-400">
-                  <Search className="w-5 h-5" />
-                </div>
-                <h3 className="text-base font-semibold text-gray-900 mb-1">
-                  No vehicles found
-                </h3>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
-                  We couldn&apos;t find any vehicles matching your current criteria. Try resetting your filters.
-                </p>
-                <button
-                  onClick={() => {
-                    setActiveTab("all");
-                    setSelectedTier("all");
-                    setSelectedPriceRating("all");
-                    setSearchQuery("");
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-medium transition"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset Filters</span>
-                </button>
+          {/* Vehicles Grid / Skeleton Loading State */}
+          {isLoading ? (
+            <div className="py-2">
+              <VehicleGridSkeleton count={6} />
+            </div>
+          ) : filteredVehicles.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 text-gray-400">
+                <Search className="w-5 h-5" />
               </div>
-            )}
-          </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">
+                No vehicles found
+              </h3>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
+                We couldn&apos;t find any vehicles matching your current criteria. Try resetting your filters.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("all");
+                  setSelectedTier("all");
+                  setSelectedPriceRating("all");
+                  setSearchQuery("");
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-medium transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filters</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2">
+              {filteredVehicles.map((car) => {
+                const isFav = isSaved(car.id);
+                const badge = getCarBadge(car);
+
+                return (
+                  <div
+                    key={car.id}
+                    className="group bg-white rounded-xl overflow-hidden border border-gray-200/80 hover:border-gray-300 hover:shadow-md transition-all duration-300 flex flex-col cursor-pointer"
+                  >
+                    {/* Card Image Area */}
+                    <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
+                      <Image
+                        src={car.images[0] || "https://res.cloudinary.com/cgiq8vwf/image/upload/v1789679189/carplug/cars/car18.jpg"}
+                        alt={`${car.title} (${car.year})`}
+                        fill
+                        className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      />
+
+                      {/* Top Badge (Fully Rounded Corners) */}
+                      {badge && (
+                        <div className="absolute top-3 left-3 z-10">
+                          <span
+                            className={`inline-block px-3 py-1 text-[11px] font-medium text-white ${badge.bg} rounded-full tracking-tight shadow-sm`}
+                          >
+                            {badge.text}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Favorite Heart Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleFavoriteClick(e, car)}
+                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
+                      >
+                        <Heart
+                          className={`w-4 h-4 transition ${
+                            isFav ? "fill-rose-500 text-rose-500" : "text-white"
+                          }`}
+                        />
+                      </button>
+
+                      {/* Carousel Pagination Dots */}
+                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                      </div>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="p-4 sm:p-4.5 flex-1 flex flex-col justify-between">
+                      <div>
+                        {/* Car Title & Year */}
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 tracking-[-0.04em] group-hover:text-black">
+                          {car.title} ({car.year})
+                        </h3>
+
+                        {/* Specs Pill Row (Black color and font-medium) */}
+                        <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1.5 mt-2.5 text-xs sm:text-[13px] font-medium text-black">
+                          <div className="flex items-center gap-1 text-black">
+                            {getFuelIcon(car.fuelType)}
+                            <span className="text-black">{car.fuelType}</span>
+                          </div>
+                          <span className="text-gray-300 font-normal">•</span>
+                          <div className="flex items-center gap-1 text-black">
+                            <Settings2 className="w-3.5 h-3.5 text-black stroke-[2]" />
+                            <span className="text-black">{car.transmission}</span>
+                          </div>
+                          <span className="text-gray-300 font-normal">•</span>
+                          <div className="flex items-center gap-1 text-black">
+                            <CarFront className="w-3.5 h-3.5 text-black stroke-[2]" />
+                            <span className="text-black">
+                              {car.condition === "Foreign Used (Tokunbo)" ? "Tokunbo" : car.condition}
+                            </span>
+                          </div>
+                          <span className="text-gray-300 font-normal">•</span>
+                          <span className="text-black">{car.bodyType}</span>
+                        </div>
+                      </div>
+
+                      {/* Pricing & CTA Divider (Same font size & medium weight for prices, larger See Details icon) */}
+                      <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between">
+                        <div className="flex items-baseline gap-2">
+                          {car.marketPriceRange && (
+                            <span className="text-sm sm:text-base text-rose-500 line-through font-medium">
+                              ₦{(car.marketPriceRange[1] / 1000000).toFixed(1)}M
+                            </span>
+                          )}
+                          <span className="text-sm sm:text-base font-medium text-gray-900 tracking-tight">
+                            ₦{(car.price / 1000000).toFixed(1)}M
+                          </span>
+                        </div>
+
+                        <Link
+                          href={`/buyer/vehicles/${car.id}`}
+                          className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800 group-hover:text-black transition"
+                        >
+                          <span>See Details</span>
+                          <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
 

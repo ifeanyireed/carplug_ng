@@ -24,7 +24,9 @@ import {
   X,
   Sliders,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
+import { VehicleGridSkeleton } from "@/components/common/VehicleCardSkeleton";
 
 export interface SearchResultsDisplayProps {
   results: CarListing[];
@@ -48,6 +50,7 @@ export interface SearchResultsDisplayProps {
   onChangeType: (type: string) => void;
   onChangeModel: (model: string) => void;
   onChangePrice: (price: string) => void;
+  isLoading?: boolean;
 }
 
 const CATEGORY_TABS: { label: string; value: SearchFilterState["category"] }[] = [
@@ -80,6 +83,7 @@ export const SearchResultsDisplay = ({
   onChangeType,
   onChangeModel,
   onChangePrice,
+  isLoading = false,
 }: SearchResultsDisplayProps) => {
   const [showStickyCapsule, setShowStickyCapsule] = useState(false);
 
@@ -223,9 +227,16 @@ export const SearchResultsDisplay = ({
             <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-[-0.04em]">
               Search Results
             </h2>
-            <span className="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-black rounded-full tracking-tight shadow-xs">
-              {results.length} found
-            </span>
+            {isLoading ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full tracking-tight shadow-xs animate-pulse">
+                <Loader2 className="w-3 h-3 animate-spin text-gray-600" />
+                <span>Searching vehicles...</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-black rounded-full tracking-tight shadow-xs">
+                {results.length} found
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
             {filterSummary ? (
@@ -442,8 +453,12 @@ export const SearchResultsDisplay = ({
         </div>
       )}
 
-      {/* Zero Results State */}
-      {results.length === 0 ? (
+      {/* Loading State or Zero Results State */}
+      {isLoading ? (
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 sm:p-6 lg:p-7 shadow-sm">
+          <VehicleGridSkeleton count={6} />
+        </div>
+      ) : results.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200/80 p-8 sm:p-12 text-center shadow-sm max-w-2xl mx-auto my-6">
           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 text-gray-500">
             <SlidersHorizontal className="w-5 h-5" />
@@ -575,8 +590,17 @@ export const SearchResultsDisplay = ({
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-neutral-900/95 text-white backdrop-blur-xl border border-white/20 px-4 sm:px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 sm:gap-4 transition-all duration-300"
         >
           <div className="flex items-center gap-2 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>{results.length} found</span>
+            {isLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                <span>Updating inventory...</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{results.length} found</span>
+              </>
+            )}
           </div>
           <div className="h-3.5 w-px bg-white/20" />
           <button

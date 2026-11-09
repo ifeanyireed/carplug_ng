@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { TrustTierBadge } from "@/components/common/TrustTierBadge";
 import { PriceRatingBadge } from "@/components/common/PriceRatingBadge";
 import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
+import { AddToCompareButton } from "@/components/common/AddToCompareButton";
 import { VehicleContactActions } from "@/components/vehicle/VehicleContactActions";
 import { fetchVehicleById, fetchInspectionById } from "@/services/api";
 import type { Metadata } from "next";
@@ -109,12 +110,7 @@ export default async function VehicleDetailPage({
               <Share2 className="w-3.5 h-3.5" />
               <span>Share</span>
             </button>
-            <Link
-              href="/buyer/compare"
-              className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <span>Add to Compare</span>
-            </Link>
+            <AddToCompareButton vehicleId={vehicle.id} />
           </div>
         </div>
       </div>

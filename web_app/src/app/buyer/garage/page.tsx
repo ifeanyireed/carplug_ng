@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
 import { useAuth } from "@/context/AuthContext";
+import { AddToCompareButton } from "@/components/common/AddToCompareButton";
 import {
   Trash2,
   TrendingDown,
@@ -70,10 +71,10 @@ export default function GaragePage() {
             </Link>
             {savedVehicles.length > 0 && (
               <Link
-                href="/buyer/compare"
+                href={`/buyer/compare?ids=${savedVehicles.slice(0, 4).map((v) => v.id).join(",")}`}
                 className="flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-black transition tracking-tight group"
               >
-                <span>Compare All ({savedVehicles.length})</span>
+                <span>Compare ({Math.min(savedVehicles.length, 4)})</span>
                 <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Link>
             )}

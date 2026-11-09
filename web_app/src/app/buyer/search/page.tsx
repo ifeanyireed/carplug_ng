@@ -19,9 +19,11 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Loader2,
+  Scale,
 } from "lucide-react";
 
 import { useSavedVehicles } from "@/context/SavedVehiclesContext";
+import { useCompare } from "@/context/CompareContext";
 import { PublicAdBanner } from "@/components/common/PublicAdBanner";
 import { VehicleGridSkeleton } from "@/components/common/VehicleCardSkeleton";
 
@@ -37,6 +39,7 @@ function BuyerSearchContent() {
   const initialQ = searchParams.get("q");
 
   const { isSaved, toggleSave } = useSavedVehicles();
+  const { isComparing, toggleCompare, compareCount } = useCompare();
   const [activeTab, setActiveTab] = useState<"all" | "tokunbo" | "nigerian_used" | "brand_new">(() => {
     if (initialCondition === "tokunbo" || initialCondition === "nigerian_used" || initialCondition === "brand_new") {
       return initialCondition;
@@ -184,9 +187,14 @@ function BuyerSearchContent() {
           <div className="flex items-center gap-4">
             <Link
               href="/buyer/compare"
-              className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-black transition tracking-tight group"
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-black transition tracking-tight group"
             >
               <span>Compare Cars</span>
+              {compareCount > 0 && (
+                <span className="px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[10px] font-bold">
+                  {compareCount}
+                </span>
+              )}
               <ArrowUpRight className="w-4 h-4 stroke-[2] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>
             <Link
@@ -396,6 +404,25 @@ function BuyerSearchContent() {
                           </span>
                         </div>
                       )}
+
+                      {/* Quick Compare Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleCompare(car.id);
+                        }}
+                        aria-label={isComparing(car.id) ? "Remove from compare" : "Add to compare"}
+                        title={isComparing(car.id) ? "In comparison tray" : "Add to comparison tray"}
+                        className={`absolute top-3 right-12 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition active:scale-90 ${
+                          isComparing(car.id)
+                            ? "bg-blue-600 text-white shadow-md ring-2 ring-white/80"
+                            : "bg-black/35 hover:bg-black/60 text-white"
+                        }`}
+                      >
+                        <Scale className="w-3.5 h-3.5" />
+                      </button>
 
                       {/* Favorite Heart Button */}
                       <button

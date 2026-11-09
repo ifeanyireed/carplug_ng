@@ -3,8 +3,10 @@ import { inter } from "./fonts";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SavedVehiclesProvider } from "@/context/SavedVehiclesContext";
+import { CompareProvider } from "@/context/CompareContext";
 import { AuthModal } from "@/components/modals/AuthModal";
 import { DemoRoleSwitcher } from "@/components/common/DemoRoleSwitcher";
+import { CompareFloatingBar } from "@/components/common/CompareFloatingBar";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://mycars.ng";
 
@@ -65,9 +67,12 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SavedVehiclesProvider>
-            {children}
-            <AuthModal />
-            <DemoRoleSwitcher />
+            <CompareProvider>
+              {children}
+              <AuthModal />
+              <DemoRoleSwitcher />
+              <CompareFloatingBar />
+            </CompareProvider>
           </SavedVehiclesProvider>
         </AuthProvider>
       </body>

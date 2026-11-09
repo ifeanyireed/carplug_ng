@@ -12,6 +12,7 @@ import {
   PRICE_RANGES,
 } from "./HeroSearchBox";
 import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
+import { AddToCompareButton } from "@/components/common/AddToCompareButton";
 import {
   ArrowUpRight,
   ArrowUp,
@@ -513,6 +514,15 @@ export const SearchResultsDisplay = ({
                         </span>
                       </div>
                     )}
+
+                    {/* Quick Compare Button */}
+                    <div className="absolute top-3 right-12 z-10">
+                      <AddToCompareButton
+                        vehicleId={car.id}
+                        showText={false}
+                        className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
+                      />
+                    </div>
 
                     {/* Favorite Heart Button */}
                     <SaveVehicleButton vehicle={car} />

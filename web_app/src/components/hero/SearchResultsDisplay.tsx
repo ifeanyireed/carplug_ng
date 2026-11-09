@@ -515,17 +515,17 @@ export const SearchResultsDisplay = ({
                       </div>
                     )}
 
-                    {/* Quick Compare Button */}
-                    <div className="absolute top-3 right-12 z-10">
+                    {/* Action Buttons: Compare & Save with a little padding */}
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                       <AddToCompareButton
                         vehicleId={car.id}
                         showText={false}
+                      />
+                      <SaveVehicleButton
+                        vehicle={car}
                         className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
                       />
                     </div>
-
-                    {/* Favorite Heart Button */}
-                    <SaveVehicleButton vehicle={car} />
 
                     {/* Carousel Pagination Dots */}
                     <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">

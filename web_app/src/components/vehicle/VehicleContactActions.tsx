@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Vehicle } from "@/data/mockStore";
 import { Wrench, PhoneCall } from "lucide-react";
 import { SaveVehicleButton } from "@/components/common/SaveVehicleButton";
+import { AddToCompareButton } from "@/components/common/AddToCompareButton";
 import { ContactSellerModal, WhatsAppIcon } from "./ContactSellerModal";
 import {
   fetchVehicleContact,
@@ -78,15 +79,23 @@ export function VehicleContactActions({ vehicle }: VehicleContactActionsProps) {
           <span>Contact Seller (Options)</span>
         </button>
 
-        {/* Save to Garage Button */}
-        <SaveVehicleButton
-          vehicle={vehicle}
-          className="w-full py-3.5 bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-neutral-800 font-bold rounded-2xl text-center flex items-center justify-center gap-2 transition active:scale-[0.99]"
-          iconClassName="w-4 h-4 text-neutral-700"
-          showText={true}
-          text="Save to Garage"
-          savedText="Saved in Garage"
-        />
+        {/* Actions: Save to Garage & Add to Compare */}
+        <div className="grid grid-cols-2 gap-2">
+          <SaveVehicleButton
+            vehicle={vehicle}
+            className="w-full py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-neutral-800 font-bold rounded-2xl text-center flex items-center justify-center gap-1.5 transition active:scale-[0.99] text-xs cursor-pointer"
+            iconClassName="w-4 h-4 text-neutral-700"
+            showText={true}
+            text="Save"
+            savedText="Saved"
+          />
+          <div className="w-full">
+            <AddToCompareButton
+              vehicleId={vehicle.id}
+              className="w-full py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-neutral-800 font-bold rounded-2xl text-center flex items-center justify-center gap-1.5 transition active:scale-[0.99] text-xs h-full"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Contact Seller Sheet / Modal */}

@@ -97,20 +97,20 @@ export default async function VehicleDetailPage({
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <SaveVehicleButton
               vehicle={vehicle}
-              className="flex items-center gap-1.5 hover:text-neutral-900 transition font-medium"
+              className="flex items-center gap-1.5 hover:text-neutral-900 transition font-medium text-xs text-gray-600"
               iconClassName="w-3.5 h-3.5 text-neutral-500"
               showText={true}
               text="Save"
               savedText="Saved"
             />
-            <button className="flex items-center gap-1 hover:text-neutral-900">
+            <AddToCompareButton vehicleId={vehicle.id} />
+            <button className="flex items-center gap-1 text-gray-600 hover:text-neutral-900 text-xs font-medium transition cursor-pointer ml-1">
               <Share2 className="w-3.5 h-3.5" />
               <span>Share</span>
             </button>
-            <AddToCompareButton vehicleId={vehicle.id} />
           </div>
         </div>
       </div>

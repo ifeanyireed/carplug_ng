@@ -405,38 +405,39 @@ function BuyerSearchContent() {
                         </div>
                       )}
 
-                      {/* Quick Compare Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleCompare(car.id);
-                        }}
-                        aria-label={isComparing(car.id) ? "Remove from compare" : "Add to compare"}
-                        title={isComparing(car.id) ? "In comparison tray" : "Add to comparison tray"}
-                        className={`absolute top-3 right-12 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition active:scale-90 ${
-                          isComparing(car.id)
-                            ? "bg-blue-600 text-white shadow-md ring-2 ring-white/80"
-                            : "bg-black/35 hover:bg-black/60 text-white"
-                        }`}
-                      >
-                        <Scale className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Favorite Heart Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => handleFavoriteClick(e, car)}
-                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
-                      >
-                        <Heart
-                          className={`w-4 h-4 transition ${
-                            isFav ? "fill-rose-500 text-rose-500" : "text-white"
+                      {/* Action Buttons: Compare & Save with a little padding */}
+                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleCompare(car.id);
+                          }}
+                          aria-label={isComparing(car.id) ? "Remove from compare" : "Add to compare"}
+                          title={isComparing(car.id) ? "In comparison tray" : "Add to comparison tray"}
+                          className={`w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition active:scale-90 ${
+                            isComparing(car.id)
+                              ? "bg-blue-600 text-white shadow-md ring-2 ring-white/80"
+                              : "bg-black/35 hover:bg-black/60 text-white"
                           }`}
-                        />
-                      </button>
+                        >
+                          <Scale className="w-3.5 h-3.5 stroke-[2.2]" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleFavoriteClick(e, car)}
+                          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                          className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-90"
+                        >
+                          <Heart
+                            className={`w-4 h-4 transition ${
+                              isFav ? "fill-rose-500 text-rose-500" : "text-white"
+                            }`}
+                          />
+                        </button>
+                      </div>
 
                       {/* Carousel Pagination Dots */}
                       <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">

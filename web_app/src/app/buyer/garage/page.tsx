@@ -198,16 +198,22 @@ export default function GaragePage() {
                             </span>
                           </div>
 
-                          {/* Remove Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => handleRemove(e, car.id)}
-                            aria-label="Remove from saved cars"
-                            title="Remove from saved cars"
-                            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white hover:bg-red-600 transition active:scale-90"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Top Right Actions: Compare & Remove */}
+                          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                            <AddToCompareButton
+                              vehicleId={car.id}
+                              showText={false}
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => handleRemove(e, car.id)}
+                              aria-label="Remove from saved cars"
+                              title="Remove from saved cars"
+                              className="w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white hover:bg-red-600 transition active:scale-90"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Card Body */}

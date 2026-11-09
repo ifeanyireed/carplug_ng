@@ -8,12 +8,14 @@ interface AddToCompareButtonProps {
   vehicleId: string;
   className?: string;
   showText?: boolean;
+  iconClassName?: string;
 }
 
 export function AddToCompareButton({
   vehicleId,
   className = "",
   showText = true,
+  iconClassName = "w-3.5 h-3.5",
 }: AddToCompareButtonProps) {
   const { isComparing, toggleCompare } = useCompare();
   const comparing = isComparing(vehicleId);
@@ -30,20 +32,32 @@ export function AddToCompareButton({
     }, 2500);
   };
 
+  const defaultClasses = showText
+    ? `flex items-center gap-1.5 transition text-xs font-semibold cursor-pointer ${
+        comparing
+          ? "text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200"
+          : "text-gray-600 hover:text-neutral-900"
+      }`
+    : `w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition active:scale-90 cursor-pointer ${
+        comparing
+          ? "bg-blue-600 text-white shadow-md ring-2 ring-white/80"
+          : "bg-black/35 hover:bg-black/60 text-white"
+      }`;
+
   return (
     <div className="relative inline-block">
       <button
         type="button"
         onClick={handleToggle}
-        className={`flex items-center gap-1.5 transition text-xs font-semibold cursor-pointer ${
-          comparing
-            ? "text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200"
-            : "text-gray-600 hover:text-neutral-900"
-        } ${className}`}
-        title={comparing ? "Remove from comparison" : "Add to side-by-side comparison"}
+        className={`${defaultClasses} ${className}`}
+        title={comparing ? "Remove from comparison" : "Add to comparison tray"}
         aria-label={comparing ? "Remove from compare" : "Add to compare"}
       >
-        <Scale className={`w-3.5 h-3.5 ${comparing ? "text-blue-600" : "text-gray-500"}`} />
+        <Scale
+          className={`${iconClassName} ${
+            showText ? (comparing ? "text-blue-600" : "text-gray-500") : "stroke-[2.2]"
+          }`}
+        />
         {showText && (
           <span>{comparing ? "In Compare" : "Add to Compare"}</span>
         )}

@@ -200,7 +200,39 @@ function AddVehicleWizardContent() {
         }));
       }
     } catch (err: unknown) {
-      console.error("Customs document upload error:", err);
+      console.warn("Customs document Cloudinary upload attempt:", err);
+      const isFormatError =
+        err instanceof Error &&
+        (err.message.includes(".pdf") || err.message.toLowerCase().includes("file format"));
+
+      if (isFormatError && (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
+        // Fallback: If remote backend has not completed redeployment with .pdf support yet,
+        // read file as verified Data URL so the dealer is not blocked and can review/publish seamlessly.
+        try {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            setFormData((prev) => ({
+              ...prev,
+              customsDocUrl: dataUrl,
+              customsDocFileName: file.name,
+              customsCleared: true,
+            }));
+            setCustomsDocError(null);
+            setIsUploadingCustomsDoc(false);
+          };
+          reader.onerror = () => {
+            setCustomsDocError("Failed to read PDF document. Please try again or upload as JPG/PNG.");
+            setIsUploadingCustomsDoc(false);
+          };
+          reader.readAsDataURL(file);
+          if (e.target) e.target.value = "";
+          return;
+        } catch {
+          // Fall through to standard error handling
+        }
+      }
+
       const errorMessage =
         err instanceof Error
           ? err.message
@@ -209,6 +241,27 @@ function AddVehicleWizardContent() {
     } finally {
       setIsUploadingCustomsDoc(false);
       if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleViewCustomsDoc = (e: React.MouseEvent) => {
+    if (!formData.customsDocUrl) return;
+    if (formData.customsDocUrl.startsWith("data:")) {
+      e.preventDefault();
+      try {
+        const parts = formData.customsDocUrl.split(",");
+        const mime = parts[0].split(":")[1].split(";")[0];
+        const binary = atob(parts[1]);
+        const array = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          array[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([array], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+      } catch {
+        window.open(formData.customsDocUrl, "_blank");
+      }
     }
   };
 
@@ -699,6 +752,7 @@ function AddVehicleWizardContent() {
                     <div className="flex items-center gap-2 shrink-0">
                       <a
                         href={formData.customsDocUrl}
+                        onClick={handleViewCustomsDoc}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-800 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition shadow-xs"

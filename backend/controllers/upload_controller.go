@@ -17,6 +17,7 @@ var allowedExtensions = map[string]bool{
 	".webp": true,
 	".avif": true,
 	".heic": true,
+	".pdf":  true,
 }
 
 var allowedFolders = map[string]bool{
@@ -69,7 +70,7 @@ func UploadImages(c *gin.Context) {
 		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 		if !allowedExtensions[ext] {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("File format '%s' is not supported. Allowed formats: jpg, jpeg, png, webp, heic", ext),
+				"error": fmt.Sprintf("File format '%s' is not supported. Allowed formats: jpg, jpeg, png, webp, heic, pdf", ext),
 			})
 			return
 		}

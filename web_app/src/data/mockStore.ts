@@ -33,6 +33,7 @@ export interface Vehicle {
     roadworthiness: boolean;
     tintPermit?: boolean;
     policeExtracted?: boolean;
+    customsDocUrl?: string;
   };
   healthScore?: number; // 0 - 100%
   latestInspectionId?: string;

@@ -232,6 +232,7 @@ interface RawVehicle {
   roadworthiness?: boolean;
   tintPermit?: boolean;
   policeExtracted?: boolean;
+  customsDocUrl?: string;
   documentsAvailable?: Vehicle["documentsAvailable"];
   healthScore?: number;
   latestInspectionId?: string;
@@ -292,7 +293,11 @@ export function adaptVehicle(raw: RawVehicle): Vehicle {
     roadworthiness: Boolean(raw.roadworthiness),
     tintPermit: Boolean(raw.tintPermit),
     policeExtracted: Boolean(raw.policeExtracted),
+    customsDocUrl: raw.customsDocUrl,
   };
+  if (!documentsAvailable.customsDocUrl && raw.customsDocUrl) {
+    documentsAvailable.customsDocUrl = raw.customsDocUrl;
+  }
 
   return {
     id: raw.id,

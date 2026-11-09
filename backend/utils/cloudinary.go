@@ -61,8 +61,9 @@ func (cu *CloudinaryUploader) UploadImage(ctx context.Context, fileHeader *multi
 	publicID := fmt.Sprintf("%s_%d_%s", cleanName, time.Now().Unix(), uuid.New().String()[:8])
 
 	uploadParams := uploader.UploadParams{
-		Folder:   folder,
-		PublicID: publicID,
+		Folder:       folder,
+		PublicID:     publicID,
+		ResourceType: "auto",
 	}
 
 	res, err := cu.cld.Upload.Upload(ctx, file, uploadParams)

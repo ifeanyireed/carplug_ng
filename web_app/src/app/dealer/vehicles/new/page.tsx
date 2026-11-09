@@ -17,6 +17,11 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
+  FileText,
+  CheckCircle2,
+  ExternalLink,
+  ShieldCheck,
+  Trash2,
 } from "lucide-react";
 
 function AddVehicleWizardContent() {
@@ -24,17 +29,27 @@ function AddVehicleWizardContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit") || searchParams.get("id");
   const isEditMode = Boolean(editId);
+  const qStep = searchParams.get("step");
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (qStep) {
+      const parsed = parseInt(qStep, 10);
+      if (parsed >= 1 && parsed <= 10) return parsed;
+    }
+    return 1;
+  });
   const [published, setPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploadingCustomsDoc, setIsUploadingCustomsDoc] = useState(false);
+  const [customsDocError, setCustomsDocError] = useState<string | null>(null);
   const [isLoadingExisting, setIsLoadingExisting] = useState(() => Boolean(editId));
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [originalVehicle, setOriginalVehicle] = useState<Vehicle | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const customsFileInputRef = useRef<HTMLInputElement>(null);
   const [priceValuation, setPriceValuation] = useState<ValuationEstimateResult | null>(null);
   const [isEvaluatingPrice, setIsEvaluatingPrice] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState<{
@@ -67,32 +82,38 @@ function AddVehicleWizardContent() {
     const qModel = searchParams.get("model");
     const qYear = searchParams.get("year");
     const qMileage = searchParams.get("mileage");
+    const qCondition = searchParams.get("condition");
+    const qAskingPrice = searchParams.get("askingPrice");
+    const qVin = searchParams.get("vin");
+    const qTrim = searchParams.get("trim");
 
     return {
       // Step 1: Basic details
       make: qMake || "Mercedes-Benz",
       model: qModel || "GLC 300",
       year: qYear || "2021",
-      trim: "4MATIC AMG Line",
+      trim: qTrim || (qMake?.toLowerCase().includes("toyota") ? "Standard AWD" : "4MATIC AMG Line"),
       bodyType: "SUV",
       // Step 2: Condition
-      condition: "Foreign Used (Tokunbo)",
+      condition: qCondition || "Foreign Used (Tokunbo)",
       // Step 3: Location
       locationZone: "Lekki Phase 1, Lagos",
       exactAddress: "Plot 14 Admiralty Way",
       // Step 4: Specs
       mileage: qMileage || "32000",
       transmission: "Automatic",
-      engineSize: "2.0L Turbo Inline-4",
+      engineSize: qMake?.toLowerCase().includes("toyota") ? "3.5L V6 DOHC" : "2.0L Turbo Inline-4",
       fuelType: "Petrol",
       // Step 5: Customs & Docs
-      vin: "WDC2539841F901823",
+      vin: qVin || (qMake?.toLowerCase().includes("toyota") ? "2T2BZMCA9JC108421" : "WDC2539841F901823"),
       customsCleared: true,
       originalReceipt: true,
+      customsDocUrl: "",
+      customsDocFileName: "",
       // Step 6: Photos & Cloudinary Images
       images: [] as string[],
       // Step 7: Pricing
-      askingPrice: "42000000",
+      askingPrice: qAskingPrice || "42000000",
       negotiable: true,
       // Step 8: Faults disclosure
       disclosedFaults: "Minor front bumper stone chips. Interior pristine.",
@@ -126,6 +147,8 @@ function AddVehicleWizardContent() {
             vin: car.vin || "",
             customsCleared: car.documentsAvailable?.customsDoc ?? true,
             originalReceipt: car.documentsAvailable?.registrationDoc ?? true,
+            customsDocUrl: car.documentsAvailable?.customsDocUrl || "",
+            customsDocFileName: car.documentsAvailable?.customsDocUrl ? "Customs_SGD_Declaration.pdf" : "",
             images: Array.isArray(car.images) && car.images.length > 0 ? car.images : [],
             askingPrice: String(car.price || 0),
             negotiable: true,
@@ -150,6 +173,52 @@ function AddVehicleWizardContent() {
       isSubscribed = false;
     };
   }, [editId]);
+
+  const handleCustomsDocSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    // Check size limit: 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      setCustomsDocError("File size exceeds 10MB limit. Please select a document under 10MB.");
+      if (e.target) e.target.value = "";
+      return;
+    }
+
+    setIsUploadingCustomsDoc(true);
+    setCustomsDocError(null);
+
+    try {
+      const urls = await uploadVehicleImages([file], "carplug/documents");
+      if (urls && urls.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          customsDocUrl: urls[0],
+          customsDocFileName: file.name,
+          customsCleared: true,
+        }));
+      }
+    } catch (err: unknown) {
+      console.error("Customs document upload error:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to upload customs document. Please try again or verify file format.";
+      setCustomsDocError(errorMessage);
+    } finally {
+      setIsUploadingCustomsDoc(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleRemoveCustomsDoc = () => {
+    setFormData((prev) => ({
+      ...prev,
+      customsDocUrl: "",
+      customsDocFileName: "",
+    }));
+  };
 
   const handleImageFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -261,6 +330,14 @@ function AddVehicleWizardContent() {
             publicLocation: formData.locationZone,
             exactLocation: formData.exactAddress,
             customsStatus: formData.customsCleared ? "Fully Cleared" : "Local Registration",
+            documentsAvailable: {
+              customsDoc: formData.customsCleared,
+              registrationDoc: formData.originalReceipt,
+              roadworthiness: true,
+              tintPermit: false,
+              policeExtracted: false,
+              customsDocUrl: formData.customsDocUrl || undefined,
+            },
           });
         } else {
           const generatedId = `v-${formData.make.toLowerCase().replace(/\s+/g, "-")}-${formData.model.toLowerCase().replace(/\s+/g, "-")}-${String(Date.now()).slice(-6)}`;
@@ -296,6 +373,7 @@ function AddVehicleWizardContent() {
               roadworthiness: true,
               tintPermit: false,
               policeExtracted: false,
+              customsDocUrl: formData.customsDocUrl || undefined,
             },
             healthScore: formData.preInspectionOptIn ? 92 : 0,
             featured: false,
@@ -350,11 +428,14 @@ function AddVehicleWizardContent() {
 
         {/* Step Progress Bar */}
         <div className="grid grid-cols-10 gap-1.5 pt-4">
-          {steps.map((_, idx) => (
-            <div
+          {steps.map((stepName, idx) => (
+            <button
               key={idx}
-              className={`h-2 rounded-full transition ${
-                idx + 1 <= currentStep ? "bg-neutral-900" : "bg-gray-100"
+              type="button"
+              onClick={() => setCurrentStep(idx + 1)}
+              title={`Step ${idx + 1}: ${stepName}`}
+              className={`h-2 rounded-full transition cursor-pointer hover:opacity-80 ${
+                idx + 1 <= currentStep ? "bg-neutral-900" : "bg-gray-100 hover:bg-gray-200"
               }`}
             />
           ))}
@@ -565,19 +646,208 @@ function AddVehicleWizardContent() {
             )}
 
             {currentStep === 5 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-base text-neutral-900">
-                  Step 5: Customs Documentation & VIN (Unlocks Tier 2)
-                </h3>
-                <div className="p-4 bg-gray-50 border border-dashed border-gray-300 rounded-2xl text-center space-y-2">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                  <div className="text-xs font-bold text-neutral-900">
-                    Upload Federal Customs Single Goods Declaration (SGD) & Release
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-bold text-base text-neutral-900">
+                    Step 5: Customs Documentation & VIN (Unlocks Tier 2)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload official Nigerian Customs Service (NCS) entry documentation and provide the 17-digit VIN to unlock Tier 2 platform verification.
+                  </p>
+                </div>
+
+                {/* Hidden File Input for Customs SGD Document */}
+                <input
+                  ref={customsFileInputRef}
+                  type="file"
+                  accept=".pdf,image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handleCustomsDocSelected}
+                  className="hidden"
+                />
+
+                {/* Upload Error Banner */}
+                {customsDocError && (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 text-rose-700 text-xs font-medium">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <span>{customsDocError}</span>
                   </div>
-                  <p className="text-[11px] text-gray-500">PDF, JPG or PNG up to 10MB</p>
-                  <button className="px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-xs font-semibold">
-                    Browse File
-                  </button>
+                )}
+
+                {/* Customs Document Upload Zone / Uploaded Preview */}
+                {formData.customsDocUrl ? (
+                  <div className="p-4 sm:p-5 bg-emerald-50/60 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-xs text-neutral-900 truncate max-w-xs">
+                            {formData.customsDocFileName || "Customs_SGD_Declaration.pdf"}
+                          </span>
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            SGD Attached
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-gray-500 block mt-0.5">
+                          Uploaded to Cloudinary CDN & queued for CarPlug administrative verification
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={formData.customsDocUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-neutral-800 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition shadow-xs"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+                        <span>View</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => customsFileInputRef.current?.click()}
+                        disabled={isUploadingCustomsDoc}
+                        className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Replace</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCustomsDoc}
+                        className="p-1.5 text-gray-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition cursor-pointer"
+                        title="Remove document"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => !isUploadingCustomsDoc && customsFileInputRef.current?.click()}
+                    className={`p-6 sm:p-8 bg-gray-50 hover:bg-gray-100/80 border-2 border-dashed ${
+                      isUploadingCustomsDoc ? "border-neutral-400 cursor-wait" : "border-gray-300 hover:border-gray-400 cursor-pointer"
+                    } rounded-2xl text-center space-y-3 transition`}
+                  >
+                    {isUploadingCustomsDoc ? (
+                      <div className="py-4 flex flex-col items-center justify-center gap-2 text-neutral-800">
+                        <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+                        <span className="text-xs font-bold">Uploading Customs Document to Cloudinary...</span>
+                        <span className="text-[11px] text-gray-500">Encrypting document for compliance review</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto text-gray-400">
+                          <Upload className="w-6 h-6 text-gray-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-xs font-bold text-neutral-900">
+                            Upload Federal Customs Single Goods Declaration (SGD) & Release
+                          </div>
+                          <p className="text-[11px] text-gray-500">
+                            PDF, JPG, PNG or WEBP up to 10MB
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            customsFileInputRef.current?.click();
+                          }}
+                          className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Browse File</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* VIN Input Field */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-gray-700">
+                      17-Digit Vehicle Identification Number (VIN)
+                    </label>
+                    {formData.vin.length === 17 ? (
+                      <span className="text-emerald-700 bg-emerald-50 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        Valid 17-Character Format
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-[10px] font-medium">
+                        {formData.vin.length}/17 characters
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={17}
+                    value={formData.vin}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        vin: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 17),
+                      })
+                    }
+                    placeholder="e.g. 2T2BZMCA9JC108421"
+                    className="w-full px-3.5 py-2.5 font-mono tracking-wider uppercase bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-neutral-900 focus:bg-white focus:outline-none focus:border-neutral-900"
+                  />
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    VIN must match the chassis number on your customs clearance papers and vehicle dashboard plate.
+                  </p>
+                </div>
+
+                {/* Verification Checkboxes */}
+                <div className="space-y-2.5 pt-1">
+                  <label className="flex items-start gap-3 p-3.5 bg-gray-50 hover:bg-gray-100/70 border border-gray-200 rounded-2xl cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={formData.customsCleared}
+                      onChange={(e) => setFormData({ ...formData, customsCleared: e.target.checked })}
+                      className="mt-0.5 rounded text-neutral-900 focus:ring-neutral-900 w-4 h-4 cursor-pointer"
+                    />
+                    <div className="space-y-0.5 text-xs">
+                      <span className="font-bold text-neutral-900 block">
+                        Customs Duties Fully Cleared at Port
+                      </span>
+                      <span className="text-[11px] text-gray-500 block leading-relaxed">
+                        Vehicle has authentic NCS Single Goods Declaration (SGD), C-Number, Assessment Notice, and Bank Payment Teller.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3.5 bg-gray-50 hover:bg-gray-100/70 border border-gray-200 rounded-2xl cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={formData.originalReceipt}
+                      onChange={(e) => setFormData({ ...formData, originalReceipt: e.target.checked })}
+                      className="mt-0.5 rounded text-neutral-900 focus:ring-neutral-900 w-4 h-4 cursor-pointer"
+                    />
+                    <div className="space-y-0.5 text-xs">
+                      <span className="font-bold text-neutral-900 block">
+                        Original Purchase Receipt & Bill of Lading Available
+                      </span>
+                      <span className="text-[11px] text-gray-500 block leading-relaxed">
+                        Shipper Bill of Lading or original dealer invoice is on file to verify lawful ownership chain.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Tier 2 Benefit Badge */}
+                <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-3 text-emerald-950 text-xs">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-emerald-900">Tier 2 Platform Verification</p>
+                    <p className="text-emerald-800 text-[11px] leading-relaxed">
+                      Customs documentation and VIN verification elevates this vehicle to <strong>Tier 2 Verified</strong> status. Verified listings stand out in marketplace searches, enjoy priority search ranking, and give buyers 100% confidence against customs impoundment.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -837,6 +1107,20 @@ function AddVehicleWizardContent() {
                   <div className="flex justify-between">
                     <span className="text-gray-500">Condition:</span>
                     <span className="font-bold text-neutral-900">{formData.condition}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">VIN:</span>
+                    <span className="font-mono font-bold text-neutral-900">{formData.vin || "Not provided"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Customs Clearance:</span>
+                    <span className="font-bold text-neutral-900">
+                      {formData.customsDocUrl
+                        ? "Verified SGD Attached"
+                        : formData.customsCleared
+                        ? "Declared Cleared"
+                        : "Local Registration"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Initial Trust Tier:</span>

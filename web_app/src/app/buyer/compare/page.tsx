@@ -47,6 +47,9 @@ function CompareContent() {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [highlightDifferences, setHighlightDifferences] = useState(false);
 
+  const queryHandledRef = React.useRef(false);
+  const hasSeededRef = React.useRef(false);
+
   // 1. Fetch available inventory
   useEffect(() => {
     let isMounted = true;
@@ -62,8 +65,11 @@ function CompareContent() {
     };
   }, []);
 
-  // 2. Parse query parameters (?ids=v1,v2 or ?add=v3)
+  // 2. Parse query parameters (?ids=v1,v2 or ?add=v3) on initial load
   useEffect(() => {
+    if (queryHandledRef.current) return;
+    queryHandledRef.current = true;
+
     const idsParam = searchParams.get("ids");
     const addParam = searchParams.get("add");
 
@@ -81,25 +87,30 @@ function CompareContent() {
     }
   }, [searchParams, setCompareIds, addToCompare]);
 
-  // Fallback seed: if vehicles loaded and no cars selected in compareIds
+  // 3. Fallback seed: if vehicles loaded and no cars selected in compareIds
   useEffect(() => {
-    if (!isLoading && vehicles.length > 0 && compareIds.length === 0) {
-      // Pick first 2 verified vehicles as initial showcase
+    if (!isLoading && vehicles.length > 0 && compareIds.length === 0 && !hasSeededRef.current) {
+      hasSeededRef.current = true;
       const initial = vehicles.slice(0, 2).map((v) => v.id);
       setCompareIds(initial);
     }
-  }, [isLoading, vehicles, compareIds.length, setCompareIds]);
+  }, [isLoading, vehicles.length, compareIds.length, setCompareIds]);
 
-  // Keep URL updated with active compared IDs
+  // 4. Keep URL updated with active compared IDs using replaceState (avoids route cycle)
   useEffect(() => {
-    if (compareIds.length > 0) {
-      const currentQuery = searchParams.get("ids");
-      const nextQuery = compareIds.join(",");
-      if (currentQuery !== nextQuery) {
-        router.replace(`/buyer/compare?ids=${nextQuery}`, { scroll: false });
+    if (typeof window === "undefined" || compareIds.length === 0) return;
+    const nextQuery = compareIds.join(",");
+    try {
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get("ids") !== nextQuery) {
+        currentUrl.searchParams.set("ids", nextQuery);
+        currentUrl.searchParams.delete("add");
+        window.history.replaceState({}, "", currentUrl.toString());
       }
+    } catch {
+      // Ignore URL parsing errors
     }
-  }, [compareIds, router, searchParams]);
+  }, [compareIds]);
 
   const comparedCars = useMemo(() => {
     return compareIds

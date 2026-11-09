@@ -7,10 +7,20 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 
 const STORAGE_KEY = "carplug_compare_ids";
 export const MAX_COMPARE_LIMIT = 4;
+
+function areArraysEqual(a: string[], b: string[]) {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
 
 interface CompareContextType {
   compareIds: string[];
@@ -28,7 +38,8 @@ const CompareContext = createContext<CompareContextType | undefined>(undefined);
 
 export function CompareProvider({ children }: { children: React.ReactNode }) {
   const [compareIds, setCompareIdsState] = useState<string[]>([]);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const compareIdsRef = useRef<string[]>(compareIds);
+  compareIdsRef.current = compareIds;
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -37,13 +48,12 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setCompareIdsState(parsed.slice(0, MAX_COMPARE_LIMIT));
+          const valid = parsed.slice(0, MAX_COMPARE_LIMIT);
+          setCompareIdsState((prev) => (areArraysEqual(prev, valid) ? prev : valid));
         }
       }
     } catch {
       // Ignore local storage parse errors
-    } finally {
-      setIsHydrated(true);
     }
 
     // Listen for storage changes across tabs
@@ -52,7 +62,8 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (Array.isArray(parsed)) {
-            setCompareIdsState(parsed.slice(0, MAX_COMPARE_LIMIT));
+            const valid = parsed.slice(0, MAX_COMPARE_LIMIT);
+            setCompareIdsState((prev) => (areArraysEqual(prev, valid) ? prev : valid));
           }
         } catch {
           // Ignore parse errors
@@ -64,15 +75,23 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Save changes to localStorage
-  const persist = useCallback((ids: string[]) => {
-    const trimmed = ids.slice(0, MAX_COMPARE_LIMIT);
-    setCompareIdsState(trimmed);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-    } catch {
-      // Ignore storage write issues
-    }
+  // Save changes to localStorage with functional update and equality check
+  const persist = useCallback((updater: string[] | ((prev: string[]) => string[])) => {
+    setCompareIdsState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      const trimmed = next.slice(0, MAX_COMPARE_LIMIT);
+
+      if (areArraysEqual(prev, trimmed)) {
+        return prev; // Identical: no-op, prevent re-renders
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      } catch {
+        // Ignore storage write issues
+      }
+      return trimmed;
+    });
   }, []);
 
   const isComparing = useCallback(
@@ -86,54 +105,69 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
     (vehicleId: string) => {
       if (!vehicleId) return { success: false, message: "Invalid vehicle ID" };
 
-      if (compareIds.includes(vehicleId)) {
-        return { success: true, message: "Vehicle already in comparison" };
-      }
+      let result = { success: true, message: "" };
 
-      if (compareIds.length >= MAX_COMPARE_LIMIT) {
-        return {
-          success: false,
-          message: `Maximum ${MAX_COMPARE_LIMIT} vehicles can be compared at once. Remove one to add another.`,
+      persist((prev) => {
+        if (prev.includes(vehicleId)) {
+          result = { success: true, message: "Vehicle already in comparison" };
+          return prev;
+        }
+
+        if (prev.length >= MAX_COMPARE_LIMIT) {
+          result = {
+            success: false,
+            message: `Maximum ${MAX_COMPARE_LIMIT} vehicles can be compared at once.`,
+          };
+          return prev;
+        }
+
+        const next = [...prev, vehicleId];
+        result = {
+          success: true,
+          message: `Added to comparison tray (${next.length}/${MAX_COMPARE_LIMIT})`,
         };
-      }
+        return next;
+      });
 
-      const next = [...compareIds, vehicleId];
-      persist(next);
-      return {
-        success: true,
-        message: `Added to comparison tray (${next.length}/${MAX_COMPARE_LIMIT})`,
-      };
+      return result;
     },
-    [compareIds, persist]
+    [persist]
   );
 
   const removeFromCompare = useCallback(
     (vehicleId: string) => {
-      const next = compareIds.filter((id) => id !== vehicleId);
-      persist(next);
+      persist((prev) => prev.filter((id) => id !== vehicleId));
     },
-    [compareIds, persist]
+    [persist]
   );
 
   const toggleCompare = useCallback(
     (vehicleId: string) => {
-      if (compareIds.includes(vehicleId)) {
-        removeFromCompare(vehicleId);
-        return {
-          success: true,
-          isAdded: false,
-          message: "Removed from comparison",
-        };
-      } else {
-        const res = addToCompare(vehicleId);
-        return {
-          success: res.success,
-          isAdded: res.success,
-          message: res.message,
-        };
-      }
+      let isAdded = false;
+      let msg = "";
+      let success = true;
+
+      persist((prev) => {
+        if (prev.includes(vehicleId)) {
+          isAdded = false;
+          msg = "Removed from comparison";
+          return prev.filter((id) => id !== vehicleId);
+        } else {
+          if (prev.length >= MAX_COMPARE_LIMIT) {
+            success = false;
+            msg = `Maximum ${MAX_COMPARE_LIMIT} vehicles can be compared at once.`;
+            return prev;
+          }
+          isAdded = true;
+          const next = [...prev, vehicleId];
+          msg = `Added to comparison tray (${next.length}/${MAX_COMPARE_LIMIT})`;
+          return next;
+        }
+      });
+
+      return { success, isAdded, message: msg };
     },
-    [compareIds, removeFromCompare, addToCompare]
+    [persist]
   );
 
   const clearCompare = useCallback(() => {
@@ -142,7 +176,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 
   const setCompareIds = useCallback(
     (ids: string[]) => {
-      persist(ids.slice(0, MAX_COMPARE_LIMIT));
+      persist(ids);
     },
     [persist]
   );

@@ -19,6 +19,7 @@ import {
   Megaphone,
   ArrowLeftRight,
   Newspaper,
+  Users,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -92,6 +93,7 @@ export default function AdminLayout({
 
   const adminNavItems: NavItem[] = [
     { label: "Overview Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Users & Subscriptions", href: "/admin/users", icon: Users },
     { label: "Blog & Editorial CMS", href: "/admin/blog", icon: Newspaper },
     {
       label: "Verification Queue",

@@ -278,6 +278,8 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		admin.Use(authMiddleware, middleware.RequireRoles("admin"))
 		{
 			admin.GET("/metrics", controllers.GetAdminMetrics)
+			admin.GET("/users", controllers.GetAdminUsers)
+			admin.PATCH("/users/:id/subscription", controllers.UpdateUserSubscription)
 			admin.GET("/flagged-listings", controllers.GetFlaggedListings)
 			admin.PATCH("/listings/:id/status", controllers.ModerateListingStatus)
 

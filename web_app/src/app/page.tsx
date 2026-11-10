@@ -331,16 +331,6 @@ export default function HomePage() {
     }
   };
 
-  const handleSelectFooterModel = (modelName: string) => {
-    const filtered = catalog.filter(
-      (car) =>
-        car.name.toLowerCase().includes(modelName.toLowerCase()) ||
-        modelName.toLowerCase().includes(car.make.toLowerCase())
-    );
-    setSearchResults(filtered.length > 0 ? filtered : catalog);
-    scrollToResults();
-  };
-
   const handleClearFilters = () => {
     setActiveFilters(null);
     setSelectedBrand(null);
@@ -719,8 +709,8 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Footer Section from UI11.webp */}
-      <Footer onSelectModel={handleSelectFooterModel} />
+      {/* Footer Section */}
+      <Footer />
     </main>
   );
 }

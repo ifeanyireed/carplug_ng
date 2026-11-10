@@ -4,73 +4,11 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { RojoLogo } from "@/components/common/RojoLogo";
 
-interface MakeCategory {
-  title: string;
-  models: string[];
-}
-
-const VEHICLE_DIRECTORIES: MakeCategory[] = [
-  {
-    title: "Toyota",
-    models: [
-      "Toyota Avalon",
-      "Toyota Highlander",
-      "Toyota Sienna",
-      "Toyota 4Runner",
-      "Toyota Supra",
-    ],
-  },
-  {
-    title: "BMW",
-    models: [
-      "BMW 3 Series",
-      "BMW X5",
-      "BMW 7 Series",
-      "BMW Z4",
-      "BMW X3",
-      "BMW i3",
-    ],
-  },
-  {
-    title: "Mercedes Benz",
-    models: [
-      "Mercedes-Benz S-Class",
-      "Mercedes-Benz GLE",
-      "Mercedes-Benz V-Class",
-      "Mercedes-Benz G-Class",
-      "Mercedes-Benz AMG GT",
-      "Mercedes-Benz GLA",
-    ],
-  },
-  {
-    title: "Ford",
-    models: [
-      "Ford Fusion",
-      "Ford Explorer",
-      "Ford Escape",
-      "Ford Mustang",
-      "Ford F-150",
-      "Ford Edge",
-    ],
-  },
-  {
-    title: "Lexus",
-    models: [
-      "Lexus ES",
-      "Lexus RX",
-      "Lexus NX",
-      "Lexus GX",
-      "Lexus LS",
-      "Lexus UX",
-    ],
-  },
-];
-
 interface FooterProps {
   onSelectModel?: (model: string) => void;
 }
 
-export const Footer = ({ onSelectModel }: FooterProps) => {
+export const Footer = ({ onSelectModel }: FooterProps = {}) => {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
@@ -83,34 +21,8 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
 
   return (
     <footer className="w-full bg-[#F7F8FA] pt-12 text-gray-900 overflow-hidden">
-      {/* 1. Vehicle Models Directory Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 lg:gap-10">
-          {VEHICLE_DIRECTORIES.map((category) => (
-            <div key={category.title} className="flex flex-col">
-              <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-4 tracking-tight">
-                {category.title}
-              </h4>
-              <ul className="flex flex-col gap-2.5 sm:gap-3">
-                {category.models.map((model) => (
-                  <li key={model}>
-                    <button
-                      type="button"
-                      onClick={() => onSelectModel?.(model)}
-                      className="text-xs sm:text-sm text-gray-600 hover:text-black transition tracking-tight text-left"
-                    >
-                      {model}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. Quick Platform Links Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 border-t border-gray-200/80 pt-10">
+      {/* 1. Quick Platform Links Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div>
             <h4 className="text-sm font-bold text-gray-900 mb-3 tracking-tight">Marketplace</h4>
@@ -158,7 +70,7 @@ export const Footer = ({ onSelectModel }: FooterProps) => {
         </div>
       </div>
 
-      {/* 3. Newsletter, Socials & Watermark Band */}
+      {/* 2. Newsletter, Socials & Watermark Band */}
       <div className="w-full bg-[#EAEDF2] pt-10 pb-6 relative overflow-hidden border-t border-gray-200/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Top Row: Newsletter Form & Social Links */}

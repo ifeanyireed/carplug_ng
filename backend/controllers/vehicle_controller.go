@@ -649,8 +649,10 @@ func DeleteVehicle(c *gin.Context) {
 	userRole := c.GetString("userRole")
 
 	// Ownership check: only the listing owner or an admin can delete this vehicle
-	isOwner := (existing.SellerID == userID)
-	if !isOwner && userRole == "dealer" {
+	cleanUser := strings.TrimPrefix(userID, "usr-")
+	cleanSeller := strings.TrimPrefix(existing.SellerID, "usr-")
+	isOwner := (existing.SellerID == userID || (cleanUser != "" && cleanUser == cleanSeller))
+	if !isOwner && (userRole == "dealer" || userRole == "seller") {
 		var dealer models.DealerShop
 		if err := db.Where("user_id = ? AND id = ?", userID, existing.SellerID).First(&dealer).Error; err == nil {
 			isOwner = true
@@ -666,5 +668,35 @@ func DeleteVehicle(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Vehicle deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Vehicle deleted successfully", "id": id})
+}
+
+// GetSellerListings retrieves all vehicle listings owned by the authenticated seller or dealer
+func GetSellerListings(c *gin.Context) {
+	userID := c.GetString("userID")
+	db := config.GetDB()
+
+	cleanUserID := strings.TrimPrefix(userID, "usr-")
+	sellerIDs := []string{userID}
+	if cleanUserID != "" && cleanUserID != userID {
+		sellerIDs = append(sellerIDs, cleanUserID)
+	}
+
+	// Check if user owns any dealer shop profiles
+	var dealer models.DealerShop
+	if err := db.Where("user_id = ? OR id = ?", userID, userID).First(&dealer).Error; err == nil {
+		sellerIDs = append(sellerIDs, dealer.ID)
+	}
+
+	var vehicles []models.Vehicle
+	if err := db.Where("seller_id IN ?", sellerIDs).Order("created_at desc").Find(&vehicles).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch seller listings: " + err.Error()})
+		return
+	}
+
+	for i := range vehicles {
+		vehicles[i].SellerPhone = MaskPhone(vehicles[i].SellerPhone)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"count": len(vehicles), "data": vehicles})
 }

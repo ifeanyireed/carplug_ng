@@ -128,6 +128,14 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 			vehicles.DELETE("/:id", authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"), controllers.DeleteVehicle)
 		}
 
+		// Seller Listings (Dedicated portfolio management for private sellers and dealers)
+		sellerListings := api.Group("/seller/listings")
+		sellerListings.Use(authMiddleware, middleware.RequireRoles("seller", "dealer", "admin"))
+		{
+			sellerListings.GET("", controllers.GetSellerListings)
+			sellerListings.DELETE("/:id", controllers.DeleteVehicle)
+		}
+
 		// Algorithmic Valuation & Price Intelligence
 		valuation := api.Group("/valuation")
 		{

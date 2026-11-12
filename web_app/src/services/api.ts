@@ -946,7 +946,55 @@ export async function deleteVehicle(id: string): Promise<boolean> {
     method: "DELETE",
     headers: { ...getAuthHeaders() },
   });
-  return res.ok;
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const message = errorData.error || errorData.message || `Failed to delete vehicle (${res.status})`;
+    throw new Error(formatFriendlyErrorMessage(message));
+  }
+  return true;
+}
+
+/**
+ * Deletes a seller vehicle listing via dedicated seller endpoint with /vehicles fallback.
+ */
+export async function deleteSellerListing(id: string): Promise<boolean> {
+  let res = await fetch(`${API_BASE_URL}/seller/listings/${id}`, {
+    method: "DELETE",
+    headers: { ...getAuthHeaders() },
+  });
+
+  if (res.status === 404) {
+    res = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
+      method: "DELETE",
+      headers: { ...getAuthHeaders() },
+    });
+  }
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const message = errorData.error || errorData.message || `Failed to delete listing (${res.status})`;
+    throw new Error(formatFriendlyErrorMessage(message));
+  }
+  return true;
+}
+
+/**
+ * Fetches listings belonging to the authenticated seller or dealer.
+ */
+export async function fetchSellerListings(): Promise<Vehicle[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/seller/listings`, {
+      headers: { ...getAuthHeaders() },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.data || []);
+      return list.map(adaptVehicle);
+    }
+  } catch (err) {
+    console.warn("fetchSellerListings dedicated route unreachable, falling back:", err);
+  }
+  return fetchVehicles();
 }
 
 /**

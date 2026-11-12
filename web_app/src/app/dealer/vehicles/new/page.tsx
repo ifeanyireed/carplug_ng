@@ -24,6 +24,15 @@ import {
   Trash2,
 } from "lucide-react";
 
+function generateProvisionalVin(make?: string | null): string {
+  const isToyota = make?.toLowerCase().includes("toyota");
+  const prefix = isToyota ? "2T2BZMCA" : "WDC25398";
+  const yearCode = "M";
+  const plantCode = isToyota ? "9" : "F";
+  const randomSerial = String(Math.floor(1000000 + Math.random() * 9000000));
+  return `${prefix}${yearCode}${plantCode}${randomSerial}`.slice(0, 17);
+}
+
 function AddVehicleWizardContent() {
   const { user, upgradeRole } = useAuth();
   const searchParams = useSearchParams();
@@ -105,7 +114,7 @@ function AddVehicleWizardContent() {
       engineSize: qMake?.toLowerCase().includes("toyota") ? "3.5L V6 DOHC" : "2.0L Turbo Inline-4",
       fuelType: "Petrol",
       // Step 5: Customs & Docs
-      vin: qVin || (qMake?.toLowerCase().includes("toyota") ? "2T2BZMCA9JC108421" : "WDC2539841F901823"),
+      vin: qVin ? qVin.toUpperCase() : generateProvisionalVin(qMake),
       customsCleared: true,
       originalReceipt: true,
       customsDocUrl: "",
@@ -838,16 +847,44 @@ function AddVehicleWizardContent() {
                       </span>
                     )}
                   </div>
+
+                  {publishError && publishError.toLowerCase().includes("vin") && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-rose-900">Duplicate VIN Registered</p>
+                          <p className="text-[11px] text-rose-800 leading-relaxed mt-0.5">
+                            {publishError}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, vin: generateProvisionalVin(formData.make) });
+                          setPublishError(null);
+                        }}
+                        className="px-2.5 py-1 bg-white hover:bg-rose-100/70 border border-rose-300 text-rose-900 font-bold text-[10px] rounded-lg shrink-0 transition cursor-pointer self-start sm:self-auto"
+                      >
+                        Generate Unique Demo VIN
+                      </button>
+                    </div>
+                  )}
+
                   <input
                     type="text"
                     maxLength={17}
                     value={formData.vin}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (publishError?.toLowerCase().includes("vin")) {
+                        setPublishError(null);
+                      }
                       setFormData({
                         ...formData,
                         vin: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 17),
-                      })
-                    }
+                      });
+                    }}
                     placeholder="e.g. 2T2BZMCA9JC108421"
                     className="w-full px-3.5 py-2.5 font-mono tracking-wider uppercase bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-neutral-900 focus:bg-white focus:outline-none focus:border-neutral-900"
                   />
@@ -1139,10 +1176,46 @@ function AddVehicleWizardContent() {
                 )}
 
                 {publishError && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{publishError}</span>
-                  </div>
+                  publishError.toLowerCase().includes("vin") ? (
+                    <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <h4 className="font-bold text-sm text-rose-900">Duplicate Vehicle Identification Number (VIN)</h4>
+                          <p className="text-xs text-rose-800 leading-relaxed">
+                            {publishError}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-rose-200/60">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStep(5)}
+                          className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <span>Go to Step 5: Edit VIN</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, vin: generateProvisionalVin(formData.make) });
+                            setPublishError(null);
+                          }}
+                          className="px-3.5 py-1.5 bg-white border border-rose-200 hover:bg-rose-100 text-rose-800 rounded-xl text-xs font-semibold transition cursor-pointer"
+                        >
+                          Generate Fresh Unique VIN
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-semibold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                      <span>{publishError}</span>
+                    </div>
+                  )
                 )}
 
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs space-y-2">

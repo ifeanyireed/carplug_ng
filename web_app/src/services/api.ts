@@ -154,13 +154,50 @@ export function getAuthHeaders(): Record<string, string> {
 export class ApiError extends Error {
   code?: string;
   status?: number;
+  field?: string;
 
-  constructor(message: string, code?: string, status?: number) {
+  constructor(message: string, code?: string, status?: number, field?: string) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+    this.field = field;
   }
+}
+
+/**
+ * Sanitizes technical database/PostgreSQL driver errors into clear, human-readable English.
+ */
+export function formatFriendlyErrorMessage(rawMessage: string): string {
+  if (!rawMessage) return "An unexpected error occurred. Please try again.";
+
+  const lower = rawMessage.toLowerCase();
+
+  // Duplicate VIN constraint
+  if (
+    lower.includes("idx_vehicles_vin") ||
+    (lower.includes("23505") && lower.includes("vin")) ||
+    (lower.includes("duplicate key") && lower.includes("vin"))
+  ) {
+    return "A vehicle with this 17-digit VIN (Vehicle Identification Number) is already registered on the marketplace. Each vehicle listing requires a unique VIN to prevent duplicate inventory.";
+  }
+
+  // General SQL duplicate key error
+  if (lower.includes("23505") || lower.includes("duplicate key")) {
+    return "A record with these details or identifier already exists. Please verify your entries and try again.";
+  }
+
+  // Foreign key constraint
+  if (lower.includes("23503") || lower.includes("foreign key")) {
+    return "The referenced record could not be found. Please refresh and try again.";
+  }
+
+  // Connection or network timeouts
+  if (lower.includes("connection refused") || lower.includes("connection reset") || lower.includes("timeout")) {
+    return "Network connection to the database timed out. Please check your internet connection and try again.";
+  }
+
+  return rawMessage;
 }
 
 export async function parseApiError(
@@ -168,8 +205,9 @@ export async function parseApiError(
   fallbackMessage: string
 ): Promise<ApiError> {
   const err = await res.json().catch(() => ({}));
-  const message = err.error || err.message || fallbackMessage;
-  return new ApiError(message, err.code, res.status);
+  let message = err.error || err.message || fallbackMessage;
+  message = formatFriendlyErrorMessage(message);
+  return new ApiError(message, err.code, res.status, err.field);
 }
 
 /**

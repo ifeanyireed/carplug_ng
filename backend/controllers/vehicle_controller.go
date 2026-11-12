@@ -331,6 +331,12 @@ func CreateVehicle(c *gin.Context) {
 		}
 	}
 
+	cleanVIN := strings.ToUpper(strings.TrimSpace(req.VIN))
+	if cleanVIN == "" {
+		// Assign a unique provisional VIN to satisfy database uniqueness if not yet provided
+		cleanVIN = fmt.Sprintf("CP-PENDING-%d", time.Now().UnixNano())
+	}
+
 	vehicle := models.Vehicle{
 		ID:                 req.ID,
 		Title:              req.Title,
@@ -344,7 +350,7 @@ func CreateVehicle(c *gin.Context) {
 		Transmission:       req.Transmission,
 		FuelType:           req.FuelType,
 		EngineSize:         req.EngineSize,
-		VIN:                req.VIN,
+		VIN:                cleanVIN,
 		Price:              req.Price,
 		MarketPriceMin:     req.MarketPriceMin,
 		MarketPriceMax:     req.MarketPriceMax,
@@ -499,12 +505,60 @@ func CreateVehicle(c *gin.Context) {
 		}
 	}
 
+	// Ensure unique VIN before insertion to prevent duplicate listing collisions
+	if cleanVIN != "" && !strings.HasPrefix(cleanVIN, "CP-PENDING-") {
+		var duplicate models.Vehicle
+		if err := db.Select("id, title").Where("UPPER(vin) = ?", cleanVIN).First(&duplicate).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": fmt.Sprintf("A vehicle with VIN '%s' is already registered on the marketplace (%s). Each listing must have a unique 17-digit VIN to prevent duplicate inventory.", cleanVIN, duplicate.Title),
+				"code":  "DUPLICATE_VIN",
+				"field": "vin",
+				"existingVehicleId": duplicate.ID,
+				"existingVehicleTitle": duplicate.Title,
+			})
+			return
+		}
+	}
+
 	if err := db.Create(&vehicle).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vehicle: " + err.Error()})
+		status, res := formatVehicleDBError(err, "create", cleanVIN)
+		c.JSON(status, res)
 		return
 	}
 
 	c.JSON(http.StatusCreated, vehicle)
+}
+
+// formatVehicleDBError intercepts database errors (e.g. Postgres unique constraints) and formats them into clean, human-readable feedback.
+func formatVehicleDBError(err error, action string, vin string) (int, gin.H) {
+	errStr := err.Error()
+	lower := strings.ToLower(errStr)
+
+	if strings.Contains(errStr, "idx_vehicles_vin") ||
+		(strings.Contains(errStr, "23505") && strings.Contains(lower, "vin")) ||
+		(strings.Contains(lower, "duplicate key") && strings.Contains(lower, "vin")) {
+		vinText := "A vehicle with this 17-digit VIN (Vehicle Identification Number) is already registered on the marketplace."
+		if vin != "" && !strings.HasPrefix(vin, "CP-PENDING-") {
+			vinText = fmt.Sprintf("A vehicle with VIN '%s' is already registered on the marketplace.", vin)
+		}
+		return http.StatusConflict, gin.H{
+			"error": vinText + " Each vehicle requires a unique 17-digit VIN to prevent duplicate listings.",
+			"code":  "DUPLICATE_VIN",
+			"field": "vin",
+		}
+	}
+
+	if strings.Contains(errStr, "23505") || strings.Contains(lower, "duplicate key") {
+		return http.StatusConflict, gin.H{
+			"error": "A vehicle listing with this unique identifier already exists. Please verify your details and try again.",
+			"code":  "DUPLICATE_ENTRY",
+		}
+	}
+
+	return http.StatusInternalServerError, gin.H{
+		"error": fmt.Sprintf("Unable to %s vehicle listing. Please check your information and try again.", action),
+		"code":  "DATABASE_ERROR",
+	}
 }
 
 func UpdateVehicle(c *gin.Context) {
@@ -550,8 +604,29 @@ func UpdateVehicle(c *gin.Context) {
 		delete(updates, "seller_type")
 	}
 
+	// Validate VIN uniqueness on update
+	if vinVal, exists := updates["vin"]; exists {
+		if vinStr, ok := vinVal.(string); ok {
+			cleanVIN := strings.ToUpper(strings.TrimSpace(vinStr))
+			updates["vin"] = cleanVIN
+			if cleanVIN != "" && cleanVIN != existing.VIN && !strings.HasPrefix(cleanVIN, "CP-PENDING-") {
+				var duplicate models.Vehicle
+				if err := db.Select("id, title").Where("UPPER(vin) = ? AND id != ?", cleanVIN, existing.ID).First(&duplicate).Error; err == nil {
+					c.JSON(http.StatusConflict, gin.H{
+						"error": fmt.Sprintf("A vehicle with VIN '%s' is already registered on the marketplace (%s). Each listing must have a unique 17-digit VIN.", cleanVIN, duplicate.Title),
+						"code":  "DUPLICATE_VIN",
+						"field": "vin",
+						"existingVehicleId": duplicate.ID,
+					})
+					return
+				}
+			}
+		}
+	}
+
 	if err := db.Model(&existing).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vehicle: " + err.Error()})
+		status, res := formatVehicleDBError(err, "update", existing.VIN)
+		c.JSON(status, res)
 		return
 	}
 
